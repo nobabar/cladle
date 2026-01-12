@@ -1,5 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  // SSG configuration - Static Site Generation for MVP
+  ssr: false,
+
   modules: [
     "@nuxt/eslint",
     "@nuxt/ui",
