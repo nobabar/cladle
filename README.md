@@ -1,6 +1,7 @@
 # cladle
 
-A web-based phylogenetic guessing game where players guess animals and see evolutionary relationships visualized in a phylogenetic tree.
+A web-based phylogenetic guessing game where players guess animals and see evolutionary
+relationships visualized in a phylogenetic tree.
 
 ## Project Status
 
