@@ -77,7 +77,7 @@ For manual deployments or local testing:
    ```bash
    # Deploy to preview
    vercel
-   
+
    # Deploy to production
    vercel --prod
    ```
@@ -139,7 +139,7 @@ export default defineNuxtConfig({
   // SSG configuration - Static Site Generation for MVP
   ssr: false,
   // ... other config
-})
+});
 ```
 
 ### Vercel Configuration
@@ -290,7 +290,7 @@ If you need server-side rendering in the future:
    export default defineNuxtConfig({
      ssr: true, // or remove this line (SSR is default)
      // ... other config
-   })
+   });
    ```
 
 2. **Update Vercel Configuration:**
