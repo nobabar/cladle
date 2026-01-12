@@ -70,11 +70,95 @@ pnpm preview
 
 ## Project Structure
 
-This project follows Nuxt conventions (Nuxt 4):
+This project follows Nuxt 4 conventions with a structured organization:
 
-- `app/` - Application code (components, pages, composables)
-- `public/` - Static assets
-- `server/` - Server API routes (for post-MVP features)
+```
+cladle/
+├── app/
+│   ├── components/
+│   │   ├── game/        # Game-specific components (tree visualization, animal search, etc.)
+│   │   └── ui/          # Reusable UI components (custom components if needed)
+│   ├── composables/     # Auto-imported composables (useAnimalData, useGameState, etc.)
+│   ├── stores/          # Pinia stores (gameStore, animalDataStore)
+│   ├── utils/           # Utility functions (lcaCalculator, taxonomyNormalizer, etc.)
+│   ├── services/        # API and service layers (apiClient, cacheService)
+│   ├── types/           # TypeScript type definitions (animal, clade, game, api, tree)
+│   ├── pages/           # Nuxt pages (auto-routing)
+│   └── app.vue          # Root application component
+├── tests/               # All tests (separate from source)
+│   ├── components/      # Component tests
+│   ├── composables/     # Composable tests
+│   ├── stores/          # Store tests
+│   ├── utils/           # Utility tests
+│   └── __mocks__/       # Test mocks and fixtures
+├── public/              # Static assets
+└── server/              # Server API routes (for post-MVP features)
+```
+
+### Directory Purpose
+
+- **components/game/**: Game-specific Vue components (feature-based organization)
+- **components/ui/**: Reusable UI components (most provided by Nuxt UI)
+- **composables/**: Auto-imported composables following Nuxt 3 conventions
+- **stores/**: Pinia stores with auto-import support via Pinia module
+- **utils/**: Utility functions (auto-importable)
+- **services/**: API clients and service layer logic
+- **types/**: Shared TypeScript type definitions
+- **tests/**: All test files mirroring source structure
+
+### Auto-Imports
+
+Nuxt 4 automatically imports:
+- **Components** from `components/` directory
+- **Composables** from `composables/` directory
+- **Utilities** from `utils/` directory (if configured)
+- **Stores** from `stores/` directory (via Pinia module)
+
+No explicit imports needed for these items in your code!
+
+## Coding Conventions
+
+### Naming Conventions
+
+This project follows strict naming conventions for consistency:
+
+#### Components
+- **Format:** kebab-case with `.vue` extension
+- **Examples:** `tree-visualization.vue`, `animal-search.vue`, `information-panel.vue`
+- **Usage:** Auto-imported, use in templates as `<TreeVisualization />` or `<tree-visualization />`
+
+#### Composables
+- **Format:** camelCase with `use` prefix and `.ts` extension
+- **Examples:** `useAnimalData.ts`, `useGameState.ts`, `useTreeLayout.ts`
+- **Usage:** Auto-imported, use in components as `const { data } = useAnimalData()`
+
+#### Pinia Stores
+- **Format:** camelCase with `Store` suffix and `.ts` extension
+- **Examples:** `gameStore.ts`, `animalDataStore.ts`
+- **Usage:** Auto-imported via Pinia module, use as `const gameStore = useGameStore()`
+
+#### Utilities
+- **Format:** camelCase with `.ts` extension
+- **Examples:** `lcaCalculator.ts`, `taxonomyNormalizer.ts`, `dateUtils.ts`
+- **Usage:** Auto-imported (if configured), export named functions
+
+#### Services
+- **Format:** camelCase with `.ts` extension
+- **Examples:** `apiClient.ts`, `cacheService.ts`
+- **Usage:** Import explicitly when needed
+
+#### Types
+- **Format:** camelCase with `.ts` extension
+- **Examples:** `animal.ts`, `clade.ts`, `game.ts`, `api.ts`, `tree.ts`
+- **Usage:** Import types explicitly: `import type { Animal } from '~/types/animal'`
+
+### File Organization Principles
+
+1. **Feature-based for components**: Group game components by feature in `components/game/`
+2. **Flat structure for composables**: No unnecessary nesting in `composables/`
+3. **One store per domain**: Separate stores for different concerns
+4. **Service layer separation**: Keep API and service logic in `services/`
+5. **Tests mirror source**: Test files in `tests/` follow same structure as source
 
 ## License
 
