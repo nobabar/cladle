@@ -54,6 +54,42 @@ Run ESLint:
 pnpm lint
 ```
 
+Fix linting issues automatically:
+
+```bash
+pnpm lint:fix
+```
+
+### Pre-Commit Hooks
+
+This project uses [Husky](https://typicode.github.io/husky/) and [lint-staged](https://github.com/lint-staged/lint-staged) to automatically check code quality before commits.
+
+**What runs on commit:**
+- ESLint with auto-fix on staged `.js`, `.ts`, `.vue` files
+- TypeScript type checking on the whole project
+
+**Hooks are automatically installed when you run `pnpm install` via the `prepare` script.**
+
+**Bypassing hooks (emergencies only):**
+
+```bash
+git commit --no-verify -m "your message"
+```
+
+**⚠️ Note:** Only bypass hooks when absolutely necessary. The checks help maintain code quality.
+
+**Troubleshooting:**
+
+If hooks aren't working after cloning:
+```bash
+pnpm install  # Reinstalls hooks via prepare script
+```
+
+If you need to manually reinstall hooks:
+```bash
+pnpm exec husky install
+```
+
 ### Production Build
 
 Build the application for production:
