@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iNaturalist API POC - Phylogenetic Tree Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 2rem;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-size: 2rem;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 1rem;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .trees-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .tree-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            border: 2px solid #e9ecef;
+        }
+        
+        .tree-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .tree {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        
+        .tree-node {
+            padding: 0.25rem 0;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-radius: 4px;
+            padding-left: 0.5rem;
+        }
+        
+        .tree-node:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .clade {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .species {
+            color: #2d3748;
+            font-style: italic;
+        }
+        
+        .target {
+            color: #e53e3e;
+            font-weight: 700;
+        }
+        
+        .rank-badge {
+            display: inline-block;
+            background: #e9ecef;
+            padding: 0.125rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .info-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 2rem;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .info-panel.active {
+            display: block;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+        }
+        
+        .overlay.active {
+            display: block;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: #e9ecef;
+            color: #495057;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.25rem;
+            line-height: 1;
+            padding: 0;
+        }
+        
+        .close-btn:hover {
+            background: #dee2e6;
+            transform: none;
+        }
+        
+        .info-image {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .info-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        
+        .info-scientific {
+            font-style: italic;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+        
+        .info-description {
+            color: #495057;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+        
+        .info-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .stat {
+            background: #f8f9fa;
+            padding: 0.75rem;
+            border-radius: 6px;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-value {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .error {
+            background: #fff5f5;
+            border: 2px solid #fc8181;
+            color: #c53030;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+        }
+        
+        .legend {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+        
+        .legend-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0.25rem 0;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌿 iNaturalist API - Phylogenetic Tree POC</h1>
+        <p class="subtitle">Demonstrating iNaturalist's capability to build phylogenetic trees for Cladle game</p>
+        
+        <div class="controls">
+            <button onclick="loadExample1()" id="btn1">Load Example 1: Tiger → Cat Tree</button>
+            <button onclick="loadExample2()" id="btn2">Load Example 2: Penguin → Eagle Tree</button>
+            <button onclick="loadBoth()" id="btn3">Load Both Trees</button>
+        </div>
+        
+        <div id="loading" class="loading" style="display: none;">
+            🔄 Loading data from iNaturalist API...
+        </div>
+        
+        <div id="error" class="error" style="display: none;"></div>
+        
+        <div id="trees" class="trees-container"></div>
+        
+        <div class="legend">
+            <div class="legend-title">How to use:</div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #667eea;"></div>
+                <span><strong>Blue text</strong> = Clades (click to see info)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #2d3748;"></div>
+                <span><strong>Black italic</strong> = Species (click to see photos and info)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #e53e3e;"></div>
+                <span><strong>Red bold</strong> = Target animal (would be hidden in game)</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="overlay" id="overlay" onclick="closeInfo()"></div>
+    <div class="info-panel" id="infoPanel">
+        <button class="close-btn" onclick="closeInfo()">×</button>
+        <div id="infoPanelContent"></div>
+    </div>
+    
+    <script>
+        // iNaturalist API base URL
+        const API_BASE = 'https://api.inaturalist.org/v1';
+        
+        // Cache for API responses
+        const cache = new Map();
+        
+        // Helper function to fetch with caching
+        async function fetchWithCache(url) {
+            if (cache.has(url)) {
+                return cache.get(url);
+            }
+            
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            cache.set(url, data);
+            return data;
+        }
+        
+        // Fetch taxon by name
+        async function fetchTaxon(name) {
+            const url = `${API_BASE}/taxa?q=${encodeURIComponent(name)}&rank=species,genus,family,order,class,phylum,kingdom`;
+            const data = await fetchWithCache(url);
+            return data.results[0];
+        }
+        
+        // Fetch full ancestry for a taxon
+        async function fetchAncestry(taxonId) {
+            const url = `${API_BASE}/taxa/${taxonId}`;
+            const data = await fetchWithCache(url);
+            return data.results[0];
+        }
+        
+        // Find common ancestor between two lineages
+        function findCommonAncestor(lineage1, lineage2) {
+            // Build maps for quick lookup
+            const lineage1Map = new Map(lineage1.map(taxon => [taxon.id, taxon]));
+            
+            // Find first common ancestor
+            for (const taxon of lineage2) {
+                if (lineage1Map.has(taxon.id)) {
+                    return taxon;
+                }
+            }
+            
+            return null;
+        }
+        
+        // Build tree structure from target to guesses
+        function buildTree(target, guesses) {
+            const targetLineage = target.ancestors.concat([target]);
+            const tree = {
+                root: targetLineage[0], // Kingdom level
+                paths: []
+            };
+            
+            // Add target path
+            tree.paths.push({
+                type: 'target',
+                lineage: targetLineage,
+                taxon: target
+            });
+            
+            // Add guess paths
+            for (const guess of guesses) {
+                const guessLineage = guess.ancestors.concat([guess]);
+                const lca = findCommonAncestor(targetLineage, guessLineage);
+                
+                tree.paths.push({
+                    type: 'guess',
+                    lineage: guessLineage,
+                    taxon: guess,
+                    lca: lca
+                });
+            }
+            
+            return tree;
+        }
+        
+        // Render tree to HTML
+        function renderTree(tree, title) {
+            const container = document.createElement('div');
+            container.className = 'tree-card';
+            
+            const titleEl = document.createElement('div');
+            titleEl.className = 'tree-title';
+            titleEl.textContent = title;
+            container.appendChild(titleEl);
+            
+            const treeEl = document.createElement('div');
+            treeEl.className = 'tree';
+            
+            // Find deepest common level
+            const allTaxa = new Map();
+            tree.paths.forEach(path => {
+                path.lineage.forEach(taxon => {
+                    if (!allTaxa.has(taxon.id)) {
+                        allTaxa.set(taxon.id, taxon);
+                    }
+                });
+            });
+            
+            // Get unique levels
+            const levels = Array.from(allTaxa.values())
+                .sort((a, b) => (a.rank_level || 0) - (b.rank_level || 0));
+            
+            // Render root
+            const root = tree.root;
+            treeEl.appendChild(createNode(root, 0, true));
+            
+            // Render each path
+            tree.paths.forEach((path, pathIndex) => {
+                const isTarget = path.type === 'target';
+                const startLevel = 1; // Skip root (already rendered)
+                
+                for (let i = startLevel; i < path.lineage.length; i++) {
+                    const taxon = path.lineage[i];
+                    const isLeaf = i === path.lineage.length - 1;
+                    const isLCA = path.lca && taxon.id === path.lca.id;
+                    
+                    treeEl.appendChild(createNode(taxon, i, isLeaf, isTarget, isLCA));
+                }
+                
+                // Add spacing between paths
+                if (pathIndex < tree.paths.length - 1) {
+                    const spacer = document.createElement('div');
+                    spacer.style.height = '0.5rem';
+                    treeEl.appendChild(spacer);
+                }
+            });
+            
+            container.appendChild(treeEl);
+            return container;
+        }
+        
+        // Create a tree node element
+        function createNode(taxon, level, isLeaf, isTarget = false, isLCA = false) {
+            const node = document.createElement('div');
+            node.className = 'tree-node';
+            
+            const indent = '│  '.repeat(level);
+            const branch = isLeaf ? '└─ ' : '├─ ';
+            const prefix = level > 0 ? indent + branch : '';
+            
+            let className = 'clade';
+            if (isLeaf) {
+                className = isTarget ? 'target' : 'species';
+            }
+            
+            const rankBadge = taxon.rank ? `<span class="rank-badge">${taxon.rank}</span>` : '';
+            const lcaBadge = isLCA ? '<span class="rank-badge" style="background: #ffd700; color: #744210;">LCA</span>' : '';
+            
+            node.innerHTML = `${prefix}<span class="${className}">${taxon.name}</span>${rankBadge}${lcaBadge}`;
+            
+            // Add click handler
+            node.onclick = (e) => {
+                e.stopPropagation();
+                showInfo(taxon);
+            };
+            
+            return node;
+        }
+        
+        // Show taxon info panel
+        async function showInfo(taxon) {
+            const panel = document.getElementById('infoPanel');
+            const overlay = document.getElementById('overlay');
+            const content = document.getElementById('infoPanelContent');
+            
+            // Show loading state
+            content.innerHTML = '<div class="loading">Loading...</div>';
+            panel.classList.add('active');
+            overlay.classList.add('active');
+            
+            try {
+                // Fetch full taxon details
+                const details = await fetchAncestry(taxon.id);
+                
+                // Get photo
+                const photoUrl = details.default_photo 
+                    ? details.default_photo.medium_url 
+                    : 'https://via.placeholder.com/600x300?text=No+Image+Available';
+                
+                // Get Wikipedia summary if available
+                const description = details.wikipedia_summary || details.wikipedia_url 
+                    ? `<p>${details.wikipedia_summary || 'No description available. <a href="' + details.wikipedia_url + '" target="_blank">View on Wikipedia</a>'}</p>`
+                    : '<p>No description available.</p>';
+                
+                content.innerHTML = `
+                    <img src="${photoUrl}" alt="${details.name}" class="info-image" />
+                    <h2 class="info-title">${details.preferred_common_name || details.name}</h2>
+                    <div class="info-scientific">${details.name}</div>
+                    <div class="info-description">${description}</div>
+                    <div class="info-stats">
+                        <div class="stat">
+                            <div class="stat-label">Rank</div>
+                            <div class="stat-value">${details.rank || 'Unknown'}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Observations</div>
+                            <div class="stat-value">${details.observations_count?.toLocaleString() || '0'}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">iNaturalist ID</div>
+                            <div class="stat-value">${details.id}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Taxonomic Rank Level</div>
+                            <div class="stat-value">${details.rank_level || 'N/A'}</div>
+                        </div>
+                    </div>
+                    ${details.wikipedia_url ? `<p style="margin-top: 1rem;"><a href="${details.wikipedia_url}" target="_blank" style="color: #667eea;">View on Wikipedia →</a></p>` : ''}
+                    <p style="margin-top: 1rem;"><a href="https://www.inaturalist.org/taxa/${details.id}" target="_blank" style="color: #667eea;">View on iNaturalist →</a></p>
+                `;
+            } catch (error) {
+                content.innerHTML = `<div class="error">Error loading taxon info: ${error.message}</div>`;
+            }
+        }
+        
+        // Close info panel
+        function closeInfo() {
+            document.getElementById('infoPanel').classList.remove('active');
+            document.getElementById('overlay').classList.remove('active');
+        }
+        
+        // Show loading state
+        function showLoading(show = true) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+            document.querySelectorAll('button').forEach(btn => btn.disabled = show);
+        }
+        
+        // Show error
+        function showError(message) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            setTimeout(() => {
+                errorEl.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Example 1: Cats (Tiger as target, Cat as guess)
+        async function loadExample1() {
+            showLoading(true);
+            try {
+                const target = await fetchTaxon('Panthera tigris'); // Tiger
+                const targetFull = await fetchAncestry(target.id);
+                
+                const guess1 = await fetchTaxon('Felis catus'); // Domestic cat
+                const guess1Full = await fetchAncestry(guess1.id);
+                
+                const tree = buildTree(targetFull, [guess1Full]);
+                
+                const treesContainer = document.getElementById('trees');
+                treesContainer.innerHTML = '';
+                treesContainer.appendChild(renderTree(tree, 'Example 1: Finding Tiger (guessed Cat)'));
+                
+            } catch (error) {
+                showError('Error loading Example 1: ' + error.message);
+                console.error(error);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Example 2: Birds (Eagle as target, Penguin as guess)
+        async function loadExample2() {
+            showLoading(true);
+            try {
+                const target = await fetchTaxon('Haliaeetus leucocephalus'); // Bald Eagle
+                const targetFull = await fetchAncestry(target.id);
+                
+                const guess1 = await fetchTaxon('Aptenodytes forsteri'); // Emperor Penguin
+                const guess1Full = await fetchAncestry(guess1.id);
+                
+                const tree = buildTree(targetFull, [guess1Full]);
+                
+                const treesContainer = document.getElementById('trees');
+                treesContainer.innerHTML = '';
+                treesContainer.appendChild(renderTree(tree, 'Example 2: Finding Bald Eagle (guessed Emperor Penguin)'));
+                
+            } catch (error) {
+                showError('Error loading Example 2: ' + error.message);
+                console.error(error);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Load both examples
+        async function loadBoth() {
+            showLoading(true);
+            try {
+                // Load example 1
+                const target1 = await fetchTaxon('Panthera tigris');
+                const target1Full = await fetchAncestry(target1.id);
+                const guess1 = await fetchTaxon('Felis catus');
+                const guess1Full = await fetchAncestry(guess1.id);
+                const tree1 = buildTree(target1Full, [guess1Full]);
+                
+                // Load example 2
+                const target2 = await fetchTaxon('Haliaeetus leucocephalus');
+                const target2Full = await fetchAncestry(target2.id);
+                const guess2 = await fetchTaxon('Aptenodytes forsteri');
+                const guess2Full = await fetchAncestry(guess2.id);
+                const tree2 = buildTree(target2Full, [guess2Full]);
+                
+                const treesContainer = document.getElementById('trees');
+                treesContainer.innerHTML = '';
+                treesContainer.appendChild(renderTree(tree1, 'Example 1: Finding Tiger (guessed Cat)'));
+                treesContainer.appendChild(renderTree(tree2, 'Example 2: Finding Bald Eagle (guessed Penguin)'));
+                
+            } catch (error) {
+                showError('Error loading examples: ' + error.message);
+                console.error(error);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Auto-load both examples on page load
+        window.addEventListener('load', () => {
+            loadBoth();
+        });
+    </script>
+</body>
+</html>

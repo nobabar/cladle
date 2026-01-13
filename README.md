@@ -14,6 +14,7 @@ relationships visualized in a phylogenetic tree.
 - **Build Tool:** Vite
 - **UI Framework:** Nuxt UI
 - **Package Manager:** pnpm
+- **Data Source:** iNaturalist API (biological taxonomy, images, and descriptions)
 
 ## Development
 
@@ -104,6 +105,18 @@ Preview production build locally:
 pnpm preview
 ```
 
+## Proof of Concept Demos
+
+The `poc/` directory contains working proof-of-concept demos used to validate technical decisions:
+
+- **`poc/inaturalist-tree-demo.html`** - Interactive demo of iNaturalist API integration
+  - Demonstrates full taxonomic lineage retrieval
+  - Shows Last Common Ancestor (LCA) calculation
+  - Interactive tree visualization with clickable nodes
+  - Photos and educational descriptions
+
+See `poc/README.md` for more details.
+
 ## Project Structure
 
 This project follows Nuxt 4 conventions with a structured organization:
@@ -127,6 +140,7 @@ cladle/
 │   ├── stores/          # Store tests
 │   ├── utils/           # Utility tests
 │   └── __mocks__/       # Test mocks and fixtures
+├── poc/                 # Proof-of-concept demos (technical validation)
 ├── public/              # Static assets
 └── server/              # Server API routes (for post-MVP features)
 ```
