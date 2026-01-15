@@ -6,18 +6,20 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import type { BiologicalAPIClient } from "~/app/composables/useBiologicalAPI";
-import { useBiologicalAPI } from "~/app/composables/useBiologicalAPI";
-import type { Animal } from "~/app/types/animal";
-import type { ApiResponse } from "~/app/types/api";
-import type { Clade } from "~/app/types/clade";
+import type { BiologicalAPIClient } from "~/composables/useBiologicalAPI";
+import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
+import type { Animal } from "~/types/animal";
+import type { ApiResponse } from "~/types/api";
+import type { Clade } from "~/types/clade";
 
 describe("useBiologicalAPI", () => {
   describe("interface contract", () => {
-    it("should throw error when no implementation is provided (Story 2.3 not yet implemented)", () => {
-      expect(() => useBiologicalAPI()).toThrow(
-        /Default BiologicalAPI implementation not yet available/,
-      );
+    it("should return default implementation when no options provided", () => {
+      const api = useBiologicalAPI();
+
+      expect(api).toBeDefined();
+      expect(api.fetchAnimalData).toBeDefined();
+      expect(api.fetchCladeData).toBeDefined();
     });
 
     it("should accept custom implementation via options", () => {
