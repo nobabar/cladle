@@ -16,6 +16,7 @@
 import type { Animal } from "~/types/animal";
 import type { Clade } from "~/types/clade";
 import type { ApiResponse } from "~/types/api";
+import { apiClient as defaultApiClient } from "~/services/apiClient";
 
 /**
  * Biological API Client Interface
@@ -80,13 +81,14 @@ export interface BiologicalAPIOptions {
  *
  * Composable for accessing biological database APIs.
  * Provides a consistent interface for fetching animal and clade data.
+ * Default implementation uses iNaturalist API (services/apiClient.ts).
  *
  * @param options - Optional configuration options
  * @returns BiologicalAPIClient instance
  *
  * @example
  * ```typescript
- * // Use default implementation
+ * // Use default implementation (iNaturalist API)
  * const api = useBiologicalAPI();
  * const animal = await api.fetchAnimalData('12345');
  *
@@ -101,12 +103,6 @@ export function useBiologicalAPI(options?: BiologicalAPIOptions): BiologicalAPIC
     return options.implementation;
   }
 
-  // Default implementation will be imported from services/apiClient.ts
-  // For now, we throw an error to indicate that the concrete implementation
-  // needs to be created in Story 2.3
-  throw new Error(
-    "Default BiologicalAPI implementation not yet available. "
-    + "This will be implemented in Story 2.3. "
-    + "For now, provide a custom implementation via options.implementation",
-  );
+  // Return default implementation (iNaturalist API client)
+  return defaultApiClient;
 }
