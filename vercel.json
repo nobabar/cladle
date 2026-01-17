@@ -3,5 +3,23 @@
   "outputDirectory": ".output/public",
   "installCommand": "pnpm install",
   "framework": "nuxtjs",
-  "devCommand": "pnpm run dev"
+  "devCommand": "pnpm run dev",
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "dev": true,
+      "feature/*": false,
+      "release/*": false,
+      "hotfix/*": false
+    },
+    "previewBranches": [
+      "feature/*",
+      "release/*",
+      "hotfix/*"
+    ]
+  },
+  "github": {
+    "silent": true,
+    "autoJobCancelation": true
+  }
 }
