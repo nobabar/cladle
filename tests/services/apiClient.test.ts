@@ -12,8 +12,10 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import "fake-indexeddb/auto";
 import { createApiClient } from "~/services/apiClient";
 import type { BiologicalAPIClient } from "~/composables/useBiologicalAPI";
+import { cacheService } from "~/services/cacheService";
 
 // Mock globalThis fetch
 globalThis.fetch = vi.fn();
@@ -22,7 +24,10 @@ describe("api client", () => {
   let client: BiologicalAPIClient;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Initialize cache service BEFORE fake timers (IndexedDB doesn't work with fake timers)
+    await cacheService.init();
+
     // Reset mocks before each test
     vi.clearAllMocks();
     vi.useFakeTimers();
@@ -34,9 +39,18 @@ describe("api client", () => {
     client = createApiClient();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.restoreAllMocks();
     vi.useRealTimers();
+
+    // Clean up cache after timers are restored
+    try {
+      await cacheService.clear("animals");
+      await cacheService.clear("clades");
+      await cacheService.clear("lca");
+    } catch {
+      // Ignore cleanup errors
+    }
   });
 
   describe("fetchAnimalData", () => {
@@ -417,8 +431,8 @@ describe("api client", () => {
       await promise;
 
       // Assert - Verify exponential backoff: 1s, 2s
-      expect(callTimes[1] - callTimes[0]).toBe(1000);
-      expect(callTimes[2] - callTimes[1]).toBe(2000);
+      expect(callTimes[1]! - callTimes[0]!).toBe(1000);
+      expect(callTimes[2]! - callTimes[1]!).toBe(2000);
     });
   });
 
@@ -453,7 +467,7 @@ describe("api client", () => {
         json: async () => {
           throw new Error("Invalid JSON");
         },
-      } as Response);
+      } as Partial<Response> as Response);
 
       // Act
       const promise = client.fetchAnimalData("1");
@@ -619,6 +633,216 @@ describe("api client", () => {
       expect(result.error).not.toBeNull();
       expect(result.error).toHaveProperty("message");
       expect(result.error).toHaveProperty("code");
+    });
+  });
+
+  describe("caching integration", () => {
+    // Use real timers for caching tests (IndexedDB doesn't work with fake timers)
+    beforeEach(() => {
+      vi.useRealTimers();
+    });
+
+    afterEach(() => {
+      vi.useFakeTimers();
+    });
+
+    it("should return cached animal data on second request", async () => {
+      // Arrange
+      /* eslint-disable camelcase */
+      const mockResponse = {
+        results: [{
+          id: 42,
+          name: "Tiger",
+          preferred_common_name: "Tiger",
+          rank: "species",
+          ancestry: "48460/1/2/355675/40151/41066/41067/947378",
+        }],
+      };
+      /* eslint-enable camelcase */
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+      } as Response);
+
+      // Act - First request (cache miss)
+      const result1 = await client.fetchAnimalData("42");
+
+      // Second request (cache hit)
+      const result2 = await client.fetchAnimalData("42");
+
+      // Assert
+      expect(result1.data).toEqual(result2.data);
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1); // Only called once
+      expect(result2.data?.id).toBe("42");
+      expect(result2.data?.name).toBe("Tiger");
+    });
+
+    it("should return cached clade data on second request", async () => {
+      // Arrange
+      /* eslint-disable camelcase */
+      const mockResponse = {
+        results: [{
+          id: 40151,
+          name: "Mammalia",
+          rank: "class",
+          wikipedia_url: "https://en.wikipedia.org/wiki/Mammal",
+        }],
+      };
+      /* eslint-enable camelcase */
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+      } as Response);
+
+      // Act - First request (cache miss)
+      const result1 = await client.fetchCladeData("Mammalia");
+
+      // Second request (cache hit)
+      const result2 = await client.fetchCladeData("Mammalia");
+
+      // Assert
+      expect(result1.data).toEqual(result2.data);
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1); // Only called once
+      expect(result2.data?.name).toBe("Mammalia");
+    });
+
+    it("should not cache error responses", async () => {
+      // Arrange - API returns 404
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: "Not Found",
+      } as Response);
+
+      // Act - Make two requests with error response
+      const result1 = await client.fetchAnimalData("99999");
+      const result2 = await client.fetchAnimalData("99999");
+
+      // Assert - Both requests should hit API (errors not cached)
+      expect(result1.error).not.toBeNull();
+      expect(result2.error).not.toBeNull();
+      expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    it("should cache different animals separately", async () => {
+      // Arrange
+      const mockResponse1 = {
+        results: [{ id: 1, name: "Tiger", rank: "species" }],
+      };
+      const mockResponse2 = {
+        results: [{ id: 2, name: "Lion", rank: "species" }],
+      };
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockResponse1,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockResponse2,
+        } as Response);
+
+      // Act - Request two different animals
+      const result1 = await client.fetchAnimalData("1");
+      const result2 = await client.fetchAnimalData("2");
+
+      // Fetch again (should use cache)
+      const result1Cached = await client.fetchAnimalData("1");
+      const result2Cached = await client.fetchAnimalData("2");
+
+      // Assert
+      expect(result1.data?.name).toBe("Tiger");
+      expect(result2.data?.name).toBe("Lion");
+      expect(result1Cached.data?.name).toBe("Tiger");
+      expect(result2Cached.data?.name).toBe("Lion");
+      expect(globalThis.fetch).toHaveBeenCalledTimes(2); // Once per unique animal
+    });
+
+    it("should provide instant cached response (performance)", async () => {
+      // Arrange
+      const mockResponse = {
+        results: [{ id: 1, name: "Tiger", rank: "species" }],
+      };
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+      } as Response);
+
+      // Act - First request (cache miss)
+      await client.fetchAnimalData("1");
+
+      // Second request (cache hit) - measure time
+      const startTime = performance.now();
+      const result2 = await client.fetchAnimalData("1");
+      const endTime = performance.now();
+
+      // Assert
+      expect(result2.data).not.toBeNull();
+
+      // Cached response should be nearly instant (< 10ms)
+      const duration = endTime - startTime;
+      expect(duration).toBeLessThan(10);
+    });
+
+    it("should fetch from API if cache is cleared", async () => {
+      // Arrange
+      const mockResponse = {
+        results: [{ id: 1, name: "Tiger", rank: "species" }],
+      };
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+      } as Response);
+
+      // Act - First request (cache miss)
+      await client.fetchAnimalData("1");
+
+      // Clear cache
+      await cacheService.clear("animals");
+
+      // Second request (should fetch from API again)
+      await client.fetchAnimalData("1");
+
+      // Assert
+      expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    it("should work offline with cached data", async () => {
+      // Arrange
+      const mockResponse = {
+        results: [{ id: 1, name: "Tiger", rank: "species" }],
+      };
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+      } as Response);
+
+      // Act - First request (cache miss, online)
+      const result1 = await client.fetchAnimalData("1");
+
+      // Simulate offline - no fetch calls should happen
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockClear();
+
+      // Second request (cache hit, simulating offline)
+      const result2 = await client.fetchAnimalData("1");
+
+      // Assert
+      expect(result1.data).toEqual(result2.data);
+      expect(globalThis.fetch).not.toHaveBeenCalled(); // No network request
+      expect(result2.data?.name).toBe("Tiger");
     });
   });
 });
