@@ -7,6 +7,7 @@ export default defineNuxtConfig({
     "@nuxt/eslint",
     "@nuxt/ui",
     "@pinia/nuxt",
+    "@nuxt/test-utils/module",
   ],
 
   devtools: {
@@ -20,6 +21,10 @@ export default defineNuxtConfig({
   },
 
   compatibilityDate: "2025-01-15",
+
+  typescript: {
+    typeCheck: true,
+  },
 
   eslint: {
     config: {
