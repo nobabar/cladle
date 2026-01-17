@@ -16,6 +16,7 @@ import type { Animal } from "~/types/animal";
 import type { Clade } from "~/types/clade";
 import type { ApiError, ApiResponse } from "~/types/api";
 import type { BiologicalAPIClient } from "~/composables/useBiologicalAPI";
+import { CacheKeys, cacheService, TTL_VALUES } from "~/services/cacheService";
 
 /**
  * iNaturalist API Configuration
@@ -104,10 +105,20 @@ class INaturalistAPIClient implements BiologicalAPIClient {
 
   /**
    * Fetch animal data by ID
+   * Implements hybrid caching: checks IndexedDB cache first, then fetches from API
    * @param id - Unique identifier for the animal
    * @returns Promise resolving to ApiResponse with Animal data or error
    */
   async fetchAnimalData(id: string): Promise<ApiResponse<Animal>> {
+    const cacheKey = CacheKeys.animal(id);
+
+    // 1. Check cache first (instant load if available)
+    const cached = await cacheService.get<Animal>("animals", cacheKey);
+    if (cached) {
+      return { data: cached, error: null };
+    }
+
+    // 2. Cache miss - fetch from API
     const url = `${INATURALIST_BASE_URL}/taxa/${id}`;
 
     try {
@@ -131,6 +142,9 @@ class INaturalistAPIClient implements BiologicalAPIClient {
         );
       }
 
+      // 3. Cache the processed result
+      await cacheService.set("animals", cacheKey, animal, TTL_VALUES.ANIMAL);
+
       return { data: animal, error: null };
     } catch (error) {
       return this.handleError(error, url);
@@ -139,10 +153,20 @@ class INaturalistAPIClient implements BiologicalAPIClient {
 
   /**
    * Fetch clade data by name
+   * Implements hybrid caching: checks IndexedDB cache first, then fetches from API
    * @param name - Name of the clade to fetch
    * @returns Promise resolving to ApiResponse with Clade data or error
    */
   async fetchCladeData(name: string): Promise<ApiResponse<Clade>> {
+    const cacheKey = CacheKeys.clade(name);
+
+    // 1. Check cache first (instant load if available)
+    const cached = await cacheService.get<Clade>("clades", cacheKey);
+    if (cached) {
+      return { data: cached, error: null };
+    }
+
+    // 2. Cache miss - fetch from API
     const url = `${INATURALIST_BASE_URL}/taxa?q=${encodeURIComponent(name)}`;
 
     try {
@@ -165,6 +189,9 @@ class INaturalistAPIClient implements BiologicalAPIClient {
           "VALIDATION_ERROR",
         );
       }
+
+      // 3. Cache the processed result
+      await cacheService.set("clades", cacheKey, clade, TTL_VALUES.CLADE);
 
       return { data: clade, error: null };
     } catch (error) {
@@ -192,6 +219,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
 
         const response = await fetch(url, {
           signal: controller.signal,
+          cache: "default", // Use browser's HTTP cache
           headers: {
             Accept: "application/json",
           },
