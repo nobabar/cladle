@@ -301,6 +301,7 @@ describe("api client", () => {
   describe("retry logic with exponential backoff", () => {
     it("should retry on network error with exponential backoff", async () => {
       // Arrange - Fail twice, succeed third time
+      /* eslint-disable-next-line camelcase */
       const mockResponse = { results: [{ id: 1, name: "Test", preferred_common_name: "Test", rank: "species", ancestry: "1" }] };
 
       (globalThis.fetch as ReturnType<typeof vi.fn>)
