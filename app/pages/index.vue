@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import type { Animal } from "~/types/animal";
 import type { ValidationError } from "~/utils/animalValidator";
+import type { TreeData } from "~/types/tree";
 
 // Main game page - foundation for game interface
 // This page will be extended with game components in future stories
@@ -10,11 +11,17 @@ const selectedAnimal = ref<Animal | null>(null);
 // TODO: Replace with game store guess history (Story 3.6)
 const guessHistory = ref<Animal[]>([]);
 
+// Tree data for visualization
+// TODO: Replace with tree data from game store (Story 3.6)
+// TODO: Build tree from guesses using tree building logic (Story 3.4)
+const treeData = ref<TreeData | null>(null);
+
 function handleAnimalSelect(animal: Animal) {
   selectedAnimal.value = animal;
   // Add to guess history for duplicate prevention
   // TODO: Integrate with game store to add animal as guess (Story 3.6)
   guessHistory.value.push(animal);
+  // TODO: Update tree data when guess is made (Story 3.4)
 }
 
 function handleValidationError(error: ValidationError) {
@@ -49,6 +56,20 @@ function handleInput(_value: string) {
           @input="handleInput"
           @validation-error="handleValidationError"
         />
+      </div>
+
+      <!-- Phylogenetic Tree Visualization -->
+      <div class="max-w-6xl mx-auto mt-8 mb-8">
+        <h2 class="text-2xl font-semibold mb-4 text-center">
+          Phylogenetic Tree
+        </h2>
+        <div class="w-full h-[600px]">
+          <GameTreeVisualization
+            :tree-data="treeData"
+            :show-target="false"
+            class="w-full h-full"
+          />
+        </div>
       </div>
 
       <!-- Selected Animal Display (temporary for demonstration) -->
