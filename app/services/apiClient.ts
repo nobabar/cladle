@@ -179,6 +179,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
    * Search for animals by name
    * Searches iNaturalist API for animals matching the query
    * Filters for Metazoa (animals) only, excluding plants and other kingdoms
+   * Prioritizes common name matches but includes scientific name matches
    * @param query - Search query (animal name or scientific name)
    * @param limit - Maximum number of results to return (default: 20)
    * @returns Promise resolving to ApiResponse with array of Animal data or error
@@ -189,11 +190,14 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       return { data: [], error: null };
     }
 
+    const normalizedQuery = trimmedQuery.toLowerCase();
+
     // Metazoa (animals) taxon ID is 1 in iNaturalist
     // Using taxon_id=1 filters for all descendants of Metazoa (animals only)
+    // Using is_active=true filters for only active animals
     // Order by observations_count to get most popular animals first
     // Also filter by rank to get species/subspecies level results
-    const url = `${INATURALIST_BASE_URL}/taxa?q=${encodeURIComponent(trimmedQuery)}&taxon_id=1&rank=species,subspecies&per_page=${limit}&order_by=observations_count&order=desc`;
+    const url = `${INATURALIST_BASE_URL}/taxa?q=${encodeURIComponent(trimmedQuery)}&taxon_id=1&is_active=true&rank=species,subspecies&per_page=${limit}&order_by=observations_count&order=desc`;
 
     try {
       const response = await this.makeRequest<INaturalistResponse>(url);
@@ -213,7 +217,23 @@ class INaturalistAPIClient implements BiologicalAPIClient {
         }
       }
 
-      return { data: animals, error: null };
+      // Sort results to prioritize common name matches, then scientific name matches
+      // Common name matches come first, then scientific name matches
+      const sortedAnimals = animals.sort((a, b) => {
+        const aCommonMatch = a.name.toLowerCase().includes(normalizedQuery);
+        const bCommonMatch = b.name.toLowerCase().includes(normalizedQuery);
+
+        // Prioritize common name matches
+        if (aCommonMatch && !bCommonMatch) return -1;
+        if (!aCommonMatch && bCommonMatch) return 1;
+
+        // If both match common name or both match scientific name, maintain API order (by popularity)
+        // This preserves the observations_count ordering from the API
+        return 0;
+      });
+
+      // Return limited results after sorting
+      return { data: sortedAnimals.slice(0, limit), error: null };
     } catch (error) {
       // For search, return empty array on error rather than error response
       // This allows the UI to continue working even if API fails
@@ -430,12 +450,17 @@ class INaturalistAPIClient implements BiologicalAPIClient {
 
   /**
    * Map iNaturalist taxon to Animal
+   * Maps iNaturalist API response to our Animal type:
+   * - name: Uses preferred_common_name if available, otherwise falls back to scientific name
+   * - scientificName: Always uses the 'name' field from API (which is the scientific name)
    * @param taxon - iNaturalist taxon object
    * @returns Animal object with mapped fields
    */
   private mapToAnimal(taxon: INaturalistTaxon): Animal {
-    const name = taxon.preferred_common_name || taxon.name;
+    // API 'name' field is the scientific name
     const scientificName = taxon.name;
+    // API 'preferred_common_name' is the common name, fallback to scientific name if not available
+    const name = taxon.preferred_common_name || taxon.name;
     const taxonomy = this.parseTaxonomy(taxon.ancestry);
 
     return {

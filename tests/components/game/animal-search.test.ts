@@ -15,6 +15,46 @@ import type { Animal } from "~/types/animal";
 // This needs to be done before importing the component
 globalThis.defineShortcuts = vi.fn();
 
+// Mock the validation function
+vi.mock("~/utils/animalValidator", async () => {
+  const actual = await vi.importActual<typeof import("~/utils/animalValidator")>("~/utils/animalValidator");
+  return {
+    ...actual,
+    validateAnimalGuess: vi.fn(async (animalName: string, guessHistory: Animal[], _: any) => {
+      // Mock validation - always passes and returns the animal being validated
+      // Find animal by matching name (case-insensitive)
+      const normalizedName = animalName.toLowerCase().trim();
+      const foundAnimal = guessHistory.find(
+        a =>
+          a.name.toLowerCase() === normalizedName
+          || a.scientificName.toLowerCase() === normalizedName,
+      );
+
+      // If not in guess history, create a mock animal (for testing)
+      const animal = foundAnimal || {
+        id: "mock-id",
+        name: animalName,
+        scientificName: "Test species",
+        taxonomy: ["Animalia"],
+      };
+
+      return {
+        valid: true,
+        animal,
+      };
+    }),
+  };
+});
+
+// Mock the API composable
+vi.mock("~/composables/useBiologicalAPI", () => ({
+  useBiologicalAPI: vi.fn(() => ({
+    searchAnimals: vi.fn(async () => ({ data: [], error: null })),
+    fetchAnimalData: vi.fn(),
+    fetchCladeData: vi.fn(),
+  })),
+}));
+
 // Stub UInput component from Nuxt UI
 const UInputStub = {
   name: "UInput",
@@ -308,6 +348,7 @@ describe("animalSearch", () => {
       const wrapper = mountWithStubs(AnimalSearch, {
         props: {
           animals: mockAnimals,
+          guessHistory: [],
         },
       });
 
@@ -318,15 +359,21 @@ describe("animalSearch", () => {
       const suggestions = wrapper.find("[role=\"listbox\"]");
       const option = suggestions.find("[role=\"option\"]");
       await option.trigger("click");
+      // Wait for async validation to complete
+      await nextTick();
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       expect(wrapper.emitted("select")).toBeTruthy();
-      expect(wrapper.emitted("select")![0]).toEqual([mockAnimals[1]]);
+      // The validation returns the animal, so check it matches
+      const emittedAnimal = wrapper.emitted("select")![0]![0] as Animal;
+      expect(emittedAnimal.name).toBe("Tiger");
     });
 
     it("should clear input value when suggestion is selected", async () => {
       const wrapper = mountWithStubs(AnimalSearch, {
         props: {
           animals: mockAnimals,
+          guessHistory: [],
         },
       });
 
@@ -337,7 +384,9 @@ describe("animalSearch", () => {
       const suggestions = wrapper.find("[role=\"listbox\"]");
       const option = suggestions.find("[role=\"option\"]");
       await option.trigger("click");
+      // Wait for async validation to complete
       await nextTick();
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       expect((input.element as HTMLInputElement).value).toBe("");
     });
@@ -346,6 +395,7 @@ describe("animalSearch", () => {
       const wrapper = mountWithStubs(AnimalSearch, {
         props: {
           animals: mockAnimals,
+          guessHistory: [],
         },
       });
 
@@ -356,7 +406,9 @@ describe("animalSearch", () => {
       const suggestions = wrapper.find("[role=\"listbox\"]");
       const option = suggestions.find("[role=\"option\"]");
       await option.trigger("click");
+      // Wait for async validation to complete
       await nextTick();
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       const suggestionsAfter = wrapper.find("[role=\"listbox\"]");
       expect(suggestionsAfter.exists()).toBe(false);
@@ -421,6 +473,7 @@ describe("animalSearch", () => {
       const wrapper = mountWithStubs(AnimalSearch, {
         props: {
           animals: mockAnimals,
+          guessHistory: [],
         },
       });
 
@@ -431,10 +484,14 @@ describe("animalSearch", () => {
       await input.trigger("keydown", { key: "ArrowDown" });
       await nextTick();
       await input.trigger("keydown", { key: "Enter" });
+      // Wait for async validation to complete
       await nextTick();
+      await new Promise(resolve => setTimeout(resolve, 0));
 
       expect(wrapper.emitted("select")).toBeTruthy();
-      expect(wrapper.emitted("select")![0]).toEqual([mockAnimals[1]]);
+      // The validation returns the animal, so check it matches
+      const emittedAnimal = wrapper.emitted("select")![0]![0] as Animal;
+      expect(emittedAnimal.name).toBe("Tiger");
     });
 
     it("should close suggestions with Escape key", async () => {

@@ -2,6 +2,8 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { Animal } from "~/types/animal";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
+import { validateAnimalGuess } from "~/utils/animalValidator";
+import type { ValidationError } from "~/utils/animalValidator";
 
 /**
  * Props
@@ -17,6 +19,8 @@ interface Props {
   maxSuggestions?: number;
   /** Whether the input is disabled */
   disabled?: boolean;
+  /** Array of previously guessed animals for duplicate prevention */
+  guessHistory?: Animal[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -25,6 +29,7 @@ const props = withDefaults(defineProps<Props>(), {
   minChars: 2,
   maxSuggestions: 20,
   disabled: false,
+  guessHistory: () => [],
 });
 
 const emit = defineEmits<Emits>();
@@ -35,6 +40,7 @@ const emit = defineEmits<Emits>();
 interface Emits {
   (e: "select", animal: Animal): void;
   (e: "input", value: string): void;
+  (e: "validationError", error: ValidationError): void;
 }
 
 /**
@@ -53,6 +59,7 @@ const suggestionsRef = ref<HTMLUListElement | null>(null);
 const selectedAnimal = ref<Animal | null>(null);
 const apiAnimals = ref<Animal[]>([]);
 const searchTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
+const validationError = ref<ValidationError | null>(null);
 
 /**
  * Keyboard shortcut to focus input
@@ -123,24 +130,61 @@ function handleInput(event: Event) {
   if (selectedAnimal.value) {
     selectedAnimal.value = null;
   }
+  // Clear validation error when user starts typing
+  if (validationError.value) {
+    validationError.value = null;
+  }
   isOpen.value = true;
   highlightedIndex.value = -1;
   emit("input", searchQuery.value);
 }
 
 /**
- * Handle suggestion selection
+ * Handle suggestion selection with validation
  * @param animal
  */
-function selectAnimal(animal: Animal) {
-  selectedAnimal.value = animal;
-  searchQuery.value = ""; // Clear input after selection
-  closeSuggestions();
-  // Clear API results to prevent reopening
-  if (useApi.value) {
-    apiAnimals.value = [];
+async function selectAnimal(animal: Animal) {
+  // Clear previous validation error
+  validationError.value = null;
+
+  try {
+    // Validate animal guess before emitting
+    const validationResult = await validateAnimalGuess(
+      animal.name,
+      props.guessHistory || [],
+      api,
+    );
+
+    if (!validationResult.valid) {
+      // Validation failed - show error and don't emit select event
+      validationError.value = validationResult.error || null;
+      emit("validationError", validationResult.error!);
+
+      // Keep suggestions open so user can try again
+      // Don't clear the selected animal yet - let user see what they selected
+      return;
+    }
+
+    // Validation passed - proceed with selection
+    selectedAnimal.value = validationResult.animal || animal;
+    searchQuery.value = ""; // Clear input after selection
+    closeSuggestions();
+    // Clear API results to prevent reopening
+    if (useApi.value) {
+      apiAnimals.value = [];
+    }
+    // Clear validation error on success
+    validationError.value = null;
+    emit("select", validationResult.animal || animal);
+  } catch (error) {
+    // Handle unexpected errors
+    validationError.value = {
+      type: "invalid",
+      message: "An unexpected error occurred. Please try again.",
+      details: error,
+    };
+    emit("validationError", validationError.value);
   }
-  emit("select", animal);
 }
 
 /**
@@ -279,7 +323,10 @@ function handleClickOutside(event: MouseEvent) {
  * @param query - The query to highlight
  * @returns Array of text parts with match indicators
  */
-function splitTextForHighlight(text: string, query: string): Array<{ text: string; isMatch: boolean }> {
+function splitTextForHighlight(
+  text: string,
+  query: string,
+): Array<{ text: string; isMatch: boolean }> {
   if (!query || !text) {
     return [{ text, isMatch: false }];
   }
@@ -442,10 +489,32 @@ onUnmounted(() => {
         <UKbd
           v-else
           value="/"
-          class="text-xs"
+          class="text-xs mr-2"
         />
       </template>
     </UInput>
+
+    <!-- Validation Error Message -->
+    <Transition
+      enter-active-class="transition ease-out duration-100"
+      enter-from-class="opacity-0 -translate-y-1"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-75"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-1"
+    >
+      <div
+        v-if="validationError"
+        role="alert"
+        aria-live="polite"
+        class="mt-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md"
+      >
+        <div class="flex items-start">
+          <span class="flex-shrink-0 mr-2">⚠️</span>
+          <span>{{ validationError.message }}</span>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Suggestions Dropdown -->
     <Transition
