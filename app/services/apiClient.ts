@@ -17,6 +17,14 @@ import type { Clade } from "~/types/clade";
 import type { ApiError, ApiResponse } from "~/types/api";
 import type { BiologicalAPIClient } from "~/composables/useBiologicalAPI";
 import { CacheKeys, cacheService, TTL_VALUES } from "~/services/cacheService";
+import {
+  validateAnimalData,
+  validateCladeData,
+} from "~/utils/dataValidation";
+import {
+  getUserFriendlyError,
+  mapHttpStatusToErrorCode,
+} from "~/utils/errorMessages";
 
 /**
  * iNaturalist API Configuration
@@ -126,26 +134,42 @@ class INaturalistAPIClient implements BiologicalAPIClient {
 
       if (!response.results || response.results.length === 0) {
         return this.createErrorResponse(
-          "Animal not found. Please try another ID.",
-          "NOT_FOUND",
+          getUserFriendlyError("ANIMAL_NOT_FOUND"),
+          "ANIMAL_NOT_FOUND",
         );
       }
 
       const taxon = response.results[0]!;
-      const animal = this.mapToAnimal(taxon);
+      const mappedAnimal = this.mapToAnimal(taxon);
 
-      // Validate required fields
-      if (!this.validateAnimal(animal)) {
+      // Validate mapped animal data with comprehensive validation
+      const validation = validateAnimalData(mappedAnimal);
+
+      if (!validation.valid) {
+        // Log detailed validation errors for developers
+        this.logError("Animal Data Validation Failed", {
+          animalId: id,
+          errors: validation.errors,
+          rawData: taxon,
+        });
+
+        // Return user-friendly error message
         return this.createErrorResponse(
-          "Invalid response data from API.",
+          getUserFriendlyError("VALIDATION_ERROR"),
           "VALIDATION_ERROR",
+          { validationErrors: validation.errors },
         );
       }
 
-      // 3. Cache the processed result
-      await cacheService.set("animals", cacheKey, animal, TTL_VALUES.ANIMAL);
+      // 3. Cache the validated result (only cache valid data)
+      await cacheService.set(
+        "animals",
+        cacheKey,
+        validation.data!,
+        TTL_VALUES.ANIMAL,
+      );
 
-      return { data: animal, error: null };
+      return { data: validation.data, error: null };
     } catch (error) {
       return this.handleError(error, url);
     }
@@ -174,26 +198,42 @@ class INaturalistAPIClient implements BiologicalAPIClient {
 
       if (!response.results || response.results.length === 0) {
         return this.createErrorResponse(
-          "Clade not found. Please try another name.",
-          "NOT_FOUND",
+          getUserFriendlyError("CLADE_NOT_FOUND"),
+          "CLADE_NOT_FOUND",
         );
       }
 
       const taxon = response.results[0]!;
-      const clade = this.mapToClade(taxon);
+      const mappedClade = this.mapToClade(taxon);
 
-      // Validate required fields
-      if (!this.validateClade(clade)) {
+      // Validate mapped clade data with comprehensive validation
+      const validation = validateCladeData(mappedClade);
+
+      if (!validation.valid) {
+        // Log detailed validation errors for developers
+        this.logError("Clade Data Validation Failed", {
+          cladeName: name,
+          errors: validation.errors,
+          rawData: taxon,
+        });
+
+        // Return user-friendly error message
         return this.createErrorResponse(
-          "Invalid response data from API.",
+          getUserFriendlyError("VALIDATION_ERROR"),
           "VALIDATION_ERROR",
+          { validationErrors: validation.errors },
         );
       }
 
-      // 3. Cache the processed result
-      await cacheService.set("clades", cacheKey, clade, TTL_VALUES.CLADE);
+      // 3. Cache the validated result (only cache valid data)
+      await cacheService.set(
+        "clades",
+        cacheKey,
+        validation.data!,
+        TTL_VALUES.CLADE,
+      );
 
-      return { data: clade, error: null };
+      return { data: validation.data, error: null };
     } catch (error) {
       return this.handleError(error, url);
     }
@@ -389,29 +429,6 @@ class INaturalistAPIClient implements BiologicalAPIClient {
   }
 
   /**
-   * Validate Animal has required fields
-   * @param animal - Animal object to validate
-   * @returns True if all required fields are present
-   */
-  private validateAnimal(animal: Animal): boolean {
-    return Boolean(
-      animal.id
-      && animal.name
-      && animal.scientificName
-      && Array.isArray(animal.taxonomy),
-    );
-  }
-
-  /**
-   * Validate Clade has required fields
-   * @param clade - Clade object to validate
-   * @returns True if all required fields are present
-   */
-  private validateClade(clade: Clade): boolean {
-    return Boolean(clade.name && clade.rank);
-  }
-
-  /**
    * Handle errors and create error response
    * @param error - Error object
    * @param endpoint - API endpoint that failed
@@ -423,34 +440,45 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       error: error.message || String(error),
     });
 
-    // Determine error type
+    // Determine error type and use user-friendly messages
     if (error.name === "AbortError" || error.name === "TimeoutError") {
       return this.createErrorResponse(
-        "Request timed out. Please try again.",
+        getUserFriendlyError("TIMEOUT"),
         "TIMEOUT",
         { originalError: error.message },
       );
     }
 
     if (error.message && error.message.includes("404")) {
+      // Determine context from endpoint to return specific error code
+      const isAnimalEndpoint = endpoint.includes("/taxa/") && !endpoint.includes("?q=");
+      const errorCode = isAnimalEndpoint ? "ANIMAL_NOT_FOUND" : "NOT_FOUND";
       return this.createErrorResponse(
-        "Resource not found. Please check your input.",
-        "NOT_FOUND",
+        getUserFriendlyError(errorCode),
+        errorCode,
         { originalError: error.message },
       );
     }
 
     if (error.message && error.message.includes("Network error")) {
       return this.createErrorResponse(
-        "Network request failed. Please check your connection.",
+        getUserFriendlyError("NETWORK_ERROR"),
         "NETWORK_ERROR",
         { originalError: error.message },
       );
     }
 
     if (error instanceof TypeError) {
+      // Check if offline
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        return this.createErrorResponse(
+          getUserFriendlyError("OFFLINE"),
+          "OFFLINE",
+          { originalError: error.message },
+        );
+      }
       return this.createErrorResponse(
-        "Network request failed. Please check your connection.",
+        getUserFriendlyError("NETWORK_ERROR"),
         "NETWORK_ERROR",
         { originalError: error.message },
       );
@@ -458,15 +486,27 @@ class INaturalistAPIClient implements BiologicalAPIClient {
 
     if (error.message && error.message.includes("Invalid JSON")) {
       return this.createErrorResponse(
-        "Failed to parse API response.",
+        getUserFriendlyError("PARSE_ERROR"),
         "PARSE_ERROR",
         { originalError: error.message },
       );
     }
 
+    // Extract HTTP status code if available
+    const httpStatusMatch = error.message?.match(/HTTP (\d+)/);
+    if (httpStatusMatch) {
+      const status = Number.parseInt(httpStatusMatch[1], 10);
+      const errorCode = mapHttpStatusToErrorCode(status);
+      return this.createErrorResponse(
+        getUserFriendlyError(errorCode),
+        errorCode,
+        { originalError: error.message, httpStatus: status },
+      );
+    }
+
     // Generic error
     return this.createErrorResponse(
-      "An unexpected error occurred. Please try again.",
+      getUserFriendlyError("UNKNOWN_ERROR"),
       "UNKNOWN_ERROR",
       { originalError: error.message || String(error) },
     );

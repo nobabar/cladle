@@ -113,7 +113,7 @@ describe("api client", () => {
       expect(result.data).toBeNull();
       expect(result.error).not.toBeNull();
       expect(result.error?.message).toContain("not found");
-      expect(result.error?.code).toBe("NOT_FOUND");
+      expect(result.error?.code).toBe("ANIMAL_NOT_FOUND");
 
       // Should not retry 404 errors
       expect(globalThis.fetch).toHaveBeenCalledTimes(1);
@@ -142,7 +142,7 @@ describe("api client", () => {
       // Assert
       expect(result.data).toBeNull();
       expect(result.error).not.toBeNull();
-      expect(result.error?.message).toContain("Invalid response");
+      expect(result.error?.message).toContain("Data format issue");
       expect(result.error?.code).toBe("VALIDATION_ERROR");
       expect(consoleErrorSpy).toHaveBeenCalled();
     });
@@ -168,7 +168,7 @@ describe("api client", () => {
       expect(result.data).toBeNull();
       expect(result.error).not.toBeNull();
       expect(result.error?.message).toContain("not found");
-      expect(result.error?.code).toBe("NOT_FOUND");
+      expect(result.error?.code).toBe("ANIMAL_NOT_FOUND");
     });
   });
 
@@ -232,14 +232,15 @@ describe("api client", () => {
       // Assert
       expect(result.data).toBeNull();
       expect(result.error).not.toBeNull();
-      expect(result.error?.code).toBe("NOT_FOUND");
+      expect(result.error?.code).toBe("CLADE_NOT_FOUND");
     });
   });
 
   describe("rate limiting", () => {
     it("should throttle rapid requests", async () => {
       // Arrange
-      const mockResponse = { results: [{ id: 1, name: "Test", rank: "species" }] };
+      /* eslint-disable-next-line camelcase */
+      const mockResponse = { results: [{ id: 1, name: "Test", preferred_common_name: "Test", rank: "species", ancestry: "1" }] };
       (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,
         status: 200,
@@ -266,7 +267,8 @@ describe("api client", () => {
 
     it("should handle 429 rate limit errors with retry", async () => {
       // Arrange - First call returns 429, second succeeds
-      const mockResponse = { results: [{ id: 1, name: "Test", rank: "species" }] };
+      /* eslint-disable-next-line camelcase */
+      const mockResponse = { results: [{ id: 1, name: "Test", preferred_common_name: "Test", rank: "species", ancestry: "1" }] };
 
       (globalThis.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
@@ -299,7 +301,7 @@ describe("api client", () => {
   describe("retry logic with exponential backoff", () => {
     it("should retry on network error with exponential backoff", async () => {
       // Arrange - Fail twice, succeed third time
-      const mockResponse = { results: [{ id: 1, name: "Test", rank: "species" }] };
+      const mockResponse = { results: [{ id: 1, name: "Test", preferred_common_name: "Test", rank: "species", ancestry: "1" }] };
 
       (globalThis.fetch as ReturnType<typeof vi.fn>)
         .mockRejectedValueOnce(new Error("Network error"))
@@ -330,7 +332,8 @@ describe("api client", () => {
 
     it("should retry on 500 server error", async () => {
       // Arrange - Fail once, succeed second time
-      const mockResponse = { results: [{ id: 1, name: "Test", rank: "species" }] };
+      /* eslint-disable-next-line camelcase */
+      const mockResponse = { results: [{ id: 1, name: "Test", preferred_common_name: "Test", rank: "species", ancestry: "1" }] };
 
       (globalThis.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
@@ -379,7 +382,7 @@ describe("api client", () => {
       // Assert
       expect(result.data).toBeNull();
       expect(result.error).not.toBeNull();
-      expect(result.error?.message).toContain("Network request failed");
+      expect(result.error?.message).toContain("Connection issue");
       expect(result.error?.code).toBe("NETWORK_ERROR");
       expect(globalThis.fetch).toHaveBeenCalledTimes(3);
       expect(consoleErrorSpy).toHaveBeenCalled();
@@ -565,7 +568,10 @@ describe("api client", () => {
         results: [{
           id: 42,
           name: "Tiger",
+          /* eslint-disable-next-line camelcase */
+          preferred_common_name: "Tiger",
           rank: "species",
+          ancestry: "1",
           // No optional fields like wikipedia_url, default_photo
         }],
       };
@@ -592,7 +598,8 @@ describe("api client", () => {
     it("should return success format { data, error: null }", async () => {
       // Arrange
       const mockResponse = {
-        results: [{ id: 1, name: "Test", rank: "species" }],
+        /* eslint-disable-next-line camelcase */
+        results: [{ id: 1, name: "Test", preferred_common_name: "Test", rank: "species", ancestry: "1" }],
       };
 
       (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
@@ -752,12 +759,14 @@ describe("api client", () => {
 
     it("should cache different animals separately", async () => {
       // Arrange
+      /* eslint-disable camelcase */
       const mockResponse1 = {
-        results: [{ id: 1, name: "Tiger", rank: "species" }],
+        results: [{ id: 1, name: "Tiger", preferred_common_name: "Tiger", rank: "species", ancestry: "1" }],
       };
       const mockResponse2 = {
-        results: [{ id: 2, name: "Lion", rank: "species" }],
+        results: [{ id: 2, name: "Lion", preferred_common_name: "Lion", rank: "species", ancestry: "2" }],
       };
+      /* eslint-enable camelcase */
 
       (globalThis.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
@@ -790,7 +799,8 @@ describe("api client", () => {
     it("should provide instant cached response (performance)", async () => {
       // Arrange
       const mockResponse = {
-        results: [{ id: 1, name: "Tiger", rank: "species" }],
+        /* eslint-disable-next-line camelcase */
+        results: [{ id: 1, name: "Tiger", preferred_common_name: "Tiger", rank: "species", ancestry: "1" }],
       };
 
       (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
@@ -818,7 +828,8 @@ describe("api client", () => {
     it("should fetch from API if cache is cleared", async () => {
       // Arrange
       const mockResponse = {
-        results: [{ id: 1, name: "Tiger", rank: "species" }],
+        /* eslint-disable-next-line camelcase */
+        results: [{ id: 1, name: "Tiger", preferred_common_name: "Tiger", rank: "species", ancestry: "1" }],
       };
 
       (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -843,7 +854,8 @@ describe("api client", () => {
     it("should work offline with cached data", async () => {
       // Arrange
       const mockResponse = {
-        results: [{ id: 1, name: "Tiger", rank: "species" }],
+        /* eslint-disable-next-line camelcase */
+        results: [{ id: 1, name: "Tiger", preferred_common_name: "Tiger", rank: "species", ancestry: "1" }],
       };
 
       (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
