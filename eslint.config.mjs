@@ -13,6 +13,10 @@ export default antfu({
     semi: true,
   },
 
+  ignores: [
+    "project-context.md",
+  ],
+
   // Project-specific rules
   rules: {
     // Code quality and readability
