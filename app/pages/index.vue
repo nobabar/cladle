@@ -1,15 +1,26 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import type { Animal } from "~/types/animal";
+import type { ValidationError } from "~/utils/animalValidator";
 
 // Main game page - foundation for game interface
 // This page will be extended with game components in future stories
 
 const selectedAnimal = ref<Animal | null>(null);
+// TODO: Replace with game store guess history (Story 3.6)
+const guessHistory = ref<Animal[]>([]);
 
 function handleAnimalSelect(animal: Animal) {
   selectedAnimal.value = animal;
-  // TODO: Integrate with game store to add animal as guess (Story 3.2)
+  // Add to guess history for duplicate prevention
+  // TODO: Integrate with game store to add animal as guess (Story 3.6)
+  guessHistory.value.push(animal);
+}
+
+function handleValidationError(error: ValidationError) {
+  // Validation error is already displayed in the component
+  // This handler can be used for additional error handling if needed
+  console.warn("Validation error:", error.message);
 }
 
 function handleInput(_value: string) {
@@ -33,8 +44,10 @@ function handleInput(_value: string) {
       <div class="max-w-2xl mx-auto mb-8">
         <GameAnimalSearch
           placeholder="Search for an animal..."
+          :guess-history="guessHistory"
           @select="handleAnimalSelect"
           @input="handleInput"
+          @validation-error="handleValidationError"
         />
       </div>
 
