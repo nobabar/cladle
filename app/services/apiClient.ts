@@ -176,6 +176,56 @@ class INaturalistAPIClient implements BiologicalAPIClient {
   }
 
   /**
+   * Search for animals by name
+   * Searches iNaturalist API for animals matching the query
+   * Filters for Metazoa (animals) only, excluding plants and other kingdoms
+   * @param query - Search query (animal name or scientific name)
+   * @param limit - Maximum number of results to return (default: 20)
+   * @returns Promise resolving to ApiResponse with array of Animal data or error
+   */
+  async searchAnimals(query: string, limit: number = 20): Promise<ApiResponse<Animal[]>> {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery || trimmedQuery.length < 2) {
+      return { data: [], error: null };
+    }
+
+    // Metazoa (animals) taxon ID is 1 in iNaturalist
+    // Using taxon_id=1 filters for all descendants of Metazoa (animals only)
+    // Order by observations_count to get most popular animals first
+    // Also filter by rank to get species/subspecies level results
+    const url = `${INATURALIST_BASE_URL}/taxa?q=${encodeURIComponent(trimmedQuery)}&taxon_id=1&rank=species,subspecies&per_page=${limit}&order_by=observations_count&order=desc`;
+
+    try {
+      const response = await this.makeRequest<INaturalistResponse>(url);
+
+      if (!response.results || response.results.length === 0) {
+        return { data: [], error: null };
+      }
+
+      // Map and validate all results
+      const animals: Animal[] = [];
+      for (const taxon of response.results) {
+        const mappedAnimal = this.mapToAnimal(taxon);
+        const validation = validateAnimalData(mappedAnimal);
+
+        if (validation.valid && validation.data) {
+          animals.push(validation.data);
+        }
+      }
+
+      return { data: animals, error: null };
+    } catch (error) {
+      // For search, return empty array on error rather than error response
+      // This allows the UI to continue working even if API fails
+      this.logError("Animal Search Error", {
+        query: trimmedQuery,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return { data: [], error: null };
+    }
+  }
+
+  /**
    * Fetch clade data by name
    * Implements hybrid caching: checks IndexedDB cache first, then fetches from API
    * @param name - Name of the clade to fetch
