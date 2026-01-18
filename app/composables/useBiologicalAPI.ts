@@ -60,6 +60,25 @@ export interface BiologicalAPIClient {
    * ```
    */
   fetchCladeData: (name: string) => Promise<ApiResponse<Clade>>;
+
+  /**
+   * Search for animals by name
+   *
+   * @param query - Search query (animal name or scientific name)
+   * @param limit - Maximum number of results to return (default: 20)
+   * @returns Promise resolving to ApiResponse with array of Animal data or error
+   *
+   * @example
+   * ```typescript
+   * const result = await client.searchAnimals('tiger', 10);
+   * if (result.data) {
+   *   result.data.forEach(animal => console.log(animal.name));
+   * } else {
+   *   console.error(result.error.message);
+   * }
+   * ```
+   */
+  searchAnimals: (query: string, limit?: number) => Promise<ApiResponse<Animal[]>>;
 }
 
 /**
