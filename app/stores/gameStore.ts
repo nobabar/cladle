@@ -10,6 +10,11 @@ import type { LCAResult } from "~/utils/lcaCalculator";
 export type GameStatus = "idle" | "playing" | "won" | "lost";
 
 /**
+ * Completion Status (for story requirements)
+ */
+export type CompletionStatus = "playing" | "won" | "lost";
+
+/**
  * Guess Entry
  * Represents a single guess with its LCA result
  */
@@ -40,6 +45,8 @@ interface GameState {
   nodeMap: Map<string, TreeNode>;
   /** Map of clade names to nodes for LCA lookup */
   cladeMap: Map<string, TreeNode>;
+  /** Current puzzle date (YYYY-MM-DD format) */
+  puzzleDate: string;
 }
 
 /**
@@ -57,6 +64,7 @@ export const useGameStore = defineStore("game", {
     treeData: null,
     nodeMap: new Map(),
     cladeMap: new Map(),
+    puzzleDate: "",
   }),
 
   getters: {
@@ -94,6 +102,45 @@ export const useGameStore = defineStore("game", {
     hasEnded(): boolean {
       return this.status === "won" || this.status === "lost";
     },
+
+    /**
+     * Returns a function to check if an animal has been guessed
+     * @returns Function that takes an animal and returns whether it has been guessed
+     */
+    hasGuessed(): (animal: Animal) => boolean {
+      return (animal: Animal) => this.guesses.some(g => g.animal.id === animal.id);
+    },
+
+    /**
+     * @returns Whether the game is complete (won or lost)
+     */
+    isComplete(): boolean {
+      return this.status === "won" || this.status === "lost";
+    },
+
+    /**
+     * @returns Whether more guesses are allowed
+     */
+    canGuess(): boolean {
+      return this.status === "playing" && this.guessesRemaining > 0;
+    },
+
+    /**
+     * @returns Number of guesses made
+     */
+    guessCount(): number {
+      return this.guesses.length;
+    },
+
+    /**
+     * @returns Current completion status (playing | won | lost)
+     */
+    completionStatus(): CompletionStatus {
+      if (this.status === "idle") {
+        return "playing";
+      }
+      return this.status as CompletionStatus;
+    },
   },
 
   actions: {
@@ -112,6 +159,84 @@ export const useGameStore = defineStore("game", {
 
       // Initialize tree with root and target
       this.treeData = this.initializeTree(target);
+    },
+
+    /**
+     * Initialize a new game with a target animal (story requirement: initializeGame)
+     * @param target - The target animal to guess
+     * @param maxGuesses - Maximum number of guesses (default: 6)
+     * @param puzzleDate - Current puzzle date (YYYY-MM-DD format, optional)
+     */
+    initializeGame(target: Animal, maxGuesses: number = 6, puzzleDate: string = ""): void {
+      this.setTargetAnimal(target);
+      this.guesses = [];
+      this.status = "playing";
+      this.maxGuesses = maxGuesses;
+      this.nodeMap = new Map();
+      this.cladeMap = new Map();
+      this.puzzleDate = puzzleDate || this.getCurrentDate();
+
+      // Initialize tree with root and target
+      this.treeData = this.initializeTree(target);
+    },
+
+    /**
+     * Set target animal for puzzle (story requirement: setTargetAnimal)
+     * @param animal - The target animal to guess
+     */
+    setTargetAnimal(animal: Animal): void {
+      this.target = animal;
+    },
+
+    /**
+     * Add a guess to the history (story requirement: addGuess)
+     * This is a wrapper around processGuess for naming convention compliance
+     * @param guess - The guessed animal
+     */
+    addGuess(guess: Animal): void {
+      this.processGuess(guess);
+    },
+
+    /**
+     * Set completion status (story requirement: setCompletionStatus)
+     * @param status - The completion status (playing | won | lost)
+     */
+    setCompletionStatus(status: CompletionStatus): void {
+      this.status = status;
+    },
+
+    /**
+     * Update tree state (story requirement: updateTreeState)
+     * @param treeData - The tree data structure
+     */
+    updateTreeState(treeData: TreeData): void {
+      this.treeData = treeData;
+      // Rebuild node map and clade map from new tree data
+      this.nodeMap = new Map();
+      this.cladeMap = new Map();
+      this.buildNodeMap(treeData.root);
+    },
+
+    /**
+     * Decrement guesses remaining (story requirement: decrementGuessesRemaining)
+     * Note: This is automatically handled by processGuess, but provided for explicit control
+     */
+    decrementGuessesRemaining(): void {
+      // Guesses remaining is computed, so this is a no-op
+      // The actual decrement happens when a guess is added
+      // This method exists for API compliance with story requirements
+    },
+
+    /**
+     * Get current date in YYYY-MM-DD format
+     * @returns Current date string
+     */
+    getCurrentDate(): string {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
     },
 
     /**
@@ -374,6 +499,7 @@ export const useGameStore = defineStore("game", {
       this.treeData = null;
       this.nodeMap = new Map();
       this.cladeMap = new Map();
+      this.puzzleDate = "";
     },
   },
 });
