@@ -123,23 +123,26 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen">
-    <!-- Game page structure - ready for game components integration -->
-    <div class="container mx-auto px-4 py-8">
-      <h1 class="text-3xl font-bold text-center mb-8">
-        Cladle
-      </h1>
-      <p class="text-center text-muted mb-8">
-        Phylogenetic guessing game
-      </p>
+  <div class="min-h-screen game-page">
+    <!-- Game page structure - mobile-first responsive design -->
+    <div class="container mx-auto px-4 py-4 sm:py-6 md:py-8">
+      <!-- Header -->
+      <header class="mb-4 sm:mb-6 md:mb-8">
+        <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-2 sm:mb-4">
+          Cladle
+        </h1>
+        <p class="text-center text-sm sm:text-base text-gray-600 dark:text-gray-400">
+          Phylogenetic guessing game
+        </p>
+      </header>
 
       <!-- Game Status Display -->
       <div
         v-if="gameStore.isPlaying"
-        class="max-w-2xl mx-auto mb-4 text-center"
+        class="max-w-2xl mx-auto mb-3 sm:mb-4 text-center"
       >
-        <p class="text-sm text-muted">
-          Guesses remaining: {{ gameStore.guessesRemaining }}
+        <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+          Guesses remaining: <strong>{{ gameStore.guessesRemaining }}</strong>
         </p>
       </div>
 
@@ -147,7 +150,7 @@ onMounted(() => {
       <GameWinState />
 
       <!-- Animal Search Component -->
-      <div class="max-w-2xl mx-auto mb-8">
+      <div class="max-w-2xl mx-auto mb-4 sm:mb-6 md:mb-8">
         <GameAnimalSearch
           :disabled="!gameStore.isPlaying"
           placeholder="Search for an animal..."
@@ -156,40 +159,62 @@ onMounted(() => {
           @input="handleInput"
           @validation-error="handleValidationError"
         />
+        <!-- First-time user hint (progressive disclosure) -->
+        <p
+          v-if="gameStore.isPlaying && gameStore.guesses.length === 0"
+          class="mt-2 text-xs sm:text-sm text-center text-gray-500 dark:text-gray-400"
+        >
+          Start by searching for an animal to see how it relates to the target
+        </p>
       </div>
 
       <!-- Phylogenetic Tree Visualization -->
-      <div class="max-w-6xl mx-auto mt-8 mb-8">
-        <h2 class="text-2xl font-semibold mb-4 text-center">
+      <div class="max-w-6xl mx-auto mt-4 sm:mt-6 md:mt-8 mb-4 sm:mb-6 md:mb-8">
+        <h2 class="text-lg sm:text-xl md:text-2xl font-semibold mb-3 sm:mb-4 text-center">
           Phylogenetic Tree
         </h2>
-        <div class="w-full h-[600px]">
+        <!-- Progressive disclosure: Show hint only when tree is empty -->
+        <p
+          v-if="!treeData || treeData.nodes.length === 0"
+          class="text-xs sm:text-sm text-center text-gray-500 dark:text-gray-400 mb-2"
+        >
+          Make your first guess to see the phylogenetic tree
+        </p>
+        <div class="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]">
           <GameTreeVisualization
             :tree-data="treeData"
             :show-target="false"
             class="w-full h-full"
           />
         </div>
+        <!-- Progressive disclosure: Show interaction hint when tree has data -->
+        <p
+          v-if="treeData && treeData.nodes.length > 0"
+          class="mt-2 text-xs sm:text-sm text-center text-gray-500 dark:text-gray-400"
+        >
+          <span class="hidden sm:inline">Click on nodes to explore details</span>
+          <span class="sm:hidden">Tap nodes to explore</span>
+        </p>
       </div>
 
-      <!-- Game Info Display -->
+      <!-- Game Info Display (Progressive Disclosure) -->
       <div
         v-if="gameStore.isPlaying && gameStore.guesses.length > 0"
-        class="max-w-2xl mx-auto mt-8 p-6 bg-gray-100 dark:bg-gray-800 rounded-lg"
+        class="max-w-2xl mx-auto mt-4 sm:mt-6 md:mt-8 p-4 sm:p-5 md:p-6 bg-gray-100 dark:bg-gray-800 rounded-lg"
       >
-        <h2 class="text-xl font-semibold mb-4">
+        <h2 class="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4">
           Recent Guesses
         </h2>
-        <ul class="space-y-2">
+        <ul class="space-y-2 sm:space-y-3">
           <li
             v-for="guess in gameStore.guesses.slice().reverse().slice(0, 3)"
             :key="guess.timestamp"
-            class="flex justify-between items-center"
+            class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-2 py-2 sm:py-1"
           >
-            <span class="font-medium">
+            <span class="font-medium text-sm sm:text-base">
               {{ guess.animal.name }}
             </span>
-            <span class="text-sm text-gray-600 dark:text-gray-400">
+            <span class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               LCA: {{ guess.lca.clade }}
             </span>
           </li>

@@ -428,6 +428,7 @@ async function copyTreeAsMermaid(): Promise<void> {
             :aria-selected="focusedNodeId === node.id"
             role="treeitem"
             tabindex="0"
+            class="tree-node-rect"
             @click="handleNodeClick(node)"
             @focus="focusedNodeId = node.id"
             @blur="focusedNodeId = null"
@@ -630,9 +631,19 @@ async function copyTreeAsMermaid(): Promise<void> {
   filter: drop-shadow(0 0 4px #00c16a);
 }
 
-.tree-node:focus {
+.tree-node:focus,
+.tree-node-rect:focus {
   outline: 2px solid #00c16a;
   outline-offset: 2px;
+}
+
+/* Ensure touch targets on mobile for tree nodes */
+@media (max-width: 767px) {
+  .tree-node-rect {
+    /* Increase touch target area on mobile */
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 
 .tree-node__text {
@@ -689,14 +700,16 @@ async function copyTreeAsMermaid(): Promise<void> {
 
 .tree-visualization__copy-button {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 8px;
+  right: 8px;
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0;
   background: white;
   border: 1px solid #e5e7eb;
@@ -705,6 +718,7 @@ async function copyTreeAsMermaid(): Promise<void> {
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  touch-action: manipulation; /* Prevent double-tap zoom */
 }
 
 .dark .tree-visualization__copy-button {
@@ -743,10 +757,11 @@ async function copyTreeAsMermaid(): Promise<void> {
   transform: scale(1.1);
 }
 
-/* Mobile optimizations */
-@media (max-width: 768px) {
+/* Mobile optimizations (< 768px) */
+@media (max-width: 767px) {
   .tree-visualization {
     min-height: 300px;
+    border-radius: 6px;
   }
 
   .tree-visualization__svg {
@@ -757,16 +772,68 @@ async function copyTreeAsMermaid(): Promise<void> {
     font-size: 8px;
   }
 
+  .tree-node {
+    /* Ensure nodes are touch-friendly on mobile */
+    cursor: pointer;
+  }
+
   .tree-visualization__copy-button {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
     top: 8px;
     right: 8px;
   }
 
   .tree-visualization__copy-icon {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Improve touch interaction on mobile */
+  .tree-node-group {
+    touch-action: manipulation;
+  }
+}
+
+/* Tablet optimizations (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .tree-visualization {
+    min-height: 400px;
+  }
+
+  .tree-visualization__svg {
+    min-height: 400px;
+  }
+
+  .tree-node__text {
+    font-size: 9px;
+  }
+
+  .tree-visualization__copy-button {
+    top: 10px;
+    right: 10px;
+  }
+}
+
+/* Desktop optimizations (>= 1024px) */
+@media (min-width: 1024px) {
+  .tree-visualization {
+    min-height: 500px;
+  }
+
+  .tree-visualization__svg {
+    min-height: 500px;
+  }
+
+  .tree-node__text {
+    font-size: 10px;
+  }
+
+  .tree-visualization__copy-button {
+    top: 12px;
+    right: 12px;
   }
 }
 </style>
