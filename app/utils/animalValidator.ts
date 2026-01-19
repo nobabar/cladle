@@ -66,72 +66,15 @@ function normalizeAnimalName(name: string): string {
 }
 
 /**
- * Check if an animal name matches an existing animal (case-insensitive)
- *
- * @param name - Animal name to check
- * @param animal - Animal to compare against
- * @returns True if names match (case-insensitive)
- */
-function animalNameMatches(name: string, animal: Animal): boolean {
-  const normalizedName = normalizeAnimalName(name);
-  const normalizedAnimalName = normalizeAnimalName(animal.name);
-  const normalizedScientificName = normalizeAnimalName(animal.scientificName);
-
-  return (
-    normalizedName === normalizedAnimalName
-    || normalizedName === normalizedScientificName
-  );
-}
-
-/**
  * Check if animal has already been guessed
+ * Uses ID comparison for reliable duplicate detection
  *
  * @param animal - Animal to check
  * @param guessHistory - Array of previously guessed animals
  * @returns True if animal is a duplicate
  */
 function isDuplicate(animal: Animal, guessHistory: Animal[]): boolean {
-  return guessHistory.some(guessedAnimal =>
-    animalNameMatches(animal.name, guessedAnimal),
-  );
-}
-
-/**
- * Validate animal exists in database
- * Uses API client to search for the animal by name
- *
- * @param animalName - Name of the animal to validate
- * @param apiClient - Biological API client instance
- * @returns Promise resolving to Animal if found, null otherwise
- */
-async function validateAnimalExists(
-  animalName: string,
-  apiClient: BiologicalAPIClient,
-): Promise<Animal | null> {
-  const trimmedName = animalName.trim();
-  if (!trimmedName) {
-    return null;
-  }
-
-  try {
-    // Search for the animal by name
-    const result = await apiClient.searchAnimals(trimmedName, 1);
-
-    if (!result.data || result.data.length === 0) {
-      return null;
-    }
-
-    // Check if any result matches the input name (case-insensitive)
-    const matchingAnimal = result.data.find(animal =>
-      animalNameMatches(trimmedName, animal),
-    );
-
-    return matchingAnimal || null;
-  } catch {
-    // If API call fails, we can't validate - return null
-    // The caller should handle this appropriately
-    return null;
-  }
+  return guessHistory.some(guessedAnimal => guessedAnimal.id === animal.id);
 }
 
 /**
@@ -164,11 +107,14 @@ function getErrorMessage(
  * Validate animal guess
  *
  * Validates that:
- * 1. Input is not empty or whitespace-only
- * 2. Animal exists in the database
+ * 1. Animal has a valid ID
+ * 2. Animal exists in the database (fetched by ID)
  * 3. Animal has not been guessed before (duplicate check)
  *
- * @param animalName - Name of the animal to validate
+ * Uses ID-based validation for reliability and efficiency.
+ * This ensures we get the complete animal data with taxonomy in one call.
+ *
+ * @param animal - Animal object to validate (must have an ID)
  * @param guessHistory - Array of previously guessed animals
  * @param apiClient - Biological API client instance for validation
  * @returns Promise resolving to AnimalGuessValidationResult
@@ -176,24 +122,35 @@ function getErrorMessage(
  * @example
  * ```typescript
  * const result = await validateAnimalGuess(
- *   "African Elephant",
+ *   animalObject,
  *   previousGuesses,
  *   apiClient
  * );
  * if (result.valid) {
- *   // Process guess with result.animal
+ *   // Process guess with result.animal (includes full taxonomy)
  * } else {
  *   // Display error: result.error.message
  * }
  * ```
  */
 export async function validateAnimalGuess(
-  animalName: string,
+  animal: Animal,
   guessHistory: Animal[],
   apiClient: BiologicalAPIClient,
 ): Promise<AnimalGuessValidationResult> {
-  // Check if input is empty or whitespace-only
-  const trimmedName = animalName.trim();
+  // Check if animal has an ID
+  if (!animal.id) {
+    return {
+      valid: false,
+      error: {
+        type: "invalid",
+        message: getErrorMessage("invalid", animal.name),
+      },
+    };
+  }
+
+  // Check if name is empty (basic validation)
+  const trimmedName = animal.name.trim();
   if (!trimmedName) {
     return {
       valid: false,
@@ -204,34 +161,48 @@ export async function validateAnimalGuess(
     };
   }
 
-  // Validate animal exists in database
-  const animal = await validateAnimalExists(trimmedName, apiClient);
-  if (!animal) {
+  try {
+    // Fetch animal by ID to ensure it exists and get full data
+    const result = await apiClient.fetchAnimalData(animal.id);
+
+    if (result.error || !result.data) {
+      return {
+        valid: false,
+        error: {
+          type: "invalid",
+          message: getErrorMessage("invalid", animal.name),
+        },
+      };
+    }
+
+    const validatedAnimal = result.data;
+
+    // Check for duplicates using the validated animal
+    if (isDuplicate(validatedAnimal, guessHistory)) {
+      return {
+        valid: false,
+        error: {
+          type: "duplicate",
+          message: getErrorMessage("duplicate", validatedAnimal.name),
+        },
+      };
+    }
+
+    // Validation passed
+    return {
+      valid: true,
+      animal: validatedAnimal,
+    };
+  } catch {
+    // If API call fails, we can't validate - return error
     return {
       valid: false,
       error: {
         type: "invalid",
-        message: getErrorMessage("invalid", trimmedName),
+        message: getErrorMessage("invalid", animal.name),
       },
     };
   }
-
-  // Check for duplicates
-  if (isDuplicate(animal, guessHistory)) {
-    return {
-      valid: false,
-      error: {
-        type: "duplicate",
-        message: getErrorMessage("duplicate", animal.name),
-      },
-    };
-  }
-
-  // Validation passed
-  return {
-    valid: true,
-    animal,
-  };
 }
 
 /**

@@ -150,7 +150,7 @@ async function selectAnimal(animal: Animal) {
   try {
     // Validate animal guess before emitting
     const validationResult = await validateAnimalGuess(
-      animal.name,
+      animal,
       props.guessHistory || [],
       api,
     );
