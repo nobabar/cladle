@@ -157,6 +157,27 @@ function createSimpleTreeData(): TreeData {
   };
 }
 
+// Stub for Icon component (from @nuxt/icon)
+const IconStub = {
+  name: "Icon",
+  template: "<span class='icon-stub'><slot></slot></span>",
+  props: ["name"],
+};
+
+// Helper function to mount with stubs
+function mountWithStubs(component: any, options: any = {}) {
+  return mount(component, {
+    ...options,
+    global: {
+      ...options.global,
+      stubs: {
+        Icon: IconStub,
+        ...options.global?.stubs,
+      },
+    },
+  });
+}
+
 describe("treeVisualization", () => {
   beforeEach(() => {
     // Reset window dimensions
@@ -174,7 +195,7 @@ describe("treeVisualization", () => {
 
   describe("component Rendering", () => {
     it("renders empty state when no tree data is provided", () => {
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData: null,
         },
@@ -188,7 +209,7 @@ describe("treeVisualization", () => {
 
     it("renders tree visualization when tree data is provided", async () => {
       const treeData = createSimpleTreeData();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData,
         },
@@ -203,7 +224,7 @@ describe("treeVisualization", () => {
 
     it("renders all nodes from tree data", async () => {
       const treeData = createSimpleTreeData();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData,
         },
@@ -217,7 +238,7 @@ describe("treeVisualization", () => {
 
     it("renders edges between connected nodes", async () => {
       const treeData = createSimpleTreeData();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData,
         },
@@ -233,7 +254,7 @@ describe("treeVisualization", () => {
   describe("layout Calculations", () => {
     it("calculates node positions correctly", async () => {
       const treeData = createSimpleTreeData();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData,
         },
@@ -260,7 +281,7 @@ describe("treeVisualization", () => {
         guesses: [],
       };
 
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData: emptyTreeData,
         },
@@ -280,7 +301,7 @@ describe("treeVisualization", () => {
         guesses: [],
       };
 
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData: singleNodeTree,
         },
@@ -297,7 +318,7 @@ describe("treeVisualization", () => {
   describe("accessibility Features", () => {
     it("has proper ARIA roles and labels", async () => {
       const treeData = createSimpleTreeData();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData,
         },
@@ -312,7 +333,7 @@ describe("treeVisualization", () => {
 
     it("provides ARIA labels for nodes", async () => {
       const treeData = createSimpleTreeData();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData,
         },
@@ -330,7 +351,7 @@ describe("treeVisualization", () => {
 
     it("has screen reader description", async () => {
       const treeData = createSimpleTreeData();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData,
         },
@@ -345,7 +366,7 @@ describe("treeVisualization", () => {
 
     it("distinguishes node types with appropriate classes", async () => {
       const treeData = createSimpleTreeData();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData,
         },
@@ -362,7 +383,7 @@ describe("treeVisualization", () => {
 
     it("highlights target node", async () => {
       const treeData = createSimpleTreeData();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData,
           showTarget: true,
@@ -377,7 +398,7 @@ describe("treeVisualization", () => {
 
     it("highlights guess nodes", async () => {
       const treeData = createSimpleTreeData();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData,
         },
@@ -393,7 +414,7 @@ describe("treeVisualization", () => {
   describe("keyboard Navigation", () => {
     it("handles ArrowDown key navigation", async () => {
       const treeData = createSimpleTreeData();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData,
         },
@@ -411,7 +432,7 @@ describe("treeVisualization", () => {
 
     it("handles ArrowUp key navigation", async () => {
       const treeData = createSimpleTreeData();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData,
         },
@@ -432,7 +453,7 @@ describe("treeVisualization", () => {
 
     it("handles Escape key to clear focus", async () => {
       const treeData = createSimpleTreeData();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData,
         },
@@ -454,7 +475,7 @@ describe("treeVisualization", () => {
 
     it("handles Enter key to activate node", async () => {
       const treeData = createSimpleTreeData();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData,
         },
@@ -478,7 +499,7 @@ describe("treeVisualization", () => {
   describe("node Interactions", () => {
     it("handles node click", async () => {
       const treeData = createSimpleTreeData();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData,
         },
@@ -497,7 +518,7 @@ describe("treeVisualization", () => {
 
     it("updates focus on node focus event", async () => {
       const treeData = createSimpleTreeData();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData,
         },
@@ -518,7 +539,7 @@ describe("treeVisualization", () => {
   describe("responsive Behavior", () => {
     it("updates dimensions on window resize", async () => {
       const treeData = createSimpleTreeData();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData,
           width: 800,
@@ -588,7 +609,7 @@ describe("treeVisualization", () => {
       };
 
       const startTime = performance.now();
-      const wrapper = mount(TreeVisualization, {
+      const wrapper = mountWithStubs(TreeVisualization, {
         props: {
           treeData: largeTreeData,
         },

@@ -67,24 +67,19 @@ describe("gameStore", () => {
       expect(store.treeData?.target.isTarget).toBe(true);
     });
 
-    it("should build taxonomy path from root to target", () => {
+    it("should build simple tree with only Animalia and target", () => {
       const store = useGameStore();
       store.startGame(tiger, 6);
 
       const root = store.treeData?.root;
       expect(root).toBeDefined();
-      expect(root?.children.length).toBeGreaterThan(0);
+      expect(root?.name).toBe("Animalia"); // Root should be Animalia, not Life
+      expect(root?.children.length).toBe(1); // Should only have target as child
 
-      // Verify path exists
-      let currentNode = root;
-      for (const cladeName of tiger.taxonomy) {
-        const child = currentNode?.children.find(c => c.name === cladeName);
-        expect(child).toBeDefined();
-        currentNode = child;
-      }
-
-      // Verify target is at the end
-      expect(currentNode?.children.some(c => c.isTarget)).toBe(true);
+      // Verify target is direct child of Animalia
+      const target = root?.children.find(c => c.isTarget);
+      expect(target).toBeDefined();
+      expect(target?.data?.id).toBe(tiger.id);
     });
 
     it("should reset game state", () => {
@@ -205,6 +200,26 @@ describe("gameStore", () => {
 
       expect(lcaNode?.children).toContain(guessNode);
       expect(guessNode?.parent).toBe(lcaNode);
+    });
+
+    it("should move target animal under LCA node when guess is made", () => {
+      const store = useGameStore();
+      store.startGame(tiger, 6);
+
+      // Initially, target should be direct child of Animalia
+      expect(store.treeData?.root.children).toContain(store.treeData?.target);
+      expect(store.treeData?.target?.parent).toBe(store.treeData?.root);
+
+      // Process guess (wolf - LCA with tiger is Carnivora)
+      store.processGuess(wolf);
+
+      const lcaNode = store.treeData?.nodes.find(n => n.name === "Carnivora");
+      const targetNode = store.treeData?.target;
+
+      // Target should now be under LCA node, not directly under root
+      expect(lcaNode?.children).toContain(targetNode);
+      expect(targetNode?.parent).toBe(lcaNode);
+      expect(store.treeData?.root.children).not.toContain(targetNode);
     });
 
     it("should reuse existing LCA node for multiple guesses", () => {

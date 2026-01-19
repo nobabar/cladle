@@ -116,18 +116,19 @@ export const useGameStore = defineStore("game", {
 
     /**
      * Initialize tree structure with root and target
+     * Only shows Animalia as root and the target animal
      * @param target - The target animal
      * @returns Initial tree data
      */
     initializeTree(target: Animal): TreeData {
-      // Create root node (Life/Metazoa)
+      // Create root node (Animalia)
       const rootNode: TreeNode = {
         id: "root",
         type: "clade",
-        name: "Life",
+        name: "Animalia",
         cladeData: {
-          name: "Life",
-          rank: "root",
+          name: "Animalia",
+          rank: "kingdom",
         },
         children: [],
         depth: 0,
@@ -141,55 +142,15 @@ export const useGameStore = defineStore("game", {
         data: target,
         children: [],
         isTarget: true,
-        depth: target.taxonomy?.length || 0,
+        depth: 1,
       };
 
-      // Build path from root to target
-      if (target.taxonomy && target.taxonomy.length > 0) {
-        let currentNode = rootNode;
-        const pathNodes: TreeNode[] = [rootNode];
+      // Simply connect Animalia directly to target (no intermediate taxonomy)
+      rootNode.children.push(targetNode);
+      targetNode.parent = rootNode;
 
-        // Create intermediate clade nodes
-        for (let i = 0; i < target.taxonomy.length; i++) {
-          const cladeName = target.taxonomy[i]!;
-          const cladeId = `clade-${cladeName.toLowerCase().replace(/\s+/g, "-")}`;
-
-          // Check if clade already exists
-          let cladeNode = this.cladeMap.get(cladeName);
-          if (!cladeNode) {
-            cladeNode = {
-              id: cladeId,
-              type: "clade",
-              name: cladeName,
-              cladeData: {
-                name: cladeName,
-                rank: this.getRankForDepth(i),
-              },
-              children: [],
-              depth: i + 1,
-            };
-            this.cladeMap.set(cladeName, cladeNode);
-          }
-
-          // Link nodes
-          if (!currentNode.children.some(child => child.id === cladeNode!.id)) {
-            currentNode.children.push(cladeNode);
-            cladeNode.parent = currentNode;
-          }
-
-          currentNode = cladeNode;
-          pathNodes.push(cladeNode);
-        }
-
-        // Add target as leaf
-        currentNode.children.push(targetNode);
-        targetNode.parent = currentNode;
-        pathNodes.push(targetNode);
-      } else {
-        // Fallback: direct connection if no taxonomy
-        rootNode.children.push(targetNode);
-        targetNode.parent = rootNode;
-      }
+      // Add to clade map
+      this.cladeMap.set("Animalia", rootNode);
 
       // Build node map
       this.buildNodeMap(rootNode);
@@ -255,6 +216,8 @@ export const useGameStore = defineStore("game", {
 
     /**
      * Update tree structure with a new guess
+     * Only adds the guessed animal and the LCA clade (not the full path)
+     * Moves target animal under LCA if it's not already there
      * @param guess - The guessed animal
      * @param lcaResult - LCA result between guess and target
      */
@@ -271,7 +234,7 @@ export const useGameStore = defineStore("game", {
         data: guess,
         children: [],
         isGuess: true,
-        depth: guess.taxonomy?.length || 0,
+        depth: 2, // LCA depth + 1 (LCA is depth 1, guess is depth 2)
       };
 
       // Find or create LCA node
@@ -290,31 +253,61 @@ export const useGameStore = defineStore("game", {
           },
           children: [],
           isLCA: true,
-          depth: lcaResult.depth + 1,
+          depth: 1, // Will be updated based on parent
         };
 
-        // Find parent for LCA node (clade at depth - 1)
-        const parentCladeName = lcaResult.path[lcaResult.depth - 1];
-        if (parentCladeName) {
-          const parentNode = this.cladeMap.get(parentCladeName);
-          if (parentNode) {
-            parentNode.children.push(lcaNode);
-            lcaNode.parent = parentNode;
-          } else {
-            // Fallback: add to root if parent not found
-            this.treeData.root.children.push(lcaNode);
-            lcaNode.parent = this.treeData.root;
+        // Find the appropriate parent for the LCA node
+        // Check if the LCA has a parent clade in its taxonomy path
+        let parentNode: TreeNode = this.treeData.root;
+        lcaNode.depth = 1;
+
+        if (lcaResult.path && lcaResult.path.length > 1 && lcaResult.depth > 0) {
+          // The parent is the clade before the LCA in the path
+          const parentCladeName = lcaResult.path[lcaResult.depth - 1];
+          if (parentCladeName && parentCladeName !== "Animalia") {
+            const foundParent = this.cladeMap.get(parentCladeName);
+            if (foundParent) {
+              parentNode = foundParent;
+              // Depth is parent's depth + 1
+              lcaNode.depth = (parentNode.depth || 0) + 1;
+            }
           }
-        } else {
-          // No parent: add to root
-          this.treeData.root.children.push(lcaNode);
-          lcaNode.parent = this.treeData.root;
         }
+
+        // Add LCA node to its parent
+        parentNode.children.push(lcaNode);
+        lcaNode.parent = parentNode;
 
         this.cladeMap.set(lcaResult.clade, lcaNode);
       } else {
         // Mark existing node as LCA if not already marked
         lcaNode.isLCA = true;
+      }
+
+      // Move target animal to LCA node if it's not already there
+      const targetNode = this.treeData.target;
+      if (targetNode && targetNode.parent) {
+        // Check if target is already a child of the LCA
+        const isTargetUnderLCA = targetNode.parent.id === lcaNode.id;
+
+        if (!isTargetUnderLCA) {
+          // Remove target from its current parent
+          const currentParent = targetNode.parent;
+          const targetIndex = currentParent.children.findIndex(
+            child => child.id === targetNode.id,
+          );
+          if (targetIndex !== -1) {
+            currentParent.children.splice(targetIndex, 1);
+          }
+
+          // Add target to LCA node
+          lcaNode.children.push(targetNode);
+          targetNode.parent = lcaNode;
+        }
+      } else if (targetNode && !targetNode.parent) {
+        // Target has no parent (shouldn't happen, but handle it)
+        lcaNode.children.push(targetNode);
+        targetNode.parent = lcaNode;
       }
 
       // Add guess node to LCA node

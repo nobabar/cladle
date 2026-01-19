@@ -91,6 +91,8 @@ interface INaturalistTaxon {
   preferred_common_name?: string;
   rank: string;
   ancestry?: string;
+  ancestor_ids?: number[];
+  ancestors?: INaturalistTaxon[];
   wikipedia_url?: string;
   default_photo?: {
     medium_url?: string;
@@ -127,7 +129,8 @@ class INaturalistAPIClient implements BiologicalAPIClient {
     }
 
     // 2. Cache miss - fetch from API
-    const url = `${INATURALIST_BASE_URL}/taxa/${id}`;
+    // Include ancestor information to build taxonomy
+    const url = `${INATURALIST_BASE_URL}/taxa/${id}?include_ancestors=true`;
 
     try {
       const response = await this.makeRequest<INaturalistResponse>(url);
@@ -140,7 +143,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       }
 
       const taxon = response.results[0]!;
-      const mappedAnimal = this.mapToAnimal(taxon);
+      const mappedAnimal = await this.mapToAnimal(taxon);
 
       // Validate mapped animal data with comprehensive validation
       const validation = validateAnimalData(mappedAnimal);
@@ -197,6 +200,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
     // Using is_active=true filters for only active animals
     // Order by observations_count to get most popular animals first
     // Also filter by rank to get species/subspecies level results
+    // NOTE: Not including ancestors here - taxonomy will be fetched when animal is selected
     const url = `${INATURALIST_BASE_URL}/taxa?q=${encodeURIComponent(trimmedQuery)}&taxon_id=1&is_active=true&rank=species,subspecies&per_page=${limit}&order_by=observations_count&order=desc`;
 
     try {
@@ -206,10 +210,10 @@ class INaturalistAPIClient implements BiologicalAPIClient {
         return { data: [], error: null };
       }
 
-      // Map and validate all results
+      // Map and validate all results (without fetching taxonomy for performance)
       const animals: Animal[] = [];
       for (const taxon of response.results) {
-        const mappedAnimal = this.mapToAnimal(taxon);
+        const mappedAnimal = this.mapToAnimalLightweight(taxon);
         const validation = validateAnimalData(mappedAnimal);
 
         if (validation.valid && validation.data) {
@@ -449,19 +453,40 @@ class INaturalistAPIClient implements BiologicalAPIClient {
   }
 
   /**
-   * Map iNaturalist taxon to Animal
-   * Maps iNaturalist API response to our Animal type:
-   * - name: Uses preferred_common_name if available, otherwise falls back to scientific name
-   * - scientificName: Always uses the 'name' field from API (which is the scientific name)
+   * Map iNaturalist taxon to Animal (lightweight version for search)
+   * Does NOT fetch taxonomy - use this for search results to keep it fast
    * @param taxon - iNaturalist taxon object
-   * @returns Animal object with mapped fields
+   * @returns Animal object with minimal data (empty taxonomy array)
    */
-  private mapToAnimal(taxon: INaturalistTaxon): Animal {
+  private mapToAnimalLightweight(taxon: INaturalistTaxon): Animal {
     // API 'name' field is the scientific name
     const scientificName = taxon.name;
     // API 'preferred_common_name' is the common name, fallback to scientific name if not available
     const name = taxon.preferred_common_name || taxon.name;
-    const taxonomy = this.parseTaxonomy(taxon.ancestry);
+
+    return {
+      id: String(taxon.id),
+      name,
+      scientificName,
+      taxonomy: [], // Empty taxonomy - will be fetched when animal is selected
+      url: `https://www.inaturalist.org/taxa/${taxon.id}`,
+      wikipediaUrl: taxon.wikipedia_url,
+      imageUrl: taxon.default_photo?.medium_url,
+    };
+  }
+
+  /**
+   * Map iNaturalist taxon to Animal (full version with taxonomy)
+   * Fetches complete taxonomy - use this when animal is selected
+   * @param taxon - iNaturalist taxon object
+   * @returns Promise resolving to Animal object with mapped fields including taxonomy
+   */
+  private async mapToAnimal(taxon: INaturalistTaxon): Promise<Animal> {
+    // API 'name' field is the scientific name
+    const scientificName = taxon.name;
+    // API 'preferred_common_name' is the common name, fallback to scientific name if not available
+    const name = taxon.preferred_common_name || taxon.name;
+    const taxonomy = await this.parseTaxonomy(taxon);
 
     return {
       id: String(taxon.id),
@@ -490,17 +515,115 @@ class INaturalistAPIClient implements BiologicalAPIClient {
   }
 
   /**
-   * Parse ancestry string to taxonomy array
-   * @param ancestry - Ancestry string from iNaturalist API
-   * @returns Array of taxonomy names (empty for MVP, implemented in Story 2.5)
+   * Parse ancestry to taxonomy array
+   * Fetches ancestor taxa to build complete taxonomy
+   * @param taxon - iNaturalist taxon object with ancestry or ancestor_ids
+   * @returns Promise resolving to array of taxonomy names from kingdom to the taxon
    */
-  private parseTaxonomy(ancestry?: string): string[] {
-    if (!ancestry) {
+  private async parseTaxonomy(taxon: INaturalistTaxon): Promise<string[]> {
+    // If ancestors array is already available (from include_ancestors=true), use it
+    if (taxon.ancestors && Array.isArray(taxon.ancestors) && taxon.ancestors.length > 0) {
+      return this.buildTaxonomyFromAncestors(taxon.ancestors, taxon);
+    }
+
+    // Otherwise, fetch ancestors using ancestor_ids or ancestry string
+    const ancestorIds = this.extractAncestorIds(taxon);
+    if (ancestorIds.length === 0) {
       return [];
     }
-    // Ancestry is a string like "48460/1/2/355675/40151"
-    // For MVP, return empty array - full taxonomy resolution in Story 2.5
+
+    // Fetch all ancestor taxa in a single batch API call
+    const ancestors = await this.fetchAncestorTaxa(ancestorIds);
+    return this.buildTaxonomyFromAncestors(ancestors, taxon);
+  }
+
+  /**
+   * Extract ancestor IDs from taxon
+   * @param taxon - iNaturalist taxon object
+   * @returns Array of ancestor IDs
+   */
+  private extractAncestorIds(taxon: INaturalistTaxon): number[] {
+    // Prefer ancestor_ids array if available
+    if (taxon.ancestor_ids && Array.isArray(taxon.ancestor_ids)) {
+      return taxon.ancestor_ids;
+    }
+
+    // Fallback to parsing ancestry string
+    if (taxon.ancestry && typeof taxon.ancestry === "string") {
+      return taxon.ancestry
+        .split("/")
+        .map(id => Number.parseInt(id.trim(), 10))
+        .filter(id => !Number.isNaN(id));
+    }
+
     return [];
+  }
+
+  /**
+   * Fetch ancestor taxa by their IDs
+   * Uses batch API call to fetch multiple taxa at once
+   * @param ancestorIds - Array of ancestor taxon IDs
+   * @returns Promise resolving to array of ancestor taxon objects
+   */
+  private async fetchAncestorTaxa(ancestorIds: number[]): Promise<INaturalistTaxon[]> {
+    if (ancestorIds.length === 0) {
+      return [];
+    }
+
+    try {
+      // iNaturalist API supports fetching multiple taxa by ID using comma-separated IDs
+      const idsParam = ancestorIds.join(",");
+      const url = `${INATURALIST_BASE_URL}/taxa/${idsParam}`;
+
+      await this.rateLimiter.throttle();
+      const response = await this.makeRequest<INaturalistResponse>(url);
+
+      if (!response.results || response.results.length === 0) {
+        return [];
+      }
+
+      // Return results in the order they were requested (important for taxonomy order)
+      const taxaMap = new Map(response.results.map(t => [t.id, t]));
+      return ancestorIds
+        .map(id => taxaMap.get(id))
+        .filter((t): t is INaturalistTaxon => t !== undefined);
+    } catch (error) {
+      // If fetching ancestors fails, log but don't throw (graceful degradation)
+      this.logError("Failed to fetch ancestor taxa", {
+        ancestorIds,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Build taxonomy array from ancestor taxa
+   * Filters to standard taxonomic ranks and orders them correctly
+   * @param ancestors - Array of ancestor taxon objects
+   * @param taxon - Current taxon object
+   * @returns Array of taxonomy names
+   */
+  private buildTaxonomyFromAncestors(
+    ancestors: INaturalistTaxon[],
+    taxon: INaturalistTaxon,
+  ): string[] {
+    const standardRanks = ["kingdom", "phylum", "class", "order", "family", "genus", "species"];
+    const taxonomy: string[] = [];
+
+    // Add ancestors in order (they should already be ordered from root to parent)
+    for (const ancestor of ancestors) {
+      if (ancestor.rank && standardRanks.includes(ancestor.rank)) {
+        taxonomy.push(ancestor.name);
+      }
+    }
+
+    // Add the current taxon if it's a standard rank (for species-level taxa)
+    if (taxon.rank && standardRanks.includes(taxon.rank)) {
+      taxonomy.push(taxon.name);
+    }
+
+    return taxonomy;
   }
 
   /**

@@ -79,6 +79,31 @@ describe("calculateLCA", () => {
       expect(result.path).toEqual(["Animalia", "Chordata"]);
     });
 
+    it("should calculate LCA for African Elephant vs Tiger (both Mammalia)", () => {
+      // African Elephant (Mammalia, Proboscidea) vs Tiger (Mammalia, Carnivora) → LCA should be Mammalia (class)
+      const africanElephant: Animal = {
+        id: "elephant-1",
+        name: "African Elephant",
+        scientificName: "Loxodonta africana",
+        taxonomy: [
+          "Animalia",
+          "Chordata",
+          "Mammalia",
+          "Proboscidea",
+          "Elephantidae",
+          "Loxodonta",
+          "Loxodonta africana",
+        ],
+      };
+
+      const result = calculateLCA(africanElephant, tiger);
+
+      expect(result.clade).toBe("Mammalia");
+      expect(result.rank).toBe("class");
+      expect(result.depth).toBe(2);
+      expect(result.path).toEqual(["Animalia", "Chordata", "Mammalia"]);
+    });
+
     it("should calculate LCA for animals from different phyla", () => {
       // Tiger (Chordata) vs Jellyfish (Cnidaria) → LCA should be Animalia (kingdom)
       const result = calculateLCA(tiger, jellyfish);
