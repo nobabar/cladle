@@ -3,7 +3,6 @@ import { computed, onMounted } from "vue";
 import type { Animal } from "~/types/animal";
 import type { ValidationError } from "~/utils/animalValidator";
 import { useGameStore } from "~/stores/gameStore";
-import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 
 // Main game page - foundation for game interface
 // This page will be extended with game components in future stories
@@ -22,25 +21,12 @@ const guessHistory = computed(() => gameStore.guesses.map(g => g.animal));
 
 /**
  * Handle animal selection - process as a guess
- * Fetches full animal data with taxonomy before processing
- * @param animal - The selected animal (may have incomplete taxonomy from search)
+ * @param animal - The validated animal
  */
-async function handleAnimalSelect(animal: Animal) {
+function handleAnimalSelect(animal: Animal) {
   try {
-    // Fetch full animal data with complete taxonomy
-    // Search results have empty taxonomy for performance
-    const api = useBiologicalAPI();
-    const fullAnimalResponse = await api.fetchAnimalData(animal.id);
-
-    if (fullAnimalResponse.error || !fullAnimalResponse.data) {
-      console.warn("Failed to fetch full animal data:", fullAnimalResponse.error?.message);
-      // Fallback: try to process with the animal we have (may have incomplete taxonomy)
-      gameStore.processGuess(animal);
-      return;
-    }
-
-    // Process guess with full animal data (includes complete taxonomy)
-    gameStore.processGuess(fullAnimalResponse.data);
+    // Animal already has full taxonomy data from validation
+    gameStore.processGuess(animal);
   } catch (error) {
     // Handle game state errors
     if (error instanceof Error) {
@@ -71,14 +57,45 @@ function handleInput(_value: string) {
 
 /**
  * Start a new game with a target animal
- * For now, uses a default animal - can be enhanced later with random selection
+ * For now, uses a default animal (Panthera tigris) - can be enhanced later with random selection
  */
 async function startNewGame() {
   try {
-    // For now, use a default target animal
-    // TODO: Implement random animal selection or allow user to choose
-    const defaultTarget: Animal = {
-      id: "default-tiger",
+    // Use real iNaturalist ID for Panthera tigris (Tiger)
+    const tigerId = "41967";
+    const api = useBiologicalAPI();
+
+    // Fetch full animal data from API to ensure we have complete, accurate data
+    const animalResponse = await api.fetchAnimalData(tigerId);
+
+    if (animalResponse.error || !animalResponse.data) {
+      console.error("Failed to fetch target animal data:", animalResponse.error?.message);
+      // Fallback to hardcoded data if API fails
+      const fallbackTarget: Animal = {
+        id: tigerId,
+        name: "Tiger",
+        scientificName: "Panthera tigris",
+        taxonomy: [
+          "Animalia",
+          "Chordata",
+          "Mammalia",
+          "Carnivora",
+          "Felidae",
+          "Panthera",
+          "Panthera tigris",
+        ],
+      };
+      gameStore.startGame(fallbackTarget, 6);
+      return;
+    }
+
+    // Use the real animal data from the API
+    gameStore.startGame(animalResponse.data, 6);
+  } catch (error) {
+    console.error("Failed to start game:", error);
+    // Fallback to hardcoded data on error
+    const fallbackTarget: Animal = {
+      id: "41967",
       name: "Tiger",
       scientificName: "Panthera tigris",
       taxonomy: [
@@ -91,10 +108,7 @@ async function startNewGame() {
         "Panthera tigris",
       ],
     };
-
-    gameStore.startGame(defaultTarget, 6);
-  } catch (error) {
-    console.error("Failed to start game:", error);
+    gameStore.startGame(fallbackTarget, 6);
   }
 }
 

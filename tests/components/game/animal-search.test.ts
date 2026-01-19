@@ -20,24 +20,22 @@ vi.mock("~/utils/animalValidator", async () => {
   const actual = await vi.importActual<typeof import("~/utils/animalValidator")>("~/utils/animalValidator");
   return {
     ...actual,
-    validateAnimalGuess: vi.fn(async (animalName: string, guessHistory: Animal[], _: any) => {
+    validateAnimalGuess: vi.fn(async (animal: Animal, guessHistory: Animal[], _: any) => {
       // Mock validation - always passes and returns the animal being validated
-      // Find animal by matching name (case-insensitive)
-      const normalizedName = animalName.toLowerCase().trim();
-      const foundAnimal = guessHistory.find(
-        a =>
-          a.name.toLowerCase() === normalizedName
-          || a.scientificName.toLowerCase() === normalizedName,
-      );
+      // Check if animal is in guess history (duplicate check)
+      const isDuplicate = guessHistory.some(g => g.id === animal.id);
 
-      // If not in guess history, create a mock animal (for testing)
-      const animal = foundAnimal || {
-        id: "mock-id",
-        name: animalName,
-        scientificName: "Test species",
-        taxonomy: ["Animalia"],
-      };
+      if (isDuplicate) {
+        return {
+          valid: false,
+          error: {
+            type: "duplicate",
+            message: "You've already guessed that animal! Try a different one.",
+          },
+        };
+      }
 
+      // If not a duplicate, return valid
       return {
         valid: true,
         animal,
@@ -50,7 +48,40 @@ vi.mock("~/utils/animalValidator", async () => {
 vi.mock("~/composables/useBiologicalAPI", () => ({
   useBiologicalAPI: vi.fn(() => ({
     searchAnimals: vi.fn(async () => ({ data: [], error: null })),
-    fetchAnimalData: vi.fn(),
+    fetchAnimalData: vi.fn(async (id: string) => {
+      // Return the animal if it matches the ID from mockAnimals
+      const mockAnimals: Animal[] = [
+        {
+          id: "1",
+          name: "African Elephant",
+          scientificName: "Loxodonta africana",
+          taxonomy: ["Animalia", "Chordata", "Mammalia"],
+        },
+        {
+          id: "2",
+          name: "Tiger",
+          scientificName: "Panthera tigris",
+          taxonomy: ["Animalia", "Chordata", "Mammalia"],
+        },
+        {
+          id: "3",
+          name: "Bald Eagle",
+          scientificName: "Haliaeetus leucocephalus",
+          taxonomy: ["Animalia", "Chordata", "Aves"],
+        },
+        {
+          id: "4",
+          name: "African Lion",
+          scientificName: "Panthera leo",
+          taxonomy: ["Animalia", "Chordata", "Mammalia"],
+        },
+      ];
+      const animal = mockAnimals.find(a => a.id === id);
+      return {
+        data: animal || null,
+        error: animal ? null : { code: "NOT_FOUND", message: "Not found" },
+      };
+    }),
     fetchCladeData: vi.fn(),
   })),
 }));
