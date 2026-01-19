@@ -129,30 +129,8 @@ onMounted(() => {
         </p>
       </div>
 
-      <!-- Win/Loss Messages -->
-      <div
-        v-if="gameStore.isWon"
-        class="max-w-2xl mx-auto mb-4 p-4 bg-green-100 dark:bg-green-900 rounded-lg text-center"
-      >
-        <p class="text-lg font-semibold text-green-800 dark:text-green-200">
-          🎉 Congratulations! You found the target animal!
-        </p>
-      </div>
-
-      <div
-        v-if="gameStore.isLost"
-        class="max-w-2xl mx-auto mb-4 p-4 bg-red-100 dark:bg-red-900 rounded-lg text-center"
-      >
-        <p class="text-lg font-semibold text-red-800 dark:text-red-200">
-          Game Over! The target was: {{ gameStore.target?.name }}
-        </p>
-        <button
-          class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          @click="startNewGame"
-        >
-          Start New Game
-        </button>
-      </div>
+      <!-- Win/Loss State Component -->
+      <GameWinState />
 
       <!-- Animal Search Component -->
       <div class="max-w-2xl mx-auto mb-8">
