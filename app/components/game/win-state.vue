@@ -1,35 +1,22 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useGameStore } from "~/stores/gameStore";
+import { useResponsive } from "~/composables/useResponsive";
 
 /**
  * Win/Loss State Component
  *
  * Displays win or loss state with target animal name, completion feedback,
- * and full tree structure. Uses modal on mobile (< 1024px) and side panel
+ * and full tree structure. Uses modal on mobile/tablet (< 1024px) and side panel
  * on desktop (>= 1024px).
  */
 
 const gameStore = useGameStore();
 
 /**
- * Screen width for responsive display
+ * Use responsive composable for breakpoint detection
  */
-const screenWidth = ref(1024);
-
-/**
- * Update screen width on mount and resize
- */
-function updateScreenWidth() {
-  if (typeof window !== "undefined") {
-    screenWidth.value = window.innerWidth;
-  }
-}
-
-/**
- * Check if mobile view (< 1024px)
- */
-const isMobile = computed(() => screenWidth.value < 1024);
+const { isMobile, isTablet, isDesktop } = useResponsive();
 
 /**
  * Check if game has ended (won or lost)
@@ -100,14 +87,14 @@ const screenReaderAnnouncement = computed(() => {
 });
 
 /**
- * Modal open state (for mobile)
+ * Modal open state (for mobile and tablet < 1024px)
  */
-const isModalOpen = computed(() => hasEnded.value && isMobile.value);
+const isModalOpen = computed(() => hasEnded.value && (isMobile.value || isTablet.value));
 
 /**
- * Panel open state (for desktop)
+ * Panel open state (for desktop >= 1024px)
  */
-const isPanelOpen = computed(() => hasEnded.value && !isMobile.value);
+const isPanelOpen = computed(() => hasEnded.value && isDesktop.value);
 
 /**
  * Focus trap element ref
@@ -164,12 +151,10 @@ watch(hasEnded, (newValue) => {
 });
 
 /**
- * Update screen width on mount and resize
+ * Setup on mount
  */
 onMounted(() => {
-  updateScreenWidth();
   if (typeof window !== "undefined") {
-    window.addEventListener("resize", updateScreenWidth);
     window.addEventListener("keydown", handleEscape);
   }
 });
@@ -179,7 +164,6 @@ onMounted(() => {
  */
 onUnmounted(() => {
   if (typeof window !== "undefined") {
-    window.removeEventListener("resize", updateScreenWidth);
     window.removeEventListener("keydown", handleEscape);
   }
 });
@@ -202,7 +186,7 @@ onUnmounted(() => {
     :model-value="isModalOpen"
     :ui="{
       width: 'w-full max-w-2xl',
-      padding: 'p-6',
+      padding: 'p-4 sm:p-5 md:p-6',
     }"
     :prevent-close="true"
   >
@@ -569,15 +553,44 @@ onUnmounted(() => {
   box-shadow: -4px 0 6px -1px rgba(0, 0, 0, 0.3);
 }
 
-/* Mobile optimizations */
-@media (max-width: 1023px) {
+/* Mobile optimizations (< 768px) */
+@media (max-width: 767px) {
+  .win-state__content {
+    gap: 1rem;
+  }
+
+  .win-state__header {
+    gap: 0.5rem;
+  }
+
+  .win-state__title {
+    font-size: 1.25rem;
+  }
+
+  .win-state__message {
+    font-size: 1rem;
+  }
+
+  .win-state__tree-container {
+    max-height: 300px;
+    overflow: auto;
+  }
+
+  /* Ensure touch-friendly spacing */
+  .win-state__content > * + * {
+    margin-top: 1rem;
+  }
+}
+
+/* Tablet optimizations (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
   .win-state__tree-container {
     max-height: 400px;
     overflow: auto;
   }
 }
 
-/* Desktop optimizations */
+/* Desktop optimizations (>= 1024px) */
 @media (min-width: 1024px) {
   .win-state-panel {
     width: 450px;
