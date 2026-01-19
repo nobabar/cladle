@@ -57,13 +57,14 @@ describe("api client", () => {
     it("should fetch animal data successfully", async () => {
       // Arrange
       /* eslint-disable camelcase */
-      const mockResponse = {
+      const mockAnimalResponse = {
         results: [{
           id: 42,
           name: "Tiger",
           preferred_common_name: "Tiger",
           rank: "species",
           ancestry: "48460/1/2/355675/40151/41066/41067/947378",
+          ancestor_ids: [48460, 1, 2, 355675, 40151, 41066, 41067, 947378],
           wikipedia_url: "https://en.wikipedia.org/wiki/Tiger",
           default_photo: {
             medium_url: "https://example.com/tiger.jpg",
@@ -72,11 +73,31 @@ describe("api client", () => {
       };
       /* eslint-enable camelcase */
 
-      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => mockResponse,
-      } as Response);
+      // Mock ancestor taxa response (simplified - just return minimal data)
+      const mockAncestorResponse = {
+        results: [
+          { id: 48460, name: "Animalia", rank: "kingdom" },
+          { id: 1, name: "Chordata", rank: "phylum" },
+          { id: 2, name: "Mammalia", rank: "class" },
+          { id: 355675, name: "Carnivora", rank: "order" },
+          { id: 40151, name: "Felidae", rank: "family" },
+          { id: 41066, name: "Panthera", rank: "genus" },
+          { id: 41067, name: "Panthera tigris", rank: "species" },
+          { id: 947378, name: "Panthera tigris", rank: "species" },
+        ],
+      };
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockAnimalResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockAncestorResponse,
+        } as Response);
 
       // Act
       const promise = client.fetchAnimalData("42");
@@ -91,7 +112,7 @@ describe("api client", () => {
       expect(result.data?.scientificName).toBe("Tiger");
       expect(result.data?.imageUrl).toBe("https://example.com/tiger.jpg");
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        "https://api.inaturalist.org/v1/taxa/42",
+        "https://api.inaturalist.org/v1/taxa/42?include_ancestors=true",
         expect.any(Object),
       );
     });
@@ -239,13 +260,36 @@ describe("api client", () => {
   describe("rate limiting", () => {
     it("should throttle rapid requests", async () => {
       // Arrange
-      /* eslint-disable-next-line camelcase */
-      const mockResponse = { results: [{ id: 1, name: "Test", preferred_common_name: "Test", rank: "species", ancestry: "1" }] };
-      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => mockResponse,
-      } as Response);
+
+      const mockAnimalResponse = {
+        results: [{
+          id: 1,
+          name: "Test",
+          preferred_common_name: "Test",
+          rank: "species",
+          ancestry: "1",
+          ancestor_ids: [1],
+        }],
+      };
+      const mockAncestorResponse = {
+        results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
+      };
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementation(async (url: string) => {
+        if (url.includes("?include_ancestors=true")) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => mockAnimalResponse,
+          } as Response;
+        }
+        // Ancestor fetch
+        return {
+          ok: true,
+          status: 200,
+          json: async () => mockAncestorResponse,
+        } as Response;
+      });
 
       // Act - Make 3 rapid requests
       const promise1 = client.fetchAnimalData("1");
@@ -262,13 +306,26 @@ describe("api client", () => {
       expect(results[0]!.data).not.toBeNull();
       expect(results[1]!.data).not.toBeNull();
       expect(results[2]!.data).not.toBeNull();
-      expect(globalThis.fetch).toHaveBeenCalledTimes(3);
+      // Each animal fetch makes 2 calls: one for animal, one for ancestors
+      expect(globalThis.fetch).toHaveBeenCalledTimes(6);
     });
 
     it("should handle 429 rate limit errors with retry", async () => {
       // Arrange - First call returns 429, second succeeds
-      /* eslint-disable-next-line camelcase */
-      const mockResponse = { results: [{ id: 1, name: "Test", preferred_common_name: "Test", rank: "species", ancestry: "1" }] };
+
+      const mockAnimalResponse = {
+        results: [{
+          id: 1,
+          name: "Test",
+          preferred_common_name: "Test",
+          rank: "species",
+          ancestry: "1",
+          ancestor_ids: [1],
+        }],
+      };
+      const mockAncestorResponse = {
+        results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
+      };
 
       (globalThis.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
@@ -279,7 +336,12 @@ describe("api client", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          json: async () => mockResponse,
+          json: async () => mockAnimalResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockAncestorResponse,
         } as Response);
 
       // Act
@@ -289,20 +351,33 @@ describe("api client", () => {
       await vi.advanceTimersByTimeAsync(0); // Rate limiter initial
       await vi.advanceTimersByTimeAsync(1000); // First retry backoff
       await vi.advanceTimersByTimeAsync(100); // Rate limiter for retry
+      await vi.advanceTimersByTimeAsync(100); // Rate limiter for ancestor fetch
 
       const result = await promise;
 
       // Assert
       expect(result.data).not.toBeNull();
-      expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+      expect(globalThis.fetch).toHaveBeenCalledTimes(3); // Initial + retry + ancestor fetch
     });
   });
 
   describe("retry logic with exponential backoff", () => {
     it("should retry on network error with exponential backoff", async () => {
       // Arrange - Fail twice, succeed third time
-      /* eslint-disable-next-line camelcase */
-      const mockResponse = { results: [{ id: 1, name: "Test", preferred_common_name: "Test", rank: "species", ancestry: "1" }] };
+
+      const mockAnimalResponse = {
+        results: [{
+          id: 1,
+          name: "Test",
+          preferred_common_name: "Test",
+          rank: "species",
+          ancestry: "1",
+          ancestor_ids: [1],
+        }],
+      };
+      const mockAncestorResponse = {
+        results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
+      };
 
       (globalThis.fetch as ReturnType<typeof vi.fn>)
         .mockRejectedValueOnce(new Error("Network error"))
@@ -310,7 +385,12 @@ describe("api client", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          json: async () => mockResponse,
+          json: async () => mockAnimalResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockAncestorResponse,
         } as Response);
 
       // Act
@@ -322,19 +402,32 @@ describe("api client", () => {
       await vi.advanceTimersByTimeAsync(100); // Rate limiter
       await vi.advanceTimersByTimeAsync(2000); // Second retry (2^1 * 1000)
       await vi.advanceTimersByTimeAsync(100); // Rate limiter
+      await vi.advanceTimersByTimeAsync(100); // Rate limiter for ancestor fetch
 
       const result = await promise;
 
       // Assert
       expect(result.data).not.toBeNull();
-      expect(globalThis.fetch).toHaveBeenCalledTimes(3);
+      expect(globalThis.fetch).toHaveBeenCalledTimes(4); // 3 retries + 1 ancestor fetch
       expect(consoleErrorSpy).toHaveBeenCalled();
     });
 
     it("should retry on 500 server error", async () => {
       // Arrange - Fail once, succeed second time
-      /* eslint-disable-next-line camelcase */
-      const mockResponse = { results: [{ id: 1, name: "Test", preferred_common_name: "Test", rank: "species", ancestry: "1" }] };
+
+      const mockAnimalResponse = {
+        results: [{
+          id: 1,
+          name: "Test",
+          preferred_common_name: "Test",
+          rank: "species",
+          ancestry: "1",
+          ancestor_ids: [1],
+        }],
+      };
+      const mockAncestorResponse = {
+        results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
+      };
 
       (globalThis.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
@@ -345,7 +438,12 @@ describe("api client", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          json: async () => mockResponse,
+          json: async () => mockAnimalResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockAncestorResponse,
         } as Response);
 
       // Act
@@ -355,12 +453,13 @@ describe("api client", () => {
       await vi.advanceTimersByTimeAsync(0); // Rate limiter initial
       await vi.advanceTimersByTimeAsync(1000); // First retry backoff
       await vi.advanceTimersByTimeAsync(100); // Rate limiter for retry
+      await vi.advanceTimersByTimeAsync(100); // Rate limiter for ancestor fetch
 
       const result = await promise;
 
       // Assert
       expect(result.data).not.toBeNull();
-      expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+      expect(globalThis.fetch).toHaveBeenCalledTimes(3); // Initial + retry + ancestor fetch
     });
 
     it("should fail after max retries (3 attempts)", async () => {
@@ -598,16 +697,32 @@ describe("api client", () => {
   describe("wrapped response format", () => {
     it("should return success format { data, error: null }", async () => {
       // Arrange
-      const mockResponse = {
-        /* eslint-disable-next-line camelcase */
-        results: [{ id: 1, name: "Test", preferred_common_name: "Test", rank: "species", ancestry: "1" }],
+
+      const mockAnimalResponse = {
+        results: [{
+          id: 1,
+          name: "Test",
+          preferred_common_name: "Test",
+          rank: "species",
+          ancestry: "1",
+          ancestor_ids: [1],
+        }],
+      };
+      const mockAncestorResponse = {
+        results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
       };
 
-      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => mockResponse,
-      } as Response);
+      (globalThis.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockAnimalResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockAncestorResponse,
+        } as Response);
 
       // Act
       const promise = client.fetchAnimalData("1");
@@ -679,22 +794,41 @@ describe("api client", () => {
     it("should return cached animal data on second request", async () => {
       // Arrange
       /* eslint-disable camelcase */
-      const mockResponse = {
+      const mockAnimalResponse = {
         results: [{
           id: 42,
           name: "Tiger",
           preferred_common_name: "Tiger",
           rank: "species",
           ancestry: "48460/1/2/355675/40151/41066/41067/947378",
+          ancestor_ids: [48460, 1, 2, 355675, 40151, 41066, 41067, 947378],
         }],
+      };
+      const mockAncestorResponse = {
+        results: [
+          { id: 48460, name: "Animalia", rank: "kingdom" },
+          { id: 1, name: "Chordata", rank: "phylum" },
+          { id: 2, name: "Mammalia", rank: "class" },
+          { id: 355675, name: "Carnivora", rank: "order" },
+          { id: 40151, name: "Felidae", rank: "family" },
+          { id: 41066, name: "Panthera", rank: "genus" },
+          { id: 41067, name: "Panthera tigris", rank: "species" },
+          { id: 947378, name: "Panthera tigris", rank: "species" },
+        ],
       };
       /* eslint-enable camelcase */
 
-      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => mockResponse,
-      } as Response);
+      (globalThis.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockAnimalResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockAncestorResponse,
+        } as Response);
 
       // Act - First request (cache miss)
       const result1 = await client.fetchAnimalData("42");
@@ -704,7 +838,7 @@ describe("api client", () => {
 
       // Assert
       expect(result1.data).toEqual(result2.data);
-      expect(globalThis.fetch).toHaveBeenCalledTimes(1); // Only called once
+      expect(globalThis.fetch).toHaveBeenCalledTimes(2); // Animal + ancestors (only on first request)
       expect(result2.data?.id).toBe("42");
       expect(result2.data?.name).toBe("Tiger");
     });
@@ -761,11 +895,31 @@ describe("api client", () => {
     it("should cache different animals separately", async () => {
       // Arrange
       /* eslint-disable camelcase */
-      const mockResponse1 = {
-        results: [{ id: 1, name: "Tiger", preferred_common_name: "Tiger", rank: "species", ancestry: "1" }],
+      const mockAnimalResponse1 = {
+        results: [{
+          id: 1,
+          name: "Tiger",
+          preferred_common_name: "Tiger",
+          rank: "species",
+          ancestry: "1",
+          ancestor_ids: [1],
+        }],
       };
-      const mockResponse2 = {
-        results: [{ id: 2, name: "Lion", preferred_common_name: "Lion", rank: "species", ancestry: "2" }],
+      const mockAnimalResponse2 = {
+        results: [{
+          id: 2,
+          name: "Lion",
+          preferred_common_name: "Lion",
+          rank: "species",
+          ancestry: "2",
+          ancestor_ids: [2],
+        }],
+      };
+      const mockAncestorResponse1 = {
+        results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
+      };
+      const mockAncestorResponse2 = {
+        results: [{ id: 2, name: "Animalia", rank: "kingdom" }],
       };
       /* eslint-enable camelcase */
 
@@ -773,12 +927,22 @@ describe("api client", () => {
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          json: async () => mockResponse1,
+          json: async () => mockAnimalResponse1,
         } as Response)
         .mockResolvedValueOnce({
           ok: true,
           status: 200,
-          json: async () => mockResponse2,
+          json: async () => mockAncestorResponse1,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockAnimalResponse2,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockAncestorResponse2,
         } as Response);
 
       // Act - Request two different animals
@@ -794,21 +958,37 @@ describe("api client", () => {
       expect(result2.data?.name).toBe("Lion");
       expect(result1Cached.data?.name).toBe("Tiger");
       expect(result2Cached.data?.name).toBe("Lion");
-      expect(globalThis.fetch).toHaveBeenCalledTimes(2); // Once per unique animal
+      expect(globalThis.fetch).toHaveBeenCalledTimes(4); // 2 animals × (animal + ancestors)
     });
 
     it("should provide instant cached response (performance)", async () => {
       // Arrange
-      const mockResponse = {
-        /* eslint-disable-next-line camelcase */
-        results: [{ id: 1, name: "Tiger", preferred_common_name: "Tiger", rank: "species", ancestry: "1" }],
+
+      const mockAnimalResponse = {
+        results: [{
+          id: 1,
+          name: "Tiger",
+          preferred_common_name: "Tiger",
+          rank: "species",
+          ancestry: "1",
+          ancestor_ids: [1],
+        }],
+      };
+      const mockAncestorResponse = {
+        results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
       };
 
-      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => mockResponse,
-      } as Response);
+      (globalThis.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockAnimalResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockAncestorResponse,
+        } as Response);
 
       // Act - First request (cache miss)
       await client.fetchAnimalData("1");
@@ -828,16 +1008,35 @@ describe("api client", () => {
 
     it("should fetch from API if cache is cleared", async () => {
       // Arrange
-      const mockResponse = {
-        /* eslint-disable-next-line camelcase */
-        results: [{ id: 1, name: "Tiger", preferred_common_name: "Tiger", rank: "species", ancestry: "1" }],
+
+      const mockAnimalResponse = {
+        results: [{
+          id: 1,
+          name: "Tiger",
+          preferred_common_name: "Tiger",
+          rank: "species",
+          ancestry: "1",
+          ancestor_ids: [1],
+        }],
+      };
+      const mockAncestorResponse = {
+        results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
       };
 
-      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => mockResponse,
-      } as Response);
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementation(async (url: string) => {
+        if (url.includes("?include_ancestors=true")) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => mockAnimalResponse,
+          } as Response;
+        }
+        return {
+          ok: true,
+          status: 200,
+          json: async () => mockAncestorResponse,
+        } as Response;
+      });
 
       // Act - First request (cache miss)
       await client.fetchAnimalData("1");
@@ -849,21 +1048,37 @@ describe("api client", () => {
       await client.fetchAnimalData("1");
 
       // Assert
-      expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+      expect(globalThis.fetch).toHaveBeenCalledTimes(4); // 2 × (animal + ancestors)
     });
 
     it("should work offline with cached data", async () => {
       // Arrange
-      const mockResponse = {
-        /* eslint-disable-next-line camelcase */
-        results: [{ id: 1, name: "Tiger", preferred_common_name: "Tiger", rank: "species", ancestry: "1" }],
+
+      const mockAnimalResponse = {
+        results: [{
+          id: 1,
+          name: "Tiger",
+          preferred_common_name: "Tiger",
+          rank: "species",
+          ancestry: "1",
+          ancestor_ids: [1],
+        }],
+      };
+      const mockAncestorResponse = {
+        results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
       };
 
-      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => mockResponse,
-      } as Response);
+      (globalThis.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockAnimalResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockAncestorResponse,
+        } as Response);
 
       // Act - First request (cache miss, online)
       const result1 = await client.fetchAnimalData("1");
