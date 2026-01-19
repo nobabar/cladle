@@ -23,26 +23,32 @@ import {
 
 /**
  * Mock API client for testing
- * @param searchResult - The result of the search animals call
+ * @param fetchResult - The result of the fetchAnimalData call (Animal or null)
  * @param shouldThrow - Whether to throw an error
  * @returns A mock API client
  */
 function createMockApiClient(
-  searchResult: Animal[] | null = null,
+  fetchResult: Animal | null = null,
   shouldThrow = false,
 ): BiologicalAPIClient {
   return {
-    fetchAnimalData: vi.fn(),
-    fetchCladeData: vi.fn(),
-    searchAnimals: vi.fn(async () => {
+    fetchAnimalData: vi.fn(async (id: string) => {
       if (shouldThrow) {
         throw new Error("API Error");
       }
+      if (fetchResult && fetchResult.id === id) {
+        return {
+          data: fetchResult,
+          error: null,
+        };
+      }
       return {
-        data: searchResult,
-        error: searchResult === null ? { code: "NOT_FOUND", message: "Not found" } : null,
+        data: null,
+        error: { code: "NOT_FOUND", message: "Not found" },
       };
     }),
+    fetchCladeData: vi.fn(),
+    searchAnimals: vi.fn(),
   };
 }
 
@@ -72,27 +78,30 @@ const testAnimal3: Animal = {
 
 describe("validateAnimalGuess", () => {
   describe("empty input validation", () => {
-    it("should reject empty string", async () => {
-      const apiClient = createMockApiClient([testAnimal1]);
-      const result = await validateAnimalGuess("", [], apiClient);
+    it("should reject animal with empty name", async () => {
+      const apiClient = createMockApiClient(testAnimal1);
+      const emptyAnimal: Animal = { ...testAnimal1, name: "" };
+      const result = await validateAnimalGuess(emptyAnimal, [], apiClient);
 
       expect(result.valid).toBe(false);
       expect(result.error?.type).toBe("empty");
       expect(result.error?.message).toContain("Please enter an animal name");
     });
 
-    it("should reject whitespace-only string", async () => {
-      const apiClient = createMockApiClient([testAnimal1]);
-      const result = await validateAnimalGuess("   ", [], apiClient);
+    it("should reject animal with whitespace-only name", async () => {
+      const apiClient = createMockApiClient(testAnimal1);
+      const whitespaceAnimal: Animal = { ...testAnimal1, name: "   " };
+      const result = await validateAnimalGuess(whitespaceAnimal, [], apiClient);
 
       expect(result.valid).toBe(false);
       expect(result.error?.type).toBe("empty");
       expect(result.error?.message).toContain("Please enter an animal name");
     });
 
-    it("should accept trimmed input", async () => {
-      const apiClient = createMockApiClient([testAnimal1]);
-      const result = await validateAnimalGuess("  African Elephant  ", [], apiClient);
+    it("should accept animal with trimmed name", async () => {
+      const apiClient = createMockApiClient(testAnimal1);
+      const trimmedAnimal: Animal = { ...testAnimal1, name: "  African Elephant  " };
+      const result = await validateAnimalGuess(trimmedAnimal, [], apiClient);
 
       expect(result.valid).toBe(true);
       expect(result.animal).toEqual(testAnimal1);
@@ -101,8 +110,8 @@ describe("validateAnimalGuess", () => {
 
   describe("animal existence validation", () => {
     it("should validate animal exists in database", async () => {
-      const apiClient = createMockApiClient([testAnimal1]);
-      const result = await validateAnimalGuess("African Elephant", [], apiClient);
+      const apiClient = createMockApiClient(testAnimal1);
+      const result = await validateAnimalGuess(testAnimal1, [], apiClient);
 
       expect(result.valid).toBe(true);
       expect(result.animal).toEqual(testAnimal1);
@@ -111,7 +120,13 @@ describe("validateAnimalGuess", () => {
 
     it("should reject animal not found in database", async () => {
       const apiClient = createMockApiClient(null);
-      const result = await validateAnimalGuess("NonExistent Animal", [], apiClient);
+      const nonExistentAnimal: Animal = {
+        id: "999",
+        name: "NonExistent Animal",
+        scientificName: "Non existens",
+        taxonomy: [],
+      };
+      const result = await validateAnimalGuess(nonExistentAnimal, [], apiClient);
 
       expect(result.valid).toBe(false);
       expect(result.error?.type).toBe("invalid");
@@ -119,9 +134,13 @@ describe("validateAnimalGuess", () => {
       expect(result.animal).toBeUndefined();
     });
 
-    it("should reject when API returns empty array", async () => {
-      const apiClient = createMockApiClient([]);
-      const result = await validateAnimalGuess("NonExistent Animal", [], apiClient);
+    it("should reject animal without ID", async () => {
+      const apiClient = createMockApiClient(testAnimal1);
+      const noIdAnimal: Animal = {
+        ...testAnimal1,
+        id: "",
+      };
+      const result = await validateAnimalGuess(noIdAnimal, [], apiClient);
 
       expect(result.valid).toBe(false);
       expect(result.error?.type).toBe("invalid");
@@ -130,96 +149,69 @@ describe("validateAnimalGuess", () => {
 
     it("should handle API errors gracefully", async () => {
       const apiClient = createMockApiClient(null, true);
-      const result = await validateAnimalGuess("African Elephant", [], apiClient);
+      const result = await validateAnimalGuess(testAnimal1, [], apiClient);
 
       expect(result.valid).toBe(false);
       expect(result.error?.type).toBe("invalid");
       expect(result.error?.message).toContain("We couldn't find that animal");
     });
 
-    it("should match animal by exact name (case-insensitive)", async () => {
-      const apiClient = createMockApiClient([testAnimal1]);
-      const result = await validateAnimalGuess("african elephant", [], apiClient);
+    it("should fetch full animal data by ID", async () => {
+      const apiClient = createMockApiClient(testAnimal1);
+      const result = await validateAnimalGuess(testAnimal1, [], apiClient);
 
       expect(result.valid).toBe(true);
       expect(result.animal).toEqual(testAnimal1);
-    });
-
-    it("should match animal by scientific name (case-insensitive)", async () => {
-      const apiClient = createMockApiClient([testAnimal1]);
-      const result = await validateAnimalGuess("Loxodonta africana", [], apiClient);
-
-      expect(result.valid).toBe(true);
-      expect(result.animal).toEqual(testAnimal1);
-    });
-
-    it("should not match partial names", async () => {
-      const apiClient = createMockApiClient([testAnimal1]);
-      // API might return multiple results, but we check for exact match
-      const result = await validateAnimalGuess("African", [], apiClient);
-
-      // If API returns the animal but name doesn't match exactly, it should fail
-      // This depends on API behavior - if API returns testAnimal1 for "African",
-      // we need to check if the name matches
-      if (result.valid && result.animal) {
-        // If it matched, verify it's the correct animal
-        expect(result.animal.id).toBe(testAnimal1.id);
-      }
+      expect(apiClient.fetchAnimalData).toHaveBeenCalledWith(testAnimal1.id);
     });
   });
 
   describe("duplicate detection", () => {
-    it("should detect duplicate by name (case-insensitive)", async () => {
-      const apiClient = createMockApiClient([testAnimal1]);
+    it("should detect duplicate by ID", async () => {
+      const apiClient = createMockApiClient(testAnimal1);
       const guessHistory = [testAnimal1];
-      const result = await validateAnimalGuess("African Elephant", guessHistory, apiClient);
+      const result = await validateAnimalGuess(testAnimal1, guessHistory, apiClient);
 
       expect(result.valid).toBe(false);
       expect(result.error?.type).toBe("duplicate");
       expect(result.error?.message).toContain("already guessed");
     });
 
-    it("should detect duplicate by scientific name (case-insensitive)", async () => {
-      const apiClient = createMockApiClient([testAnimal1]);
+    it("should detect duplicate even with different name casing", async () => {
+      const apiClient = createMockApiClient(testAnimal1);
       const guessHistory = [testAnimal1];
-      const result = await validateAnimalGuess("Loxodonta africana", guessHistory, apiClient);
-
-      expect(result.valid).toBe(false);
-      expect(result.error?.type).toBe("duplicate");
-      expect(result.error?.message).toContain("already guessed");
-    });
-
-    it("should detect duplicate with different case", async () => {
-      const apiClient = createMockApiClient([testAnimal1]);
-      const guessHistory = [testAnimal1];
-      const result = await validateAnimalGuess("AFRICAN ELEPHANT", guessHistory, apiClient);
+      const differentCaseAnimal: Animal = {
+        ...testAnimal1,
+        name: "AFRICAN ELEPHANT",
+      };
+      const result = await validateAnimalGuess(differentCaseAnimal, guessHistory, apiClient);
 
       expect(result.valid).toBe(false);
       expect(result.error?.type).toBe("duplicate");
     });
 
     it("should allow different animals", async () => {
-      const apiClient = createMockApiClient([testAnimal2]);
+      const apiClient = createMockApiClient(testAnimal2);
       const guessHistory = [testAnimal1];
-      const result = await validateAnimalGuess("Tiger", guessHistory, apiClient);
+      const result = await validateAnimalGuess(testAnimal2, guessHistory, apiClient);
 
       expect(result.valid).toBe(true);
       expect(result.animal).toEqual(testAnimal2);
     });
 
     it("should handle multiple guesses in history", async () => {
-      const apiClient = createMockApiClient([testAnimal3]);
+      const apiClient = createMockApiClient(testAnimal3);
       const guessHistory = [testAnimal1, testAnimal2];
-      const result = await validateAnimalGuess("Lion", guessHistory, apiClient);
+      const result = await validateAnimalGuess(testAnimal3, guessHistory, apiClient);
 
       expect(result.valid).toBe(true);
       expect(result.animal).toEqual(testAnimal3);
     });
 
     it("should detect duplicate in multiple guesses", async () => {
-      const apiClient = createMockApiClient([testAnimal1]);
+      const apiClient = createMockApiClient(testAnimal1);
       const guessHistory = [testAnimal2, testAnimal1, testAnimal3];
-      const result = await validateAnimalGuess("African Elephant", guessHistory, apiClient);
+      const result = await validateAnimalGuess(testAnimal1, guessHistory, apiClient);
 
       expect(result.valid).toBe(false);
       expect(result.error?.type).toBe("duplicate");
@@ -228,9 +220,9 @@ describe("validateAnimalGuess", () => {
 
   describe("complete validation flow", () => {
     it("should validate valid, non-duplicate animal", async () => {
-      const apiClient = createMockApiClient([testAnimal1]);
+      const apiClient = createMockApiClient(testAnimal1);
       const guessHistory: Animal[] = [];
-      const result = await validateAnimalGuess("African Elephant", guessHistory, apiClient);
+      const result = await validateAnimalGuess(testAnimal1, guessHistory, apiClient);
 
       expect(result.valid).toBe(true);
       expect(result.animal).toEqual(testAnimal1);
@@ -240,7 +232,13 @@ describe("validateAnimalGuess", () => {
     it("should reject invalid animal even if not duplicate", async () => {
       const apiClient = createMockApiClient(null);
       const guessHistory: Animal[] = [];
-      const result = await validateAnimalGuess("Invalid Animal", guessHistory, apiClient);
+      const invalidAnimal: Animal = {
+        id: "999",
+        name: "Invalid Animal",
+        scientificName: "Invalidus animalis",
+        taxonomy: [],
+      };
+      const result = await validateAnimalGuess(invalidAnimal, guessHistory, apiClient);
 
       expect(result.valid).toBe(false);
       expect(result.error?.type).toBe("invalid");
@@ -248,9 +246,9 @@ describe("validateAnimalGuess", () => {
     });
 
     it("should reject duplicate even if valid animal", async () => {
-      const apiClient = createMockApiClient([testAnimal1]);
+      const apiClient = createMockApiClient(testAnimal1);
       const guessHistory = [testAnimal1];
-      const result = await validateAnimalGuess("African Elephant", guessHistory, apiClient);
+      const result = await validateAnimalGuess(testAnimal1, guessHistory, apiClient);
 
       expect(result.valid).toBe(false);
       expect(result.error?.type).toBe("duplicate");
@@ -260,8 +258,9 @@ describe("validateAnimalGuess", () => {
 
   describe("error messages", () => {
     it("should provide user-friendly empty error message", async () => {
-      const apiClient = createMockApiClient([testAnimal1]);
-      const result = await validateAnimalGuess("", [], apiClient);
+      const apiClient = createMockApiClient(testAnimal1);
+      const emptyAnimal: Animal = { ...testAnimal1, name: "" };
+      const result = await validateAnimalGuess(emptyAnimal, [], apiClient);
 
       expect(result.error?.message).toBe("Please enter an animal name.");
       expect(result.error?.message).not.toContain("technical");
@@ -270,7 +269,13 @@ describe("validateAnimalGuess", () => {
 
     it("should provide user-friendly invalid error message", async () => {
       const apiClient = createMockApiClient(null);
-      const result = await validateAnimalGuess("NonExistent", [], apiClient);
+      const nonExistentAnimal: Animal = {
+        id: "999",
+        name: "NonExistent",
+        scientificName: "Non existens",
+        taxonomy: [],
+      };
+      const result = await validateAnimalGuess(nonExistentAnimal, [], apiClient);
 
       expect(result.error?.message).toContain("We couldn't find that animal");
       expect(result.error?.message).toContain("Try checking the spelling");
@@ -279,8 +284,8 @@ describe("validateAnimalGuess", () => {
     });
 
     it("should provide user-friendly duplicate error message", async () => {
-      const apiClient = createMockApiClient([testAnimal1]);
-      const result = await validateAnimalGuess("African Elephant", [testAnimal1], apiClient);
+      const apiClient = createMockApiClient(testAnimal1);
+      const result = await validateAnimalGuess(testAnimal1, [testAnimal1], apiClient);
 
       expect(result.error?.message).toContain("already guessed");
       expect(result.error?.message).toContain("Try a different one");
