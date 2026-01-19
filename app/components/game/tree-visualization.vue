@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import type { TreeData, TreeLayoutConfig, TreeNode } from "~/types/tree";
+import {
+  calculateTreeLayout,
+  getViewBoxFromDimensions,
+
+} from "~/utils/treeLayoutCalculator";
+import type { LayoutResult } from "~/utils/treeLayoutCalculator";
+import { treeToMermaid } from "~/utils/mermaidExporter";
 
 /**
  * Props
@@ -42,6 +49,10 @@ const containerRef = ref<HTMLDivElement | null>(null);
 const containerWidth = ref(props.width);
 const containerHeight = ref(props.height);
 const focusedNodeId = ref<string | null>(null);
+const previousNodeIds = ref<Set<string>>(new Set());
+const newNodeIds = ref<Set<string>>(new Set());
+const layoutResult = ref<LayoutResult | null>(null);
+const isCopied = ref(false);
 
 /**
  * Check if tree data is available
@@ -49,147 +60,80 @@ const focusedNodeId = ref<string | null>(null);
 const hasTreeData = computed(() => props.treeData !== null && props.treeData !== undefined);
 
 /**
- * Calculate tree layout positions
- * Implements a top-to-bottom hierarchical layout algorithm
- * @param treeData - The tree data structure to layout
- * @returns Map of node IDs to positioned tree nodes
+ * Computed layout result using the layout calculator
+ * @returns Layout result or null if no tree data
  */
-function calculateLayout(treeData: TreeData): Map<string, TreeNode> {
-  const nodeMap = new Map<string, TreeNode>();
-  const visited = new Set<string>();
-
-  // First pass: assign depths and build node map
-  function assignDepths(node: TreeNode, depth: number = 0): void {
-    if (visited.has(node.id)) {
-      return;
-    }
-    visited.add(node.id);
-    node.depth = depth;
-    nodeMap.set(node.id, { ...node });
-
-    for (const child of node.children) {
-      assignDepths(child, depth + 1);
-    }
+const computedLayout = computed(() => {
+  if (!hasTreeData.value || !props.treeData) {
+    return null;
   }
 
-  assignDepths(treeData.root, 0);
-
-  // Second pass: calculate horizontal positions using a simple algorithm
-  // Group nodes by depth
-  const nodesByDepth = new Map<number, TreeNode[]>();
-  for (const node of nodeMap.values()) {
-    const depth = node.depth || 0;
-    if (!nodesByDepth.has(depth)) {
-      nodesByDepth.set(depth, []);
-    }
-    nodesByDepth.get(depth)!.push(node);
-  }
-
-  // Calculate positions for each depth level
-  const depths = Array.from(nodesByDepth.keys()).sort((a, b) => a - b);
-  const maxDepth = depths.length > 0 ? Math.max(...depths) : 0;
-
-  // Find maximum width needed (for centering)
-  let maxNodesAtDepth = 0;
-  for (let depth = 0; depth <= maxDepth; depth++) {
-    const nodesAtDepth = nodesByDepth.get(depth) || [];
-    maxNodesAtDepth = Math.max(maxNodesAtDepth, nodesAtDepth.length);
-  }
-
-  // Calculate tree width (for centering)
-  const treeWidth = maxNodesAtDepth > 0
-    ? (maxNodesAtDepth - 1) * layoutConfig.horizontalSpacing + layoutConfig.nodeWidth
-    : layoutConfig.nodeWidth;
-
-  for (let depth = 0; depth <= maxDepth; depth++) {
-    const nodesAtDepth = nodesByDepth.get(depth) || [];
-    if (nodesAtDepth.length === 0) {
-      continue;
-    }
-
-    const nodeCount = nodesAtDepth.length;
-    const totalWidth = (nodeCount - 1) * layoutConfig.horizontalSpacing;
-    const startX = treeWidth / 2 - totalWidth / 2;
-
-    nodesAtDepth.forEach((node, index) => {
-      const x = startX + index * layoutConfig.horizontalSpacing;
-      const y = layoutConfig.padding + depth * layoutConfig.verticalSpacing;
-      const updatedNode = nodeMap.get(node.id);
-      if (updatedNode) {
-        updatedNode.position = { x, y };
-        nodeMap.set(node.id, updatedNode);
-      }
-    });
-  }
-
-  return nodeMap;
-}
+  return calculateTreeLayout(
+    props.treeData,
+    containerWidth.value,
+    layoutConfig,
+  );
+});
 
 /**
- * Get all edges (connections) between nodes
- * @param nodeMap - Map of node IDs to tree nodes
- * @returns Array of edges connecting parent to child nodes
+ * Watch for layout changes to track new nodes for animation
  */
-function getEdges(nodeMap: Map<string, TreeNode>): Array<{ from: TreeNode; to: TreeNode }> {
-  const edges: Array<{ from: TreeNode; to: TreeNode }> = [];
+watch(
+  computedLayout,
+  (newLayout) => {
+    if (!newLayout) {
+      newNodeIds.value = new Set();
+      previousNodeIds.value = new Set();
+      layoutResult.value = null;
+      return;
+    }
 
-  for (const node of nodeMap.values()) {
-    for (const child of node.children) {
-      const childNode = nodeMap.get(child.id);
-      if (childNode) {
-        edges.push({ from: node, to: childNode });
+    // Track new nodes for animation
+    const currentNodeIds = new Set(newLayout.nodes.keys());
+    const newNodes = new Set<string>();
+
+    for (const id of currentNodeIds) {
+      if (!previousNodeIds.value.has(id)) {
+        newNodes.add(id);
       }
     }
-  }
 
-  return edges;
-}
+    // Update tracking sets
+    newNodeIds.value = newNodes;
+    previousNodeIds.value = currentNodeIds;
+    layoutResult.value = newLayout;
+  },
+  { immediate: true },
+);
 
 /**
  * Computed positioned nodes
  */
-const computedNodes = computed(() => {
-  if (!hasTreeData.value || !props.treeData) {
-    return new Map<string, TreeNode>();
-  }
-  return calculateLayout(props.treeData);
-});
+const computedNodes = computed(() => computedLayout.value?.nodes || new Map<string, TreeNode>());
 
 /**
  * Computed edges
  */
-const computedEdges = computed(() => getEdges(computedNodes.value));
+const computedEdges = computed(() => computedLayout.value?.edges || []);
 
 /**
- * SVG viewBox dimensions
+ * Check if a node is new (for animation)
+ * @param nodeId - The node ID to check
+ * @returns True if the node is new (should be animated)
+ */
+function isNewNode(nodeId: string): boolean {
+  return newNodeIds.value.has(nodeId);
+}
+
+/**
+ * SVG viewBox dimensions from layout result
  */
 const svgViewBox = computed(() => {
-  if (computedNodes.value.size === 0) {
+  if (!computedLayout.value) {
     return `0 0 ${containerWidth.value} ${containerHeight.value}`;
   }
 
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minY = Infinity;
-  let maxY = -Infinity;
-
-  for (const node of computedNodes.value.values()) {
-    if (node.position) {
-      minX = Math.min(minX, node.position.x);
-      maxX = Math.max(maxX, node.position.x);
-      minY = Math.min(minY, node.position.y);
-      maxY = Math.max(maxY, node.position.y);
-    }
-  }
-
-  // Add padding
-  const padding = layoutConfig.padding;
-  minX -= padding;
-  maxX += padding + layoutConfig.nodeWidth;
-  minY -= padding;
-  maxY += padding + layoutConfig.nodeHeight;
-
-  return `${minX} ${minY} ${maxX - minX} ${maxY - minY}`;
+  return getViewBoxFromDimensions(computedLayout.value.dimensions);
 });
 
 /**
@@ -383,6 +327,26 @@ watch(
     updateDimensions();
   },
 );
+
+/**
+ * Copy tree as Mermaid format to clipboard
+ */
+async function copyTreeAsMermaid(): Promise<void> {
+  if (!hasTreeData.value || !props.treeData) {
+    return;
+  }
+
+  try {
+    const mermaidText = treeToMermaid(props.treeData);
+    await navigator.clipboard.writeText(mermaidText);
+    isCopied.value = true;
+    setTimeout(() => {
+      isCopied.value = false;
+    }, 2000);
+  } catch (error) {
+    console.error("Failed to copy to clipboard:", error);
+  }
+}
 </script>
 
 <template>
@@ -395,6 +359,21 @@ watch(
     tabindex="0"
     @keydown="handleKeyDown"
   >
+    <!-- Copy Button -->
+    <button
+      v-if="hasTreeData"
+      type="button"
+      class="tree-visualization__copy-button"
+      :aria-label="isCopied ? 'Copied to clipboard' : 'Copy tree as Mermaid diagram'"
+      :title="isCopied ? 'Copied to clipboard' : 'Copy tree as Mermaid diagram'"
+      @click="copyTreeAsMermaid"
+    >
+      <Icon
+        :name="isCopied ? 'i-lucide-check' : 'i-lucide-copy'"
+        class="tree-visualization__copy-icon"
+      />
+    </button>
+
     <!-- Empty State -->
     <div v-if="!hasTreeData" class="tree-visualization__empty">
       <p class="tree-visualization__empty-text">
@@ -433,6 +412,9 @@ watch(
           :key="node.id"
           :transform="`translate(${node.position?.x || 0}, ${node.position?.y || 0})`"
           class="tree-node-group"
+          :class="[
+            { 'tree-node-group--new': isNewNode(node.id) },
+          ]"
         >
           <!-- Node rectangle -->
           <rect
@@ -500,6 +482,10 @@ watch(
   border-radius: 8px;
   overflow: auto;
   outline: none;
+  /* Smooth scrolling for horizontal navigation */
+  scroll-behavior: smooth;
+  /* Enable momentum scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
 }
 
 .dark .tree-visualization {
@@ -549,18 +535,37 @@ watch(
 
 .tree-node-group {
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .tree-node-group:hover {
-  transform: translate(var(--x, 0), var(--y, 0)) scale(1.05);
+  transform: scale(1.05);
+}
+
+/* Animation for new nodes (top-to-bottom) */
+.tree-node-group--new {
+  animation: nodeAppear 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  opacity: 0;
+  transform: translateY(-20px) scale(0.9);
+}
+
+@keyframes nodeAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .tree-node {
   fill: white;
   stroke: #9ca3af;
   stroke-width: 2;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dark .tree-node {
@@ -682,6 +687,62 @@ watch(
   border-width: 0;
 }
 
+.tree-visualization__copy-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.dark .tree-visualization__copy-button {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+.tree-visualization__copy-button:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+}
+
+.dark .tree-visualization__copy-button:hover {
+  background: #4b5563;
+  border-color: #6b7280;
+}
+
+.tree-visualization__copy-button:active {
+  transform: scale(0.95);
+}
+
+.tree-visualization__copy-button:focus {
+  outline: 2px solid #00c16a;
+  outline-offset: 2px;
+}
+
+.tree-visualization__copy-icon {
+  width: 18px;
+  height: 18px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tree-visualization__copy-button:hover .tree-visualization__copy-icon {
+  transform: scale(1.1);
+}
+
 /* Mobile optimizations */
 @media (max-width: 768px) {
   .tree-visualization {
@@ -694,6 +755,18 @@ watch(
 
   .tree-node__text {
     font-size: 8px;
+  }
+
+  .tree-visualization__copy-button {
+    width: 32px;
+    height: 32px;
+    top: 8px;
+    right: 8px;
+  }
+
+  .tree-visualization__copy-icon {
+    width: 16px;
+    height: 16px;
   }
 }
 </style>
