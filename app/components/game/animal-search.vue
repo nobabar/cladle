@@ -484,12 +484,13 @@ onUnmounted(() => {
           size="sm"
           icon="i-lucide-circle-x"
           aria-label="Clear input"
+          class="min-w-[44px] min-h-[44px] touch-target flex items-center justify-center"
           @click="clearInput"
         />
         <UKbd
           v-else
           value="/"
-          class="text-xs mr-2"
+          class="text-xs mr-2 hidden sm:inline-flex sm:items-center sm:justify-center"
         />
       </template>
     </UInput>
@@ -539,7 +540,7 @@ onUnmounted(() => {
           :key="animal.id"
           role="option"
           :aria-selected="index === highlightedIndex"
-          class="min-h-[44px] px-4 py-3 cursor-pointer text-base hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 transition-colors"
+          class="min-h-[44px] px-3 sm:px-4 py-3 cursor-pointer text-sm sm:text-base hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 transition-colors touch-target"
           :class="[
             index === highlightedIndex
               ? 'bg-gray-100 dark:bg-gray-700'
@@ -616,6 +617,14 @@ onUnmounted(() => {
 /* Ensure touch targets meet 44x44px minimum */
 .animal-search :deep(input) {
   min-height: 44px;
+  font-size: 16px; /* Prevent zoom on iOS */
+}
+
+/* Touch target class for interactive elements */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
 }
 
 /* Highlight matching text - using Tailwind classes in template, keeping this for fallback */
@@ -644,5 +653,36 @@ ul::-webkit-scrollbar-thumb:hover {
 
 .dark ul::-webkit-scrollbar-thumb:hover {
   background-color: rgb(71 85 105);
+}
+
+/* Mobile optimizations */
+@media (max-width: 767px) {
+  .animal-search {
+    width: 100%;
+  }
+
+  /* Ensure adequate spacing between suggestions on mobile */
+  ul li + li {
+    border-top: 1px solid rgb(229 231 235);
+  }
+
+  .dark ul li + li {
+    border-top-color: rgb(55 65 81);
+  }
+}
+
+/* Tablet and desktop enhancements */
+@media (min-width: 768px) {
+  .animal-search :deep(input) {
+    font-size: 1rem;
+  }
+
+  /* Ensure UKbd is properly centered */
+  .animal-search :deep(kbd) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+  }
 }
 </style>
