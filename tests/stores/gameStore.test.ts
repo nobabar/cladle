@@ -390,4 +390,162 @@ describe("gameStore", () => {
       expect(store.guesses[0]?.lca.clade).toBe("Panthera tigris");
     });
   });
+
+  describe("story requirements - action naming conventions", () => {
+    it("should initialize game with initializeGame method", () => {
+      const store = useGameStore();
+      const puzzleDate = "2026-01-11";
+      store.initializeGame(tiger, 6, puzzleDate);
+
+      expect(store.target).toEqual(tiger);
+      expect(store.status).toBe("playing");
+      expect(store.maxGuesses).toBe(6);
+      expect(store.puzzleDate).toBe(puzzleDate);
+      expect(store.treeData).not.toBeNull();
+    });
+
+    it("should set puzzle date to current date if not provided", () => {
+      const store = useGameStore();
+      store.initializeGame(tiger, 6);
+
+      expect(store.puzzleDate).toBeTruthy();
+      expect(store.puzzleDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    it("should set target animal with setTargetAnimal", () => {
+      const store = useGameStore();
+      store.setTargetAnimal(tiger);
+
+      expect(store.target).toEqual(tiger);
+    });
+
+    it("should add guess with addGuess method", () => {
+      const store = useGameStore();
+      store.startGame(tiger, 6);
+      store.addGuess(wolf);
+
+      expect(store.guesses).toHaveLength(1);
+      expect(store.guesses[0]?.animal.id).toBe(wolf.id);
+    });
+
+    it("should set completion status with setCompletionStatus", () => {
+      const store = useGameStore();
+      store.startGame(tiger, 6);
+      store.setCompletionStatus("won");
+
+      expect(store.status).toBe("won");
+      expect(store.completionStatus).toBe("won");
+    });
+
+    it("should update tree state with updateTreeState", () => {
+      const store = useGameStore();
+      store.startGame(tiger, 6);
+      const originalTree = store.treeData;
+
+      // Create a new tree structure
+      const newTree = {
+        ...originalTree!,
+        nodes: [...(originalTree?.nodes || [])],
+      };
+
+      store.updateTreeState(newTree);
+
+      expect(store.treeData).toStrictEqual(newTree);
+      expect(store.nodeMap.size).toBeGreaterThan(0);
+    });
+
+    it("should decrement guesses remaining (no-op, but method exists)", () => {
+      const store = useGameStore();
+      store.startGame(tiger, 6);
+      const initialRemaining = store.guessesRemaining;
+
+      store.decrementGuessesRemaining();
+
+      // Method exists but doesn't change state (guesses remaining is computed)
+      expect(store.guessesRemaining).toBe(initialRemaining);
+    });
+  });
+
+  describe("story requirements - additional getters", () => {
+    it("should check if animal has been guessed with hasGuessed", () => {
+      const store = useGameStore();
+      store.startGame(tiger, 6);
+
+      expect(store.hasGuessed(wolf)).toBe(false);
+      store.processGuess(wolf);
+      expect(store.hasGuessed(wolf)).toBe(true);
+      expect(store.hasGuessed(lion)).toBe(false);
+    });
+
+    it("should check if game is complete with isComplete", () => {
+      const store = useGameStore();
+      expect(store.isComplete).toBe(false);
+
+      store.startGame(tiger, 6);
+      expect(store.isComplete).toBe(false);
+
+      store.processGuess(tiger);
+      expect(store.isComplete).toBe(true);
+    });
+
+    it("should check if can guess with canGuess", () => {
+      const store = useGameStore();
+      expect(store.canGuess).toBe(false);
+
+      store.startGame(tiger, 6);
+      expect(store.canGuess).toBe(true);
+
+      store.processGuess(tiger);
+      expect(store.canGuess).toBe(false);
+    });
+
+    it("should get guess count with guessCount", () => {
+      const store = useGameStore();
+      store.startGame(tiger, 6);
+
+      expect(store.guessCount).toBe(0);
+      store.processGuess(wolf);
+      expect(store.guessCount).toBe(1);
+      store.processGuess(lion);
+      expect(store.guessCount).toBe(2);
+    });
+
+    it("should get completion status with completionStatus", () => {
+      const store = useGameStore();
+      expect(store.completionStatus).toBe("playing");
+
+      store.startGame(tiger, 6);
+      expect(store.completionStatus).toBe("playing");
+
+      store.setCompletionStatus("won");
+      expect(store.completionStatus).toBe("won");
+
+      store.setCompletionStatus("lost");
+      expect(store.completionStatus).toBe("lost");
+    });
+  });
+
+  describe("puzzle date tracking", () => {
+    it("should initialize with empty puzzle date", () => {
+      const store = useGameStore();
+      expect(store.puzzleDate).toBe("");
+    });
+
+    it("should set puzzle date when initializing game", () => {
+      const store = useGameStore();
+      const puzzleDate = "2026-01-11";
+      store.initializeGame(tiger, 6, puzzleDate);
+
+      expect(store.puzzleDate).toBe(puzzleDate);
+    });
+
+    it("should reset puzzle date when resetting game", () => {
+      const store = useGameStore();
+      store.initializeGame(tiger, 6, "2026-01-11");
+      expect(store.puzzleDate).toBe("2026-01-11");
+
+      store.resetGame();
+      expect(store.puzzleDate).toBe("");
+    });
+  });
 });
