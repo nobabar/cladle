@@ -22,6 +22,22 @@ export interface ErrorMessageMap {
 }
 
 /**
+ * Game Error Type
+ * Represents errors that occur during game operations
+ * Follows architecture pattern: store-level for API/data, component-level for UI
+ */
+export interface GameError {
+  /** User-friendly error message */
+  message: string;
+  /** Optional error code for programmatic handling */
+  code?: string;
+  /** Optional additional error details (not exposed to user) */
+  details?: any;
+  /** Error type for categorization */
+  type: "validation" | "network" | "data" | "ui";
+}
+
+/**
  * Standard error messages for common error scenarios
  * These messages are user-friendly and don't expose technical details
  */
@@ -86,4 +102,51 @@ export function mapHttpStatusToErrorCode(status: number): string {
     return "VALIDATION_ERROR";
   }
   return "UNKNOWN_ERROR";
+}
+
+/**
+ * Convert API error to GameError
+ * Maps API errors to game error format with appropriate type
+ *
+ * @param apiError - API error from ApiError interface
+ * @param apiError.message - Error message as human-readable string
+ * @param apiError.code - Error code (e.g., 'NETWORK_ERROR', 'VALIDATION_ERROR')
+ * @param apiError.details - Error details if any
+ * @returns GameError with appropriate type
+ */
+export function apiErrorToGameError(apiError: { message: string; code?: string; details?: any }): GameError {
+  // Determine error type based on code
+  let errorType: GameError["type"] = "data";
+
+  if (apiError.code === "NETWORK_ERROR" || apiError.code === "OFFLINE" || apiError.code === "TIMEOUT") {
+    errorType = "network";
+  } else if (apiError.code === "VALIDATION_ERROR" || apiError.code === "ANIMAL_NOT_FOUND") {
+    errorType = "validation";
+  }
+
+  return {
+    message: apiError.message,
+    code: apiError.code,
+    details: apiError.details,
+    type: errorType,
+  };
+}
+
+/**
+ * Convert validation error to GameError
+ * Maps validation errors to game error format
+ *
+ * @param validationError - Validation error from ValidationError interface
+ * @param validationError.message - Error message as human-readable string
+ * @param validationError.type - Error type (e.g., 'invalid', 'duplicate', 'empty')
+ * @param validationError.details - Error details if any
+ * @returns GameError with validation type
+ */
+export function validationErrorToGameError(validationError: { message: string; type?: string; details?: any }): GameError {
+  return {
+    message: validationError.message,
+    code: validationError.type?.toUpperCase(),
+    details: validationError.details,
+    type: "validation",
+  };
 }

@@ -3,6 +3,7 @@ import type { Animal } from "~/types/animal";
 import type { TreeData, TreeNode } from "~/types/tree";
 import { calculateLCA } from "~/utils/lcaCalculator";
 import type { LCAResult } from "~/utils/lcaCalculator";
+import type { GameError } from "~/utils/errorMessages";
 
 /**
  * Game State
@@ -47,6 +48,12 @@ interface GameState {
   cladeMap: Map<string, TreeNode>;
   /** Current puzzle date (YYYY-MM-DD format) */
   puzzleDate: string;
+  /** Loading state for global operations (API calls, data loading) */
+  isLoading: boolean;
+  /** Store-level error (API/data errors) */
+  error: GameError | null;
+  /** Loading state for tree rendering */
+  isRenderingTree: boolean;
 }
 
 /**
@@ -65,6 +72,9 @@ export const useGameStore = defineStore("game", {
     nodeMap: new Map(),
     cladeMap: new Map(),
     puzzleDate: "",
+    isLoading: false,
+    error: null,
+    isRenderingTree: false,
   }),
 
   getters: {
@@ -490,6 +500,37 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
+     * Set loading state (for global operations)
+     * @param loading - Whether loading is active
+     */
+    setLoading(loading: boolean): void {
+      this.isLoading = loading;
+    },
+
+    /**
+     * Set tree rendering state
+     * @param rendering - Whether tree is being rendered
+     */
+    setRenderingTree(rendering: boolean): void {
+      this.isRenderingTree = rendering;
+    },
+
+    /**
+     * Set store-level error (for API/data errors)
+     * @param error - GameError or null to clear
+     */
+    setError(error: GameError | null): void {
+      this.error = error;
+    },
+
+    /**
+     * Clear error state
+     */
+    clearError(): void {
+      this.error = null;
+    },
+
+    /**
      * Reset game state
      */
     resetGame(): void {
@@ -500,6 +541,9 @@ export const useGameStore = defineStore("game", {
       this.nodeMap = new Map();
       this.cladeMap = new Map();
       this.puzzleDate = "";
+      this.isLoading = false;
+      this.error = null;
+      this.isRenderingTree = false;
     },
   },
 });

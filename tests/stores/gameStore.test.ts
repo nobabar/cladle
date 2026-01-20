@@ -44,6 +44,59 @@ describe("gameStore", () => {
     setActivePinia(createPinia());
   });
 
+  describe("loading and error state management", () => {
+    it("should initialize with loading and error states as false/null", () => {
+      const store = useGameStore();
+      expect(store.isLoading).toBe(false);
+      expect(store.error).toBeNull();
+      expect(store.isRenderingTree).toBe(false);
+    });
+
+    it("should set loading state", () => {
+      const store = useGameStore();
+      store.setLoading(true);
+      expect(store.isLoading).toBe(true);
+      store.setLoading(false);
+      expect(store.isLoading).toBe(false);
+    });
+
+    it("should set tree rendering state", () => {
+      const store = useGameStore();
+      store.setRenderingTree(true);
+      expect(store.isRenderingTree).toBe(true);
+      store.setRenderingTree(false);
+      expect(store.isRenderingTree).toBe(false);
+    });
+
+    it("should set and clear error", () => {
+      const store = useGameStore();
+      const error = {
+        message: "Test error",
+        code: "TEST_ERROR",
+        type: "ui" as const,
+      };
+      store.setError(error);
+      expect(store.error).toEqual(error);
+      store.clearError();
+      expect(store.error).toBeNull();
+    });
+
+    it("should reset loading and error states on resetGame", () => {
+      const store = useGameStore();
+      store.setLoading(true);
+      store.setError({
+        message: "Test error",
+        code: "TEST_ERROR",
+        type: "ui",
+      });
+      store.setRenderingTree(true);
+      store.resetGame();
+      expect(store.isLoading).toBe(false);
+      expect(store.error).toBeNull();
+      expect(store.isRenderingTree).toBe(false);
+    });
+  });
+
   describe("game initialization", () => {
     it("should initialize game with target animal", () => {
       const store = useGameStore();
