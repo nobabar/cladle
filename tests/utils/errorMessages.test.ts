@@ -11,9 +11,11 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  apiErrorToGameError,
   ERROR_MESSAGES,
   getUserFriendlyError,
   mapHttpStatusToErrorCode,
+  validationErrorToGameError,
 } from "~/utils/errorMessages";
 
 describe("getUserFriendlyError", () => {
@@ -205,5 +207,127 @@ describe("eRROR_MESSAGES constant", () => {
 
     // At least half of messages should be actionable
     expect(actionableCount).toBeGreaterThan(Object.keys(ERROR_MESSAGES).length / 2);
+  });
+});
+
+describe("apiErrorToGameError", () => {
+  it("should convert API error to GameError with network type", () => {
+    const apiError = {
+      message: "Connection issue. Please check your internet and try again.",
+      code: "NETWORK_ERROR",
+      details: { originalError: "Network request failed" },
+    };
+
+    const gameError = apiErrorToGameError(apiError);
+    expect(gameError).toEqual({
+      message: apiError.message,
+      code: apiError.code,
+      details: apiError.details,
+      type: "network",
+    });
+  });
+
+  it("should convert API error to GameError with validation type", () => {
+    const apiError = {
+      message: "Animal not found. Please try a different name.",
+      code: "ANIMAL_NOT_FOUND",
+    };
+
+    const gameError = apiErrorToGameError(apiError);
+    expect(gameError).toEqual({
+      message: apiError.message,
+      code: apiError.code,
+      details: undefined,
+      type: "validation",
+    });
+  });
+
+  it("should convert API error to GameError with data type for unknown codes", () => {
+    const apiError = {
+      message: "An unexpected error occurred.",
+      code: "UNKNOWN_ERROR",
+    };
+
+    const gameError = apiErrorToGameError(apiError);
+    expect(gameError).toEqual({
+      message: apiError.message,
+      code: apiError.code,
+      details: undefined,
+      type: "data",
+    });
+  });
+
+  it("should handle timeout errors as network type", () => {
+    const apiError = {
+      message: "Request timed out. Please try again.",
+      code: "TIMEOUT",
+    };
+
+    const gameError = apiErrorToGameError(apiError);
+    expect(gameError.type).toBe("network");
+  });
+
+  it("should handle offline errors as network type", () => {
+    const apiError = {
+      message: "You appear to be offline. Please check your connection.",
+      code: "OFFLINE",
+    };
+
+    const gameError = apiErrorToGameError(apiError);
+    expect(gameError.type).toBe("network");
+  });
+});
+
+describe("validationErrorToGameError", () => {
+  it("should convert validation error to GameError", () => {
+    const validationError = {
+      message: "We couldn't find that animal. Try checking the spelling or searching for a different animal.",
+      type: "invalid",
+      details: { animalName: "test" },
+    };
+
+    const gameError = validationErrorToGameError(validationError);
+    expect(gameError).toEqual({
+      message: validationError.message,
+      code: "INVALID",
+      details: validationError.details,
+      type: "validation",
+    });
+  });
+
+  it("should handle validation error without type", () => {
+    const validationError = {
+      message: "Please enter a valid animal name.",
+    };
+
+    const gameError = validationErrorToGameError(validationError);
+    expect(gameError).toEqual({
+      message: validationError.message,
+      code: undefined,
+      details: undefined,
+      type: "validation",
+    });
+  });
+
+  it("should handle duplicate validation error", () => {
+    const validationError = {
+      message: "You've already guessed that animal! Try a different one.",
+      type: "duplicate",
+    };
+
+    const gameError = validationErrorToGameError(validationError);
+    expect(gameError.code).toBe("DUPLICATE");
+    expect(gameError.type).toBe("validation");
+  });
+
+  it("should handle empty validation error", () => {
+    const validationError = {
+      message: "Please enter an animal name.",
+      type: "empty",
+    };
+
+    const gameError = validationErrorToGameError(validationError);
+    expect(gameError.code).toBe("EMPTY");
+    expect(gameError.type).toBe("validation");
   });
 });

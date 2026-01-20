@@ -60,6 +60,8 @@ const selectedAnimal = ref<Animal | null>(null);
 const apiAnimals = ref<Animal[]>([]);
 const searchTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
 const validationError = ref<ValidationError | null>(null);
+const isSearching = ref(false);
+const isSubmitting = ref(false);
 
 /**
  * Keyboard shortcut to focus input
@@ -147,6 +149,9 @@ async function selectAnimal(animal: Animal) {
   // Clear previous validation error
   validationError.value = null;
 
+  // Set submitting state
+  isSubmitting.value = true;
+
   try {
     // Validate animal guess before emitting
     const validationResult = await validateAnimalGuess(
@@ -159,6 +164,7 @@ async function selectAnimal(animal: Animal) {
       // Validation failed - show error and don't emit select event
       validationError.value = validationResult.error || null;
       emit("validationError", validationResult.error!);
+      isSubmitting.value = false;
 
       // Keep suggestions open so user can try again
       // Don't clear the selected animal yet - let user see what they selected
@@ -176,7 +182,13 @@ async function selectAnimal(animal: Animal) {
     // Clear validation error on success
     validationError.value = null;
     emit("select", validationResult.animal || animal);
+
+    // Clear submitting state after a short delay for visual feedback
+    setTimeout(() => {
+      isSubmitting.value = false;
+    }, 300);
   } catch (error) {
+    isSubmitting.value = false;
     // Handle unexpected errors
     validationError.value = {
       type: "invalid",
@@ -393,9 +405,11 @@ async function searchAnimalsFromAPI(query: string) {
   const trimmedQuery = query.trim();
   if (!trimmedQuery || trimmedQuery.length < props.minChars) {
     apiAnimals.value = [];
+    isSearching.value = false;
     return;
   }
 
+  isSearching.value = true;
   try {
     const result = await api.searchAnimals(trimmedQuery, props.maxSuggestions);
     if (result.data) {
@@ -405,6 +419,8 @@ async function searchAnimalsFromAPI(query: string) {
     }
   } catch {
     apiAnimals.value = [];
+  } finally {
+    isSearching.value = false;
   }
 }
 
@@ -458,42 +474,52 @@ onUnmounted(() => {
 <template>
   <div class="animal-search relative w-full">
     <!-- Search Input -->
-    <UInput
-      ref="inputRef"
-      :model-value="searchQuery"
-      :placeholder="placeholder"
-      :disabled="disabled"
-      :ui="{ trailing: 'pe-1' }"
-      aria-label="Search for an animal"
-      :aria-expanded="isOpen"
-      aria-autocomplete="list"
-      :aria-controls="showSuggestions ? 'animal-suggestions' : undefined"
-      :aria-activedescendant="
-        highlightedIndex >= 0 ? getSuggestionId(highlightedIndex) : undefined
-      "
-      class="w-full min-h-[44px] text-base"
-      @input="handleInput"
-      @keydown="handleKeydown"
-      @focus="isOpen = searchQuery.length >= minChars"
-    >
-      <template #trailing>
-        <UButton
-          v-if="searchQuery?.length"
-          color="neutral"
-          variant="link"
-          size="sm"
-          icon="i-lucide-circle-x"
-          aria-label="Clear input"
-          class="min-w-[44px] min-h-[44px] touch-target flex items-center justify-center"
-          @click="clearInput"
-        />
-        <UKbd
-          v-else
-          value="/"
-          class="text-xs mr-2 hidden sm:inline-flex sm:items-center sm:justify-center"
-        />
-      </template>
-    </UInput>
+    <div class="relative">
+      <UInput
+        ref="inputRef"
+        :model-value="searchQuery"
+        :placeholder="placeholder"
+        :disabled="disabled || isSubmitting"
+        :loading="isSearching"
+        :ui="{ trailing: 'pe-1' }"
+        aria-label="Search for an animal"
+        :aria-expanded="isOpen"
+        aria-autocomplete="list"
+        :aria-controls="showSuggestions ? 'animal-suggestions' : undefined"
+        :aria-activedescendant="
+          highlightedIndex >= 0 ? getSuggestionId(highlightedIndex) : undefined
+        "
+        :aria-busy="isSearching || isSubmitting"
+        class="w-full min-h-[44px] text-base"
+        @input="handleInput"
+        @keydown="handleKeydown"
+        @focus="isOpen = searchQuery.length >= minChars"
+      >
+        <template #trailing>
+          <GameLoadingIndicator
+            v-if="isSubmitting"
+            size="sm"
+            message=""
+            class="mr-2"
+          />
+          <UButton
+            v-else-if="searchQuery?.length"
+            color="neutral"
+            variant="link"
+            size="sm"
+            icon="i-lucide-circle-x"
+            aria-label="Clear input"
+            class="min-w-[44px] min-h-[44px] touch-target flex items-center justify-center"
+            @click="clearInput"
+          />
+          <UKbd
+            v-else
+            value="/"
+            class="text-xs mr-2 hidden sm:inline-flex sm:items-center sm:justify-center"
+          />
+        </template>
+      </UInput>
+    </div>
 
     <!-- Validation Error Message -->
     <Transition
