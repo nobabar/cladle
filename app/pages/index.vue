@@ -1,13 +1,34 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import type { Animal } from "~/types/animal";
 import type { ValidationError } from "~/utils/animalValidator";
 import { useGameStore } from "~/stores/gameStore";
+import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
+import { apiErrorToGameError, validationErrorToGameError } from "~/utils/errorMessages";
 
 // Main game page - foundation for game interface
 // This page will be extended with game components in future stories
 
 const gameStore = useGameStore();
+const api = useBiologicalAPI();
+
+/**
+ * Visual feedback state for successful actions
+ */
+const showSuccessFeedback = ref(false);
+const successMessage = ref("");
+
+/**
+ * Show success feedback
+ * @param message - Success message to display
+ */
+function showSuccess(message: string) {
+  successMessage.value = message;
+  showSuccessFeedback.value = true;
+  setTimeout(() => {
+    showSuccessFeedback.value = false;
+  }, 3000);
+}
 
 /**
  * Get tree data from game store
@@ -25,13 +46,33 @@ const guessHistory = computed(() => gameStore.guesses.map(g => g.animal));
  */
 function handleAnimalSelect(animal: Animal) {
   try {
+    // Clear any previous errors
+    gameStore.clearError();
+
+    // Set tree rendering state
+    gameStore.setRenderingTree(true);
+
     // Animal already has full taxonomy data from validation
     gameStore.processGuess(animal);
+
+    // Show success feedback
+    showSuccess(`Guess submitted: ${animal.name}`);
+
+    // Clear tree rendering state after a short delay to allow animation
+    setTimeout(() => {
+      gameStore.setRenderingTree(false);
+    }, 500);
   } catch (error) {
     // Handle game state errors
+    gameStore.setRenderingTree(false);
     if (error instanceof Error) {
-      console.warn("Guess processing error:", error.message);
-      // The error will be handled by validation in the component
+      // Convert to GameError and set in store
+      gameStore.setError({
+        message: error.message,
+        code: "GAME_STATE_ERROR",
+        type: "ui",
+        details: error,
+      });
     }
   }
 }
@@ -41,9 +82,9 @@ function handleAnimalSelect(animal: Animal) {
  * @param error - The validation error that occurred
  */
 function handleValidationError(error: ValidationError) {
-  // Validation error is already displayed in the component
-  // This handler can be used for additional error handling if needed
-  console.warn("Validation error:", error.message);
+  // Convert validation error to GameError and set in store
+  const gameError = validationErrorToGameError(error);
+  gameStore.setError(gameError);
 }
 
 /**
@@ -60,16 +101,26 @@ function handleInput(_value: string) {
  * For now, uses a default animal (Panthera tigris) - can be enhanced later with random selection
  */
 async function startNewGame() {
+  // Clear any previous errors
+  gameStore.clearError();
+
+  // Set loading state
+  gameStore.setLoading(true);
+
   try {
     // Use real iNaturalist ID for Panthera tigris (Tiger)
     const tigerId = "41967";
-    const api = useBiologicalAPI();
 
     // Fetch full animal data from API to ensure we have complete, accurate data
     const animalResponse = await api.fetchAnimalData(tigerId);
 
     if (animalResponse.error || !animalResponse.data) {
-      console.error("Failed to fetch target animal data:", animalResponse.error?.message);
+      // Convert API error to GameError
+      if (animalResponse.error) {
+        const gameError = apiErrorToGameError(animalResponse.error);
+        gameStore.setError(gameError);
+      }
+
       // Fallback to hardcoded data if API fails
       const fallbackTarget: Animal = {
         id: tigerId,
@@ -86,13 +137,26 @@ async function startNewGame() {
         ],
       };
       gameStore.startGame(fallbackTarget, 6);
+      gameStore.setLoading(false);
       return;
     }
 
     // Use the real animal data from the API
     gameStore.startGame(animalResponse.data, 6);
+    gameStore.setLoading(false);
   } catch (error) {
-    console.error("Failed to start game:", error);
+    gameStore.setLoading(false);
+
+    // Convert error to GameError
+    if (error instanceof Error) {
+      gameStore.setError({
+        message: "Failed to start game. Please try again.",
+        code: "GAME_START_ERROR",
+        type: "network",
+        details: error,
+      });
+    }
+
     // Fallback to hardcoded data on error
     const fallbackTarget: Animal = {
       id: "41967",
@@ -135,6 +199,48 @@ onMounted(() => {
           Phylogenetic guessing game
         </p>
       </header>
+
+      <!-- Loading Indicator (Global) -->
+      <GameLoadingIndicator
+        v-if="gameStore.isLoading"
+        message="Loading game data..."
+        full-screen
+      />
+
+      <!-- Store-Level Error Display -->
+      <div
+        v-if="gameStore.error"
+        class="max-w-2xl mx-auto mb-4"
+      >
+        <GameErrorMessage
+          :error="gameStore.error"
+          @dismiss="gameStore.clearError"
+        />
+      </div>
+
+      <!-- Success Feedback -->
+      <Transition
+        enter-active-class="transition ease-out duration-200"
+        enter-from-class="opacity-0 translate-y-2"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition ease-in duration-150"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 translate-y-2"
+      >
+        <div
+          v-if="showSuccessFeedback"
+          class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 max-w-md mx-auto"
+        >
+          <div
+            class="px-4 py-3 text-sm text-green-800 dark:text-green-200 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-md shadow-lg flex items-center gap-2"
+            role="status"
+            aria-live="polite"
+          >
+            <span aria-hidden="true">✓</span>
+            <span>{{ successMessage }}</span>
+          </div>
+        </div>
+      </Transition>
 
       <!-- Game Status Display -->
       <div
@@ -180,7 +286,20 @@ onMounted(() => {
         >
           Make your first guess to see the phylogenetic tree
         </p>
-        <div class="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]">
+        <!-- Tree Rendering Loading Indicator -->
+        <div
+          v-if="gameStore.isRenderingTree"
+          class="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] flex items-center justify-center"
+        >
+          <GameLoadingIndicator
+            message="Updating tree..."
+            size="md"
+          />
+        </div>
+        <div
+          v-else
+          class="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]"
+        >
           <GameTreeVisualization
             :tree-data="treeData"
             :show-target="false"
