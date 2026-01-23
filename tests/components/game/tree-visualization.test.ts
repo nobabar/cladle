@@ -265,11 +265,17 @@ describe("treeVisualization", () => {
       const nodes = wrapper.findAll(".tree-node-group");
       expect(nodes.length).toBeGreaterThan(0);
 
-      // Check that nodes have transform attributes (indicating positions)
+      // Check that nodes have x and y attributes (indicating absolute positioning)
       nodes.forEach((node) => {
-        const transform = node.attributes("transform");
-        expect(transform).toBeTruthy();
-        expect(transform).toMatch(/translate\(/);
+        const rect = node.find("rect");
+        expect(rect.exists()).toBe(true);
+        const x = rect.attributes("x");
+        const y = rect.attributes("y");
+        expect(x).toBeTruthy();
+        expect(y).toBeTruthy();
+        // Verify they are valid numbers
+        expect(Number.parseFloat(x)).not.toBeNaN();
+        expect(Number.parseFloat(y)).not.toBeNaN();
       });
     });
 
