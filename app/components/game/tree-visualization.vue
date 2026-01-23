@@ -4,9 +4,7 @@ import type { TreeData, TreeLayoutConfig, TreeNode } from "~/types/tree";
 import {
   calculateTreeLayout,
   getViewBoxFromDimensions,
-
 } from "~/utils/treeLayoutCalculator";
-import type { LayoutResult } from "~/utils/treeLayoutCalculator";
 import { treeToMermaid } from "~/utils/mermaidExporter";
 
 /**
@@ -46,12 +44,11 @@ const layoutConfig: TreeLayoutConfig = {
  */
 const svgRef = ref<SVGSVGElement | null>(null);
 const containerRef = ref<HTMLDivElement | null>(null);
-const containerWidth = ref(props.width);
-const containerHeight = ref(props.height);
+const containerWidth = ref(props.width || 800);
+const containerHeight = ref(props.height || 600);
 const focusedNodeId = ref<string | null>(null);
 const previousNodeIds = ref<Set<string>>(new Set());
 const newNodeIds = ref<Set<string>>(new Set());
-const layoutResult = ref<LayoutResult | null>(null);
 const isCopied = ref(false);
 
 /**
@@ -61,18 +58,13 @@ const hasTreeData = computed(() => props.treeData !== null && props.treeData !==
 
 /**
  * Computed layout result using the layout calculator
- * @returns Layout result or null if no tree data
  */
 const computedLayout = computed(() => {
-  if (!hasTreeData.value || !props.treeData) {
+  if (!hasTreeData.value || !props.treeData || containerWidth.value === 0) {
     return null;
   }
 
-  return calculateTreeLayout(
-    props.treeData,
-    containerWidth.value,
-    layoutConfig,
-  );
+  return calculateTreeLayout(props.treeData, containerWidth.value, layoutConfig);
 });
 
 /**
@@ -84,7 +76,6 @@ watch(
     if (!newLayout) {
       newNodeIds.value = new Set();
       previousNodeIds.value = new Set();
-      layoutResult.value = null;
       return;
     }
 
@@ -98,10 +89,8 @@ watch(
       }
     }
 
-    // Update tracking sets
     newNodeIds.value = newNodes;
     previousNodeIds.value = currentNodeIds;
-    layoutResult.value = newLayout;
   },
   { immediate: true },
 );
@@ -115,6 +104,71 @@ const computedNodes = computed(() => computedLayout.value?.nodes || new Map<stri
  * Computed edges
  */
 const computedEdges = computed(() => computedLayout.value?.edges || []);
+
+/**
+ * Calculate text width for a given text string
+ * Uses a temporary SVG text element to measure actual rendered width
+ *
+ * @param text - Text to measure
+ * @param fontSize - Font size in pixels (default: 10)
+ * @param _fontFamily - Font family (default: system font)
+ * @returns Calculated text width in pixels
+ */
+function calculateTextWidth(
+  text: string,
+  fontSize: number = 10,
+  _fontFamily: string = "system-ui, -apple-system, sans-serif",
+): number {
+  // Create a temporary canvas or use DOM measurement
+  // For SVG, we'll use a more conservative estimate
+  // Average character width is approximately 0.6 * fontSize for most fonts
+  const avgCharWidth = fontSize * 0.6;
+  const textWidth = text.length * avgCharWidth;
+
+  // Add padding for node (20px on each side)
+  const minWidth = 60; // Minimum node width
+  const padding = 20;
+  return Math.max(minWidth, textWidth + padding * 2);
+}
+
+/**
+ * Calculate curved SVG path for an edge
+ * Uses quadratic bezier curve for smooth connections
+ *
+ * @param from - Source node position
+ * @param from.x
+ * @param from.y
+ * @param to - Target node position
+ * @param to.x
+ * @param to.y
+ * @param fromHeight - Height of source node
+ * @param toHeight - Height of target node
+ * @returns SVG path string
+ */
+function calculateEdgePath(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  fromHeight: number = layoutConfig.nodeHeight,
+  toHeight: number = layoutConfig.nodeHeight,
+): string {
+  // Calculate control point for quadratic bezier curve
+  // Control point is positioned to create a smooth curve
+  // Place it at the midpoint horizontally, but offset vertically for curve
+  const midY = (from.y + to.y) / 2;
+  const controlX = from.x;
+  const controlY = midY;
+
+  // Start from bottom center of source node
+  const startX = from.x;
+  const startY = from.y + fromHeight / 2;
+
+  // End at top center of target node
+  const endX = to.x;
+  const endY = to.y - toHeight / 2;
+
+  // Quadratic bezier curve: M (move to start), Q (quadratic curve to end via control point)
+  return `M ${startX} ${startY} Q ${controlX} ${controlY} ${endX} ${endY}`;
+}
 
 /**
  * Check if a node is new (for animation)
@@ -135,6 +189,24 @@ const svgViewBox = computed(() => {
 
   return getViewBoxFromDimensions(computedLayout.value.dimensions);
 });
+
+/**
+ * Get node width based on text content
+ * @param node - The tree node
+ * @returns Calculated node width
+ */
+function getNodeWidth(node: TreeNode): number {
+  return calculateTextWidth(node.name, 10);
+}
+
+/**
+ * Get node height (can be made dynamic in the future)
+ * @param _node - The tree node
+ * @returns Node height
+ */
+function getNodeHeight(_node: TreeNode): number {
+  return layoutConfig.nodeHeight;
+}
 
 /**
  * Get node CSS class
@@ -269,64 +341,29 @@ function handleKeyDown(event: KeyboardEvent): void {
   }
 }
 
-/**
- * Debounce function for performance optimization
- * @param func - Function to debounce
- * @param wait - Wait time in milliseconds
- * @returns Debounced function
- */
-function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number,
-): (...args: Parameters<T>) => void {
-  let timeout: ReturnType<typeof setTimeout> | null = null;
-  return function executedFunction(...args: Parameters<T>) {
-    const later = () => {
-      timeout = null;
-      func(...args);
-    };
-    if (timeout) {
-      clearTimeout(timeout);
-    }
-    timeout = setTimeout(later, wait);
-  };
-}
-
-/**
- * Update container dimensions on mount and resize
- */
-function updateDimensions(): void {
-  if (containerRef.value) {
-    containerWidth.value = containerRef.value.clientWidth || props.width;
-    containerHeight.value = containerRef.value.clientHeight || props.height;
-  }
-}
-
-// Debounced resize handler for performance
-const debouncedUpdateDimensions = debounce(updateDimensions, 150);
+// ResizeObserver to watch for container size changes
+let resizeObserver: ResizeObserver | null = null;
 
 onMounted(() => {
-  updateDimensions();
-  window.addEventListener("resize", debouncedUpdateDimensions);
+  if (containerRef.value && typeof ResizeObserver !== "undefined") {
+    resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          containerWidth.value = width;
+          containerHeight.value = height;
+        }
+      }
+    });
+    resizeObserver.observe(containerRef.value);
+  }
 });
 
 onUnmounted(() => {
-  window.removeEventListener("resize", debouncedUpdateDimensions);
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
 });
-
-watch(
-  () => props.width,
-  () => {
-    updateDimensions();
-  },
-);
-
-watch(
-  () => props.height,
-  () => {
-    updateDimensions();
-  },
-);
 
 /**
  * Copy tree as Mermaid format to clipboard
@@ -385,6 +422,8 @@ async function copyTreeAsMermaid(): Promise<void> {
     <svg
       v-else
       ref="svgRef"
+      :width="containerWidth"
+      :height="containerHeight"
       :viewBox="svgViewBox"
       class="tree-visualization__svg"
       xmlns="http://www.w3.org/2000/svg"
@@ -392,63 +431,75 @@ async function copyTreeAsMermaid(): Promise<void> {
     >
       <!-- Edges (connections between nodes) -->
       <g class="tree-edges">
-        <line
+        <path
           v-for="(edge, index) in computedEdges"
           :key="`edge-${edge.from.id}-${edge.to.id}-${index}`"
-          :x1="edge.from.position?.x || 0"
-          :y1="edge.from.position?.y || 0"
-          :x2="edge.to.position?.x || 0"
-          :y2="edge.to.position?.y || 0"
+          :d="
+            edge.from.position && edge.to.position
+              ? calculateEdgePath(
+                edge.from.position,
+                edge.to.position,
+                getNodeHeight(edge.from),
+                getNodeHeight(edge.to),
+              )
+              : ''
+          "
           class="tree-edge"
+          fill="none"
           stroke="currentColor"
           stroke-width="2"
         />
       </g>
 
       <!-- Nodes -->
-      <g class="tree-nodes">
-        <g
+      <g v-if="computedLayout" class="tree-nodes">
+        <template
           v-for="node in computedNodes.values()"
           :key="node.id"
-          :transform="`translate(${node.position?.x || 0}, ${node.position?.y || 0})`"
-          class="tree-node-group"
-          :class="[
-            { 'tree-node-group--new': isNewNode(node.id) },
-          ]"
         >
-          <!-- Node rectangle -->
-          <rect
-            :class="getNodeClass(node)"
-            :width="layoutConfig.nodeWidth"
-            :height="layoutConfig.nodeHeight"
-            :x="-(layoutConfig.nodeWidth / 2)"
-            :y="-(layoutConfig.nodeHeight / 2)"
-            rx="4"
-            :aria-label="getNodeAriaLabel(node)"
-            :aria-selected="focusedNodeId === node.id"
-            role="treeitem"
-            tabindex="0"
-            class="tree-node-rect"
-            @click="handleNodeClick(node)"
-            @focus="focusedNodeId = node.id"
-            @blur="focusedNodeId = null"
-          />
-
-          <!-- Node text -->
-          <text
-            class="tree-node__text"
-            :class="{
-              'tree-node__text--target': node.isTarget,
-              'tree-node__text--guess': node.isGuess,
-              'tree-node__text--lca': node.isLCA,
-            }"
-            text-anchor="middle"
-            dominant-baseline="middle"
-            :aria-hidden="true"
+          <g
+            v-if="node.position"
+            class="tree-node-group"
+            :class="[
+              { 'tree-node-group--new': isNewNode(node.id) },
+            ]"
           >
-            {{ node.name }}
-          </text>
-        </g>
+            <!-- Node rectangle -->
+            <rect
+              :class="getNodeClass(node)"
+              :width="getNodeWidth(node)"
+              :height="getNodeHeight(node)"
+              :x="node.position.x - (getNodeWidth(node) / 2)"
+              :y="node.position.y - (getNodeHeight(node) / 2)"
+              rx="4"
+              :aria-label="getNodeAriaLabel(node)"
+              :aria-selected="focusedNodeId === node.id"
+              role="treeitem"
+              tabindex="0"
+              class="tree-node-rect"
+              @click="handleNodeClick(node)"
+              @focus="focusedNodeId = node.id"
+              @blur="focusedNodeId = null"
+            />
+
+            <!-- Node text -->
+            <text
+              class="tree-node__text"
+              :class="{
+                'tree-node__text--target': node.isTarget,
+                'tree-node__text--guess': node.isGuess,
+                'tree-node__text--lca': node.isLCA,
+              }"
+              :x="node.position.x"
+              :y="node.position.y"
+              text-anchor="middle"
+              dominant-baseline="middle"
+              :aria-hidden="true"
+            >
+              {{ node.name }}
+            </text>
+          </g>
+        </template>
       </g>
     </svg>
 
