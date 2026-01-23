@@ -1,3 +1,4 @@
+import { hierarchy, tree } from "d3-hierarchy";
 import type { TreeData, TreeLayoutConfig, TreeNode } from "~/types/tree";
 
 /**
@@ -53,15 +54,10 @@ const DEFAULT_CONFIG: TreeLayoutConfig = {
 };
 
 /**
- * Calculate tree layout positions
+ * Calculate tree layout positions using D3's Reingold-Tilford algorithm
  *
- * Implements a top-to-bottom hierarchical layout algorithm optimized for performance.
- * The algorithm:
- * 1. Assigns depths to all nodes
- * 2. Groups nodes by depth
- * 3. Calculates horizontal positions with proper spacing
- * 4. Fits tree to container width when possible
- * 5. Returns positioned nodes, edges, and dimensions
+ * This function uses D3.hierarchy internally for tree layout calculations.
+ * The algorithm provides proper node alignment and balanced layout for unbalanced trees.
  *
  * @param treeData - The tree data structure to layout
  * @param containerWidth - Width of the container (for auto-fitting)
@@ -73,180 +69,109 @@ export function calculateTreeLayout(
   containerWidth: number = 800,
   config: Partial<TreeLayoutConfig> = {},
 ): LayoutResult {
-  const startTime = performance.now();
   const layoutConfig: TreeLayoutConfig = { ...DEFAULT_CONFIG, ...config };
 
-  // Build node map and assign depths
+  // Convert to D3 hierarchy and calculate layout
+  const d3Root = hierarchy(treeData.root, d => d.children);
+  const treeLayout = tree<TreeNode>()
+    .nodeSize([layoutConfig.horizontalSpacing, layoutConfig.verticalSpacing])
+    .separation(() => 1.0);
+
+  const layoutedRoot = treeLayout(d3Root);
+
+  // Build positioned nodes and calculate bounds in a single pass
   const nodeMap = new Map<string, PositionedNode>();
-  const visited = new Set<string>();
-
-  /**
-   * Assign depths to nodes recursively
-   * @param node - The tree node to process
-   * @param depth - Current depth in the tree (default: 0)
-   */
-  function assignDepths(node: TreeNode, depth: number = 0): void {
-    if (visited.has(node.id)) {
-      return;
-    }
-    visited.add(node.id);
-
-    const positionedNode: PositionedNode = {
-      ...node,
-      depth,
-      position: { x: 0, y: 0 }, // Will be calculated later
-    };
-
-    nodeMap.set(node.id, positionedNode);
-
-    for (const child of node.children) {
-      assignDepths(child, depth + 1);
-    }
-  }
-
-  assignDepths(treeData.root, 0);
-
-  // Group nodes by depth for efficient layout calculation
-  const nodesByDepth = new Map<number, PositionedNode[]>();
-  for (const node of nodeMap.values()) {
-    const depth = node.depth;
-    if (!nodesByDepth.has(depth)) {
-      nodesByDepth.set(depth, []);
-    }
-    nodesByDepth.get(depth)!.push(node);
-  }
-
-  // Calculate positions for each depth level
-  const depths = Array.from(nodesByDepth.keys()).sort((a, b) => a - b);
-  const maxDepth = depths.length > 0 ? Math.max(...depths) : 0;
-
-  // Find maximum width needed at any depth
-  let maxNodesAtDepth = 0;
-  for (let depth = 0; depth <= maxDepth; depth++) {
-    const nodesAtDepth = nodesByDepth.get(depth) || [];
-    maxNodesAtDepth = Math.max(maxNodesAtDepth, nodesAtDepth.length);
-  }
-
-  // Calculate optimal horizontal spacing to fit container width
-  const availableWidth = containerWidth - layoutConfig.padding * 2 - layoutConfig.nodeWidth;
-  const requiredWidth = maxNodesAtDepth > 1
-    ? (maxNodesAtDepth - 1) * layoutConfig.horizontalSpacing
-    : 0;
-
-  // Auto-fit: adjust spacing if tree is wider than container
-  let horizontalSpacing = layoutConfig.horizontalSpacing;
-  if (requiredWidth > availableWidth && maxNodesAtDepth > 1) {
-    horizontalSpacing = Math.max(
-      50, // Minimum spacing for readability
-      availableWidth / (maxNodesAtDepth - 1),
-    );
-  }
-
-  // Calculate tree width for centering
-  const treeWidth = maxNodesAtDepth > 0
-    ? (maxNodesAtDepth - 1) * horizontalSpacing + layoutConfig.nodeWidth
-    : layoutConfig.nodeWidth;
-
-  // Position nodes at each depth level
-  for (let depth = 0; depth <= maxDepth; depth++) {
-    const nodesAtDepth = nodesByDepth.get(depth) || [];
-    if (nodesAtDepth.length === 0) {
-      continue;
-    }
-
-    const nodeCount = nodesAtDepth.length;
-    const totalWidth = nodeCount > 1 ? (nodeCount - 1) * horizontalSpacing : 0;
-    const startX = treeWidth / 2 - totalWidth / 2;
-
-    nodesAtDepth.forEach((node, index) => {
-      const x = startX + index * horizontalSpacing;
-      const y = layoutConfig.padding + depth * layoutConfig.verticalSpacing;
-      node.position = { x, y };
-      nodeMap.set(node.id, node);
-    });
-  }
-
-  // Calculate edges (connections between nodes)
-  const edges = calculateEdges(nodeMap, treeData.root);
-
-  // Calculate tree dimensions
+  const edges: Edge[] = [];
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
   let maxY = -Infinity;
 
-  for (const node of nodeMap.values()) {
-    const { x, y } = node.position;
-    minX = Math.min(minX, x);
-    maxX = Math.max(maxX, x);
-    minY = Math.min(minY, y);
-    maxY = Math.max(maxY, y);
+  // Process all nodes to build nodeMap and calculate raw bounds
+  for (const d3Node of layoutedRoot.descendants()) {
+    const treeNode = d3Node.data;
+    const rawX = d3Node.x ?? 0;
+    const rawY = d3Node.y ?? 0;
+
+    // Center horizontally and add vertical padding
+    const centeredX = rawX + containerWidth / 2;
+    const positionedY = rawY + layoutConfig.padding;
+
+    const positionedNode: PositionedNode = {
+      ...treeNode,
+      position: { x: centeredX, y: positionedY },
+      depth: d3Node.depth ?? 0,
+    };
+
+    nodeMap.set(treeNode.id, positionedNode);
+
+    // Calculate bounds accounting for node dimensions
+    const nodeLeft = centeredX - layoutConfig.nodeWidth / 2;
+    const nodeRight = centeredX + layoutConfig.nodeWidth / 2;
+    const nodeTop = positionedY - layoutConfig.nodeHeight / 2;
+    const nodeBottom = positionedY + layoutConfig.nodeHeight / 2;
+
+    minX = Math.min(minX, nodeLeft);
+    maxX = Math.max(maxX, nodeRight);
+    minY = Math.min(minY, nodeTop);
+    maxY = Math.max(maxY, nodeBottom);
   }
 
-  // Add padding to dimensions
+  // Build edges
+  function buildEdges(node: TreeNode): void {
+    const parentNode = nodeMap.get(node.id);
+    if (!parentNode) return;
+
+    for (const child of node.children) {
+      const childNode = nodeMap.get(child.id);
+      if (childNode) {
+        edges.push({ from: parentNode, to: childNode });
+        buildEdges(child);
+      }
+    }
+  }
+
+  buildEdges(treeData.root);
+
+  // Handle empty tree
+  if (nodeMap.size === 0) {
+    return {
+      nodes: new Map(),
+      edges: [],
+      dimensions: {
+        width: containerWidth,
+        height: layoutConfig.nodeHeight + layoutConfig.padding * 2,
+        minX: 0,
+        maxX: containerWidth,
+        minY: 0,
+        maxY: layoutConfig.nodeHeight + layoutConfig.padding * 2,
+      },
+    };
+  }
+
+  // Calculate viewBox dimensions with padding
+  const treeWidth = maxX - minX;
+  const treeHeight = maxY - minY;
   const padding = layoutConfig.padding;
-  const dimensions = {
-    width: Math.max(containerWidth, maxX - minX + layoutConfig.nodeWidth + padding * 2),
-    height: maxY - minY + layoutConfig.nodeHeight + padding * 2,
-    minX: minX - padding,
-    maxX: maxX + layoutConfig.nodeWidth + padding,
-    minY: minY - padding,
-    maxY: maxY + layoutConfig.nodeHeight + padding,
-  };
 
-  // Performance check: ensure calculation completes within 500ms
-  const endTime = performance.now();
-  const calculationTime = endTime - startTime;
-  if (calculationTime > 500) {
-    console.warn(
-      `Tree layout calculation took ${calculationTime.toFixed(2)}ms, exceeding 500ms threshold`,
-    );
-  }
+  const viewBoxWidth = Math.max(containerWidth, treeWidth + padding * 2);
+  const viewBoxHeight = treeHeight + padding * 2;
+  const centerOffsetX = (viewBoxWidth - treeWidth) / 2;
+
+  const dimensions = {
+    width: viewBoxWidth,
+    height: viewBoxHeight,
+    minX: minX - centerOffsetX,
+    maxX: maxX + centerOffsetX,
+    minY: Math.max(0, minY - padding),
+    maxY: maxY + padding,
+  };
 
   return {
     nodes: nodeMap,
     edges,
     dimensions,
   };
-}
-
-/**
- * Calculate edges (connections) between nodes
- *
- * @param nodeMap - Map of node IDs to positioned nodes
- * @param root - Root node of the tree
- * @returns Array of edges connecting parent to child nodes
- */
-function calculateEdges(
-  nodeMap: Map<string, PositionedNode>,
-  root: TreeNode,
-): Edge[] {
-  const edges: Edge[] = [];
-
-  /**
-   * Recursively collect edges
-   * @param node - The tree node to process
-   */
-  function collectEdges(node: TreeNode): void {
-    const parentNode = nodeMap.get(node.id);
-    if (!parentNode) {
-      return;
-    }
-
-    for (const child of node.children) {
-      const childNode = nodeMap.get(child.id);
-      if (childNode && parentNode.position && childNode.position) {
-        edges.push({
-          from: parentNode,
-          to: childNode,
-        });
-        collectEdges(child);
-      }
-    }
-  }
-
-  collectEdges(root);
-  return edges;
 }
 
 /**
