@@ -7,7 +7,7 @@ import type { GameError } from "~/utils/errorMessages";
  */
 interface Props {
   /** Error to display */
-  error: GameError | null;
+  error?: GameError | null;
   /** Whether error can be dismissed */
   dismissible?: boolean;
   /** Optional custom class */

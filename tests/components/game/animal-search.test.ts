@@ -113,6 +113,22 @@ const UKbdStub = {
   props: ["value"],
 };
 
+// Stub GameLoadingIndicator component used in trailing slot
+const GameLoadingIndicatorStub = {
+  name: "GameLoadingIndicator",
+  props: {
+    size: {
+      type: String,
+      default: "sm",
+    },
+    message: {
+      type: String,
+      default: "",
+    },
+  },
+  template: "<div class=\"game-loading-indicator\"><slot /></div>",
+};
+
 // Helper function to mount with stubs
 function mountWithStubs(component: any, options: any = {}) {
   return mount(component, {
@@ -123,6 +139,7 @@ function mountWithStubs(component: any, options: any = {}) {
         UInput: UInputStub,
         UButton: UButtonStub,
         UKbd: UKbdStub,
+        GameLoadingIndicator: GameLoadingIndicatorStub,
         ...options.global?.stubs,
       },
     },

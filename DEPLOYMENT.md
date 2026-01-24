@@ -13,7 +13,8 @@ This document describes how to deploy the Cladle application to Vercel.
 
 ## Overview
 
-Cladle is configured for **Static Site Generation (SSG)** deployment on Vercel. The application is built entirely as static files and served without a server runtime.
+Cladle is configured for **Static Site Generation (SSG)** deployment on Vercel.
+The application is built entirely as static files and served without a server runtime.
 
 **Deployment Strategy:**
 - **Platform:** Vercel
@@ -84,13 +85,15 @@ For manual deployments or local testing:
 
 ### Option 3: GitHub Actions CI/CD
 
-The project includes a GitHub Actions workflow (`.github/workflows/ci.yml`) that can be extended to deploy to Vercel automatically. See the CI/CD configuration for details.
+The project includes a GitHub Actions workflow (`.github/workflows/ci.yml`).
+See the CI/CD configuration for details.
 
 ## Environment Variables
 
 ### Current Status (MVP)
 
-**No environment variables are required** for the MVP deployment. The application runs entirely client-side and fetches data from public APIs.
+**No environment variables are required** for the MVP deployment.
+The application runs entirely client-side and fetches data from public APIs.
 
 ### Future Environment Variables
 
@@ -98,7 +101,8 @@ If you need to add environment variables in the future:
 
 #### Public Variables (Available in Browser)
 
-Public variables are prefixed with `NUXT_PUBLIC_` and exposed to the client-side. They must be set at **BUILD TIME** for SSG.
+Public variables are prefixed with `NUXT_PUBLIC_` and exposed to the client-side.
+They must be set at **BUILD TIME** for SSG.
 
 **Example:**
 ```bash
@@ -156,7 +160,8 @@ The `vercel.json` file provides explicit build configuration:
 }
 ```
 
-**Note:** This file is optional. Vercel auto-detects Nuxt 3 projects, but explicit configuration provides better control.
+**Note:** This file is optional.
+Vercel auto-detects Nuxt 3 projects, but explicit configuration provides better control.
 
 ### Build Output
 

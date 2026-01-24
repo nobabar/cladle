@@ -534,7 +534,11 @@ onUnmounted(() => {
         v-if="validationError"
         role="alert"
         aria-live="polite"
-        class="mt-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md"
+        class="
+          mt-2 px-3 py-2 text-sm text-red-600 dark:text-red-400
+          bg-red-50 dark:bg-red-900/20 border border-red-200
+          dark:border-red-800 rounded-md
+        "
       >
         <div class="flex items-start">
           <span class="flex-shrink-0 mr-2">⚠️</span>
@@ -558,7 +562,11 @@ onUnmounted(() => {
         ref="suggestionsRef"
         role="listbox"
         :aria-label="`${filteredSuggestions.length} suggestions available`"
-        class="absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg"
+        class="
+          absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md
+          border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800
+          shadow-lg
+        "
       >
         <li
           v-for="(animal, index) in filteredSuggestions"
@@ -566,7 +574,12 @@ onUnmounted(() => {
           :key="animal.id"
           role="option"
           :aria-selected="index === highlightedIndex"
-          class="min-h-[44px] px-3 sm:px-4 py-3 cursor-pointer text-sm sm:text-base hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 transition-colors touch-target"
+          class="
+            min-h-[44px] px-3 sm:px-4 py-3 cursor-pointer text-sm sm:text-base
+            hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100
+            dark:focus:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600
+            transition-colors touch-target
+          "
           :class="[
             index === highlightedIndex
               ? 'bg-gray-100 dark:bg-gray-700'
@@ -597,7 +610,12 @@ onUnmounted(() => {
               class="text-sm text-gray-500 dark:text-gray-400 italic"
             >
               <template
-                v-for="(part, partIndex) in splitTextForHighlight(animal.scientificName, searchQuery)"
+                v-for="
+                  (part, partIndex) in splitTextForHighlight(
+                    animal.scientificName,
+                    searchQuery,
+                  )
+                "
                 :key="partIndex"
               >
                 <mark
@@ -631,7 +649,11 @@ onUnmounted(() => {
             && searchQuery.length >= minChars
             && filteredSuggestions.length === 0
         "
-        class="absolute z-50 mt-1 w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg p-4 text-center text-gray-500 dark:text-gray-400"
+        class="
+          absolute z-50 mt-1 w-full rounded-md border border-gray-200
+          dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg p-4
+          text-center text-gray-500 dark:text-gray-400
+        "
       >
         No animals found matching "{{ searchQuery }}"
       </div>

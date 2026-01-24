@@ -261,6 +261,7 @@ describe("api client", () => {
     it("should throttle rapid requests", async () => {
       // Arrange
 
+      /* eslint-disable camelcase */
       const mockAnimalResponse = {
         results: [{
           id: 1,
@@ -271,6 +272,7 @@ describe("api client", () => {
           ancestor_ids: [1],
         }],
       };
+      /* eslint-enable camelcase */
       const mockAncestorResponse = {
         results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
       };
@@ -313,6 +315,7 @@ describe("api client", () => {
     it("should handle 429 rate limit errors with retry", async () => {
       // Arrange - First call returns 429, second succeeds
 
+      /* eslint-disable camelcase */
       const mockAnimalResponse = {
         results: [{
           id: 1,
@@ -323,6 +326,7 @@ describe("api client", () => {
           ancestor_ids: [1],
         }],
       };
+      /* eslint-enable camelcase */
       const mockAncestorResponse = {
         results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
       };
@@ -365,6 +369,7 @@ describe("api client", () => {
     it("should retry on network error with exponential backoff", async () => {
       // Arrange - Fail twice, succeed third time
 
+      /* eslint-disable camelcase */
       const mockAnimalResponse = {
         results: [{
           id: 1,
@@ -375,6 +380,7 @@ describe("api client", () => {
           ancestor_ids: [1],
         }],
       };
+      /* eslint-enable camelcase */
       const mockAncestorResponse = {
         results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
       };
@@ -415,6 +421,7 @@ describe("api client", () => {
     it("should retry on 500 server error", async () => {
       // Arrange - Fail once, succeed second time
 
+      /* eslint-disable camelcase */
       const mockAnimalResponse = {
         results: [{
           id: 1,
@@ -425,6 +432,7 @@ describe("api client", () => {
           ancestor_ids: [1],
         }],
       };
+      /* eslint-enable camelcase */
       const mockAncestorResponse = {
         results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
       };
@@ -698,6 +706,7 @@ describe("api client", () => {
     it("should return success format { data, error: null }", async () => {
       // Arrange
 
+      /* eslint-disable camelcase */
       const mockAnimalResponse = {
         results: [{
           id: 1,
@@ -708,6 +717,7 @@ describe("api client", () => {
           ancestor_ids: [1],
         }],
       };
+      /* eslint-enable camelcase */
       const mockAncestorResponse = {
         results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
       };
@@ -964,6 +974,7 @@ describe("api client", () => {
     it("should provide instant cached response (performance)", async () => {
       // Arrange
 
+      /* eslint-disable camelcase */
       const mockAnimalResponse = {
         results: [{
           id: 1,
@@ -974,6 +985,7 @@ describe("api client", () => {
           ancestor_ids: [1],
         }],
       };
+      /* eslint-enable camelcase */
       const mockAncestorResponse = {
         results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
       };
@@ -1009,6 +1021,7 @@ describe("api client", () => {
     it("should fetch from API if cache is cleared", async () => {
       // Arrange
 
+      /* eslint-disable camelcase */
       const mockAnimalResponse = {
         results: [{
           id: 1,
@@ -1019,6 +1032,7 @@ describe("api client", () => {
           ancestor_ids: [1],
         }],
       };
+      /* eslint-enable camelcase */
       const mockAncestorResponse = {
         results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
       };
@@ -1054,6 +1068,7 @@ describe("api client", () => {
     it("should work offline with cached data", async () => {
       // Arrange
 
+      /* eslint-disable camelcase */
       const mockAnimalResponse = {
         results: [{
           id: 1,
@@ -1064,6 +1079,7 @@ describe("api client", () => {
           ancestor_ids: [1],
         }],
       };
+      /* eslint-enable camelcase */
       const mockAncestorResponse = {
         results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
       };
