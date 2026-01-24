@@ -522,18 +522,19 @@ onUnmounted(() => {
 
 .win-state__tree-container {
   width: 100%;
-  border: 1px solid var(--color-border-subtle, #e5e7eb);
-  border-radius: 8px;
+  border: 1px solid var(--color-border-subtle, #E2D6C3);
+  border-radius: 2px;
   overflow: hidden;
-  background: var(--color-surface, #f9fafb);
+  background: var(--color-paper, #FDFBF5);
+  box-shadow: none;
 }
 
 .dark .win-state__tree-container {
-  border-color: #374151;
-  background: #1f2937;
+  border-color: var(--color-border-subtle, #1f2937);
+  background: var(--color-paper, #1e293b);
 }
 
-/* Desktop Side Panel */
+/* Desktop Side Panel - notebook/anatomical palette */
 .win-state-panel {
   position: fixed;
   top: 0;
@@ -541,16 +542,18 @@ onUnmounted(() => {
   width: 400px;
   max-width: 90vw;
   height: 100vh;
-  background: var(--color-surface, #ffffff);
-  box-shadow: -4px 0 6px -1px rgba(0, 0, 0, 0.1);
+  background: var(--color-paper, #FDFBF5);
+  border-left: 1px solid var(--color-border-subtle, #E2D6C3);
+  box-shadow: -2px 0 4px -1px rgba(0, 0, 0, 0.08);
   z-index: 50;
   overflow-y: auto;
   padding: 1.5rem;
 }
 
 .dark .win-state-panel {
-  background: #1f2937;
-  box-shadow: -4px 0 6px -1px rgba(0, 0, 0, 0.3);
+  background: var(--color-paper, #1e293b);
+  border-left-color: var(--color-border-subtle, #1f2937);
+  box-shadow: -2px 0 4px -1px rgba(0, 0, 0, 0.2);
 }
 
 /* Mobile optimizations (< 768px) */

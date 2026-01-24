@@ -541,7 +541,7 @@ async function copyTreeAsMermaid(): Promise<void> {
 }
 
 .dark .tree-visualization {
-  background: var(--color-surface, #020617);
+  background: var(--color-surface, #1e293b);
   border-color: var(--color-border-subtle, #1f2937);
 }
 

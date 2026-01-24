@@ -53,21 +53,22 @@ const errorIcon = computed(() => {
 
 /**
  * Get error color classes based on error type
+ * Uses notebook-style "teacher red pen" for errors, muted blue/grey for info
  */
 const errorColorClasses = computed(() => {
   if (!props.error) return "";
 
   switch (props.error.type) {
     case "network":
-      return "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800";
+      return "text-[var(--color-warning)] dark:text-[var(--color-warning)] bg-[var(--color-warning-soft)] dark:bg-[var(--color-warning-soft)] border-[var(--color-warning)] dark:border-[var(--color-warning)]";
     case "validation":
-      return "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800";
+      return "text-[var(--color-secondary)] dark:text-[var(--color-secondary)] bg-[var(--color-secondary-soft)] dark:bg-[var(--color-secondary-soft)] border-[var(--color-secondary)] dark:border-[var(--color-secondary)]";
     case "data":
-      return "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800";
+      return "text-[var(--color-error)] dark:text-[var(--color-error)] bg-[var(--color-error-soft)] dark:bg-[var(--color-error-soft)] border-[var(--color-error)] dark:border-[var(--color-error)] italic";
     case "ui":
-      return "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800";
+      return "text-[var(--color-error)] dark:text-[var(--color-error)] bg-[var(--color-error-soft)] dark:bg-[var(--color-error-soft)] border-[var(--color-error)] dark:border-[var(--color-error)] italic";
     default:
-      return "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800";
+      return "text-[var(--color-error)] dark:text-[var(--color-error)] bg-[var(--color-error-soft)] dark:bg-[var(--color-error-soft)] border-[var(--color-error)] dark:border-[var(--color-error)] italic";
   }
 });
 </script>
@@ -85,7 +86,7 @@ const errorColorClasses = computed(() => {
       v-if="error"
       role="alert"
       aria-live="polite"
-      class="px-3 py-2 text-sm border rounded-md"
+      class="px-3 py-2 text-sm border rounded-sm notebook-error"
       :class="[
         errorColorClasses,
         props.class,
@@ -97,11 +98,11 @@ const errorColorClasses = computed(() => {
         <UButton
           v-if="dismissible"
           color="neutral"
-          variant="link"
+          variant="ghost"
           size="xs"
           icon="i-lucide-x"
           aria-label="Dismiss error"
-          class="flex-shrink-0 ml-2 min-w-[24px] min-h-[24px]"
+          class="flex-shrink-0 ml-2 min-w-[24px] min-h-[24px] notebook-button-secondary"
           @click="dismiss"
         />
       </div>

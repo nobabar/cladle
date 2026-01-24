@@ -108,7 +108,7 @@
   --color-desk: #0f172a; /* desk/tabletop background - slightly lighter than paper in dark mode */
   --color-background: #0f172a; /* default to desk for page background */
   --color-paper: #1e293b; /* paper sheet - lighter than desk for contrast */
-  --color-surface: #020617;
+  --color-surface: #17202e;
   --color-surface-alt: #0b1120;
 
   --color-ink: #f9fafb;
@@ -324,7 +324,7 @@ html {
   background-image: radial-gradient(circle, var(--color-muted, #9CA3AF) 1px, transparent 1px);
   background-size: 16px 16px;
   background-position: 0 0;
-  opacity: 0.6;
+  opacity: 0.5;
   pointer-events: none;
   z-index: 0;
 }
@@ -385,4 +385,95 @@ html {
 .notebook-sheet > * {
   position: relative;
   z-index: 2;
+}
+
+/* Notebook-style input styling */
+.notebook-input :deep(input) {
+  background-color: var(--color-paper);
+  border-color: var(--color-secondary);
+  border-width: 1px;
+  border-radius: 2px;
+}
+
+.notebook-input :deep(input:focus) {
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 1px var(--color-secondary);
+  box-shadow: 0 0 0 3px rgba(107, 127, 142, 0.1); /* subtle glow with notebook-blue */
+  outline: none;
+}
+
+/* Notebook-style buttons - flat, bordered, minimal chrome */
+.notebook-button-primary {
+  background-color: var(--color-paper);
+  border: 1px solid var(--color-secondary);
+  border-radius: 2px;
+  color: var(--color-ink);
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  box-shadow: none;
+  transition: all 0.15s ease;
+}
+
+.notebook-button-primary:hover {
+  background-color: var(--color-secondary-soft);
+  border-color: var(--color-secondary);
+}
+
+.notebook-button-primary:active {
+  background-color: var(--color-secondary-soft);
+  border-color: var(--color-secondary);
+  transform: none;
+}
+
+.notebook-button-primary:focus {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.notebook-button-secondary {
+  background-color: transparent;
+  border-radius: 2px;
+  color: var(--color-ink);
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  box-shadow: none;
+  transition: all 0.15s ease;
+}
+
+.notebook-button-secondary:hover {
+  background-color: var(--color-surface);
+}
+
+.notebook-button-secondary:active {
+  background-color: var(--color-surface);
+}
+
+/* Notebook-style guess history - aligned to grid lines */
+.notebook-guess-history {
+  position: relative;
+}
+
+.notebook-guess-row {
+  position: relative;
+  padding-left: 0;
+}
+
+/* Align guess rows to notebook grid (16px spacing matches grid) */
+@media (min-width: 768px) {
+  .notebook-guess-row {
+    padding-left: 0;
+  }
+}
+
+/* Notebook-style error messages - teacher red pen */
+.notebook-error {
+  border-radius: 2px;
+  box-shadow: none;
+}
+
+.notebook-error-message {
+  border-radius: 2px;
+  box-shadow: none;
 }
