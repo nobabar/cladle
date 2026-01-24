@@ -490,7 +490,7 @@ onUnmounted(() => {
           highlightedIndex >= 0 ? getSuggestionId(highlightedIndex) : undefined
         "
         :aria-busy="isSearching || isSubmitting"
-        class="w-full min-h-[44px] text-base"
+        class="w-full min-h-[44px] text-base notebook-input"
         @input="handleInput"
         @keydown="handleKeydown"
         @focus="isOpen = searchQuery.length >= minChars"
@@ -535,13 +535,16 @@ onUnmounted(() => {
         role="alert"
         aria-live="polite"
         class="
-          mt-2 px-3 py-2 text-sm text-red-600 dark:text-red-400
-          bg-red-50 dark:bg-red-900/20 border border-red-200
-          dark:border-red-800 rounded-md
+          mt-2 px-3 py-2 text-sm
+          text-[var(--color-error)] dark:text-[var(--color-error)]
+          bg-[var(--color-error-soft)] dark:bg-[var(--color-error-soft)]
+          border border-[var(--color-error)] dark:border-[var(--color-error)]
+          rounded-sm italic
+          notebook-error-message
         "
       >
         <div class="flex items-start">
-          <span class="flex-shrink-0 mr-2">⚠️</span>
+          <span class="flex-shrink-0 mr-2">✏️</span>
           <span>{{ validationError.message }}</span>
         </div>
       </div>
@@ -563,9 +566,10 @@ onUnmounted(() => {
         role="listbox"
         :aria-label="`${filteredSuggestions.length} suggestions available`"
         class="
-          absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-md
-          border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800
-          shadow-lg
+          absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-sm
+          border border-[var(--color-secondary)] dark:border-[var(--color-secondary)]
+          bg-[var(--color-paper)] dark:bg-[var(--color-paper)]
+          notebook-suggestions
         "
       >
         <li
@@ -576,14 +580,13 @@ onUnmounted(() => {
           :aria-selected="index === highlightedIndex"
           class="
             min-h-[44px] px-3 sm:px-4 py-3 cursor-pointer text-sm sm:text-base
-            hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100
-            dark:focus:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600
             transition-colors touch-target
+            border-b border-[var(--color-border-subtle)] dark:border-[var(--color-border-subtle)]
           "
           :class="[
             index === highlightedIndex
-              ? 'bg-gray-100 dark:bg-gray-700'
-              : 'bg-white dark:bg-gray-800',
+              ? 'bg-[var(--color-secondary-soft)] dark:bg-[var(--color-secondary-soft)]'
+              : 'bg-[var(--color-paper)] dark:bg-[var(--color-paper)]',
           ]"
           @click="selectAnimal(animal)"
           @mouseenter="highlightedIndex = index"
@@ -650,9 +653,9 @@ onUnmounted(() => {
             && filteredSuggestions.length === 0
         "
         class="
-          absolute z-50 mt-1 w-full rounded-md border border-gray-200
-          dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg p-4
-          text-center text-gray-500 dark:text-gray-400
+          absolute z-50 mt-1 w-full rounded-sm border border-[var(--color-border-subtle)]
+          dark:border-[var(--color-border-subtle)] bg-[var(--color-paper)] dark:bg-[var(--color-paper)]
+          p-4 text-center text-[var(--color-ink-subtle)] dark:text-[var(--color-ink-subtle)]
         "
       >
         No animals found matching "{{ searchQuery }}"
@@ -662,10 +665,37 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Ensure touch targets meet 44x44px minimum */
-.animal-search :deep(input) {
+/* Notebook-style input */
+.notebook-input :deep(input) {
   min-height: 44px;
   font-size: 16px; /* Prevent zoom on iOS */
+  background-color: var(--color-paper);
+  border-color: var(--color-secondary);
+}
+
+.notebook-input :deep(input:focus) {
+  border-color: var(--color-secondary);
+  box-shadow: 0 0 0 1px var(--color-secondary);
+  box-shadow: 0 0 0 3px rgba(107, 127, 142, 0.1); /* subtle glow with notebook-blue */
+  outline: none;
+}
+
+/* Notebook-style suggestions - light rows aligned to grid */
+.notebook-suggestions {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.notebook-suggestions li {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.notebook-suggestions li:last-child {
+  border-bottom: none;
+}
+
+/* Teacher red pen error style */
+.notebook-error-message {
+  font-style: italic;
 }
 
 /* Touch target class for interactive elements */
@@ -674,8 +704,6 @@ onUnmounted(() => {
   min-height: 44px;
   display: flex;
 }
-
-/* Highlight matching text - using Tailwind classes in template, keeping this for fallback */
 
 /* Custom scrollbar for suggestions */
 ul::-webkit-scrollbar {
@@ -687,20 +715,12 @@ ul::-webkit-scrollbar-track {
 }
 
 ul::-webkit-scrollbar-thumb {
-  background-color: rgb(203 213 225);
+  background-color: var(--color-border-subtle);
   border-radius: 4px;
 }
 
-.dark ul::-webkit-scrollbar-thumb {
-  background-color: rgb(51 65 85);
-}
-
 ul::-webkit-scrollbar-thumb:hover {
-  background-color: rgb(148 163 184);
-}
-
-.dark ul::-webkit-scrollbar-thumb:hover {
-  background-color: rgb(71 85 105);
+  background-color: var(--color-border);
 }
 
 /* Mobile optimizations */
@@ -708,20 +728,11 @@ ul::-webkit-scrollbar-thumb:hover {
   .animal-search {
     width: 100%;
   }
-
-  /* Ensure adequate spacing between suggestions on mobile */
-  ul li + li {
-    border-top: 1px solid rgb(229 231 235);
-  }
-
-  .dark ul li + li {
-    border-top-color: rgb(55 65 81);
-  }
 }
 
 /* Tablet and desktop enhancements */
 @media (min-width: 768px) {
-  .animal-search :deep(input) {
+  .notebook-input :deep(input) {
     font-size: 1rem;
   }
 
