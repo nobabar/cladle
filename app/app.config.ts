@@ -1,10 +1,14 @@
 export default defineAppConfig({
   ui: {
     colors: {
-      primary: "green",
-      neutral: "slate",
+      // Map Nuxt UI semantic colors to our anatomical notebook palette
+      primary: "brand", // Soft Sage Green (see --color-brand-* in main.css)
+      secondary: "blue", // Muted blue secondary actions and panels
+      success: "green",
+      warning: "amber",
+      error: "red",
+      info: "blue",
+      neutral: "stone", // Warm neutral for text, borders, backgrounds
     },
-    // Anatomical chart aesthetic colors
-    // Cream/Beige (#F5F1E8), Soft Sage Green (#8B9A7A), Warm Terracotta (#B87D5A), Muted Blue (#6B7F8E)
   },
 });
