@@ -114,7 +114,13 @@ export function mapHttpStatusToErrorCode(status: number): string {
  * @param apiError.details - Error details if any
  * @returns GameError with appropriate type
  */
-export function apiErrorToGameError(apiError: { message: string; code?: string; details?: any }): GameError {
+export function apiErrorToGameError(
+  apiError: {
+    message: string;
+    code?: string;
+    details?: any;
+  },
+): GameError {
   // Determine error type based on code
   let errorType: GameError["type"] = "data";
 
@@ -142,7 +148,13 @@ export function apiErrorToGameError(apiError: { message: string; code?: string; 
  * @param validationError.details - Error details if any
  * @returns GameError with validation type
  */
-export function validationErrorToGameError(validationError: { message: string; type?: string; details?: any }): GameError {
+export function validationErrorToGameError(
+  validationError: {
+    message: string;
+    type?: string;
+    details?: any;
+  },
+): GameError {
   return {
     message: validationError.message,
     code: validationError.type?.toUpperCase(),
