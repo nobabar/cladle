@@ -30,8 +30,9 @@
   --space-8: 4rem; /* 64px */
 
   /* Anatomical notebook palette (light theme) */
-  --color-background: #F5F1E8; /* paper background */
-  --color-paper: #F5F1E8;
+  --color-desk: #E8E0D4; /* desk/tabletop background - warmer, darker than paper */
+  --color-background: #E8E0D4; /* default to desk for page background */
+  --color-paper: #FDFBF5; /* paper sheet - lighter than desk */
   --color-surface: #F9F7F0;
   --color-surface-alt: #FDFBF5;
 
@@ -104,8 +105,9 @@
   color-scheme: dark;
 
   /* Dark notebook palette */
-  --color-background: #020617;
-  --color-paper: #020617;
+  --color-desk: #0f172a; /* desk/tabletop background - slightly lighter than paper in dark mode */
+  --color-background: #0f172a; /* default to desk for page background */
+  --color-paper: #1e293b; /* paper sheet - lighter than desk for contrast */
   --color-surface: #020617;
   --color-surface-alt: #0b1120;
 
@@ -149,7 +151,7 @@ body {
   );
   font-size: var(--text-body, 1rem); /* 16px */
   line-height: var(--leading-body, 1.6);
-  background-color: var(--color-background, #F5F1E8);
+  background-color: var(--color-desk, #E8E0D4);
   color: var(--color-ink, #2C2416);
 }
 
@@ -256,4 +258,131 @@ html {
 *:focus-visible {
   outline: 2px solid var(--color-focus-ring, #6B7F8E);
   outline-offset: 2px;
+}
+
+/* Notebook-style layout shell */
+.notebook-layout {
+  min-height: 100vh;
+  background-color: var(--color-desk, #E8E0D4);
+  padding: var(--space-2, 0.5rem); /* 8px on mobile */
+}
+
+@media (min-width: 768px) {
+  .notebook-layout {
+    padding: var(--space-4, 1rem); /* 16px on tablet */
+  }
+}
+
+@media (min-width: 1024px) {
+  .notebook-layout {
+    padding: var(--space-6, 2rem); /* 32px on desktop - reveals desk around sheet */
+  }
+}
+
+/* Paper sheet container */
+.notebook-sheet {
+  background-color: var(--color-paper, #FDFBF5);
+  min-height: calc(100vh - var(--space-4, 1rem) * 2);
+  padding: var(--space-4, 1rem) var(--space-3, 0.75rem); /* 16px top/bottom, 12px sides on mobile */
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  border-radius: 2px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .notebook-sheet {
+    padding-top: var(--space-6, 2rem); /* 32px top */
+    padding-bottom: var(--space-6, 2rem); /* 32px bottom */
+    padding-left: 72px; /* 48px (margin line) + 24px (equal spacing) */
+    padding-right: 24px; /* Equal spacing to match left side after margin */
+    min-height: calc(100vh - var(--space-8, 4rem));
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  }
+}
+
+@media (min-width: 1024px) {
+  .notebook-sheet {
+    padding-top: var(--space-7, 3rem); /* 48px top */
+    padding-bottom: var(--space-7, 3rem); /* 48px bottom */
+    padding-left: 96px; /* 64px (margin line) + 32px (equal spacing) */
+    padding-right: 32px; /* Equal spacing to match left side after margin */
+    max-width: 1200px;
+    min-height: calc(100vh - var(--space-8, 4rem));
+  }
+}
+
+/* Notebook pattern layer - fine dotted grid */
+.notebook-sheet::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(circle, var(--color-muted, #9CA3AF) 1px, transparent 1px);
+  background-size: 16px 16px;
+  background-position: 0 0;
+  opacity: 0.6;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Notebook holes in margin area - circular cutouts revealing desk background (tablet/desktop only) */
+@media (min-width: 768px) {
+  .notebook-sheet {
+    /* CSS variable for hole position - defaults to tablet position */
+    --notebook-hole-x: 24px;
+    /* Create 4 circular holes in the left margin area using mask */
+    mask-image:
+      radial-gradient(circle at var(--notebook-hole-x) 15%, transparent 8px, black 8px),
+      radial-gradient(circle at var(--notebook-hole-x) 35%, transparent 8px, black 8px),
+      radial-gradient(circle at var(--notebook-hole-x) 65%, transparent 8px, black 8px),
+      radial-gradient(circle at var(--notebook-hole-x) 85%, transparent 8px, black 8px);
+    mask-size: 100% 100%;
+    mask-composite: intersect;
+    -webkit-mask-image:
+      radial-gradient(circle at var(--notebook-hole-x) 15%, transparent 8px, black 8px),
+      radial-gradient(circle at var(--notebook-hole-x) 35%, transparent 8px, black 8px),
+      radial-gradient(circle at var(--notebook-hole-x) 65%, transparent 8px, black 8px),
+      radial-gradient(circle at var(--notebook-hole-x) 85%, transparent 8px, black 8px);
+    -webkit-mask-size: 100% 100%;
+    -webkit-mask-composite: source-in;
+  }
+}
+
+@media (min-width: 1024px) {
+  .notebook-sheet {
+    /* Override hole position for desktop */
+    --notebook-hole-x: 32px;
+  }
+}
+
+/* Notebook margin line - decorative vertical rule in left margin area (tablet/desktop only) */
+@media (min-width: 768px) {
+  .notebook-sheet::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 48px; /* Position in decorative left margin area */
+    width: 1px;
+    background-color: var(--color-accent-soft, #E4C7B3);
+    opacity: 0.4;
+    z-index: 1;
+    pointer-events: none;
+  }
+}
+
+@media (min-width: 1024px) {
+  .notebook-sheet::after {
+    left: 64px; /* Position in decorative left margin area for desktop */
+  }
+}
+
+/* Ensure content sits above pattern and margin line */
+.notebook-sheet > * {
+  position: relative;
+  z-index: 2;
 }
