@@ -7,11 +7,17 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
-import { nextTick } from "vue";
+import { nextTick, ref } from "vue";
 import TreeVisualization from "~/components/game/tree-visualization.vue";
 import type { TreeData, TreeNode } from "~/types/tree";
 import type { Animal } from "~/types/animal";
 import type { Clade } from "~/types/clade";
+
+// Mock useColorMode globally for tests
+(globalThis as Record<string, unknown>).useColorMode = () => ({
+  value: ref("light"),
+  preference: "light",
+});
 
 /**
  * Helper function to create a mock animal
