@@ -228,14 +228,17 @@ onMounted(() => {
               size="sm"
               :aria-label="colorModeLabel"
               :title="colorModeLabel"
-              class="min-w-[44px] min-h-[44px] touch-target justify-center items-center"
+              class="min-w-[44px] min-h-[44px] touch-target justify-center items-center notebook-button-secondary"
               @click="toggleColorMode"
             />
           </div>
           <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-2 sm:mb-4">
             Cladle
           </h1>
-          <p class="text-center text-sm sm:text-base text-gray-600 dark:text-gray-400">
+          <p
+            class="text-center text-sm sm:text-base text-[var(--color-ink-subtle)]
+              dark:text-[var(--color-ink-subtle)]"
+          >
             Phylogenetic guessing game
           </p>
         </header>
@@ -263,7 +266,10 @@ onMounted(() => {
           v-if="gameStore.isPlaying"
           class="max-w-2xl mx-auto mb-3 sm:mb-4 text-center"
         >
-          <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+          <p
+            class="text-xs sm:text-sm text-[var(--color-ink-subtle)]
+            dark:text-[var(--color-ink-subtle)]"
+          >
             Guesses remaining: <strong>{{ gameStore.guessesRemaining }}</strong>
           </p>
         </div>
@@ -284,7 +290,8 @@ onMounted(() => {
           <!-- First-time user hint (progressive disclosure) -->
           <p
             v-if="gameStore.isPlaying && gameStore.guesses.length === 0"
-            class="mt-2 text-xs sm:text-sm text-center text-gray-500 dark:text-gray-400"
+            class="mt-2 text-xs sm:text-sm text-center text-[var(--color-ink-subtle)]
+            dark:text-[var(--color-ink-subtle)]"
           >
             Start by searching for an animal to see how it relates to the target
           </p>
@@ -298,7 +305,8 @@ onMounted(() => {
           <!-- Progressive disclosure: Show hint only when tree is empty -->
           <p
             v-if="!treeData || treeData.nodes.length === 0"
-            class="text-xs sm:text-sm text-center text-gray-500 dark:text-gray-400 mb-2"
+            class="text-xs sm:text-sm text-center text-[var(--color-ink-subtle)]
+            dark:text-[var(--color-ink-subtle)] mb-2"
           >
             Make your first guess to see the phylogenetic tree
           </p>
@@ -326,7 +334,8 @@ onMounted(() => {
           <!-- Progressive disclosure: Show interaction hint when tree has data -->
           <p
             v-if="treeData && treeData.nodes.length > 0"
-            class="mt-2 text-xs sm:text-sm text-center text-gray-500 dark:text-gray-400"
+            class="mt-2 text-xs sm:text-sm text-center text-[var(--color-ink-subtle)]
+            dark:text-[var(--color-ink-subtle)]"
           >
             <span class="hidden sm:inline">Click on nodes to explore details</span>
             <span class="sm:hidden">Tap nodes to explore</span>
@@ -336,23 +345,33 @@ onMounted(() => {
         <!-- Game Info Display (Progressive Disclosure) -->
         <div
           v-if="gameStore.isPlaying && gameStore.guesses.length > 0"
-          class="max-w-2xl mx-auto mt-4 sm:mt-6 md:mt-8 p-4 sm:p-5 md:p-6
-          bg-gray-100 dark:bg-gray-800 rounded-lg"
+          class="max-w-2xl mx-auto mt-4 sm:mt-6 md:mt-8 notebook-guess-history"
         >
-          <h2 class="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4">
+          <h2
+            class="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4
+            text-[var(--color-ink)] dark:text-[var(--color-ink)]"
+          >
             Recent Guesses
           </h2>
-          <ul class="space-y-2 sm:space-y-3">
+          <ul class="space-y-0">
             <li
               v-for="guess in gameStore.guesses.slice().reverse().slice(0, 3)"
               :key="guess.timestamp"
               class="flex flex-col sm:flex-row justify-between items-start sm:items-center
-              gap-1 sm:gap-2 py-2 sm:py-1"
+              gap-1 sm:gap-2 py-2 sm:py-3 border-b border-[var(--color-border-subtle)]
+              dark:border-[var(--color-border-subtle)] last:border-b-0
+              notebook-guess-row"
             >
-              <span class="font-medium text-sm sm:text-base">
+              <span
+                class="font-medium text-sm sm:text-base text-[var(--color-ink)]
+                dark:text-[var(--color-ink)]"
+              >
                 {{ guess.animal.name }}
               </span>
-              <span class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              <span
+                class="text-xs sm:text-sm text-[var(--color-ink-subtle)]
+                dark:text-[var(--color-ink-subtle)] before:content-['['] after:content-[']']"
+              >
                 LCA: {{ guess.lca.clade }}
               </span>
             </li>

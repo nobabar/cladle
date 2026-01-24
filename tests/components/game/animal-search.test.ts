@@ -385,9 +385,12 @@ describe("animalSearch", () => {
       const suggestions = wrapper.find("[role=\"listbox\"]");
       expect(suggestions.exists()).toBe(false);
 
-      const emptyState = wrapper.find(".text-gray-500");
-      expect(emptyState.exists()).toBe(true);
-      expect(emptyState.text()).toContain("No animals found");
+      // Find empty state by text content
+      // Look for div containing the empty state message
+      const allDivs = wrapper.findAll("div");
+      const emptyState = allDivs.find(div => div.text().includes("No animals found"));
+      expect(emptyState).toBeDefined();
+      expect(emptyState?.text()).toContain("No animals found");
     });
   });
 
