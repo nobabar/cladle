@@ -5,13 +5,19 @@
  * keyboard navigation, and performance optimizations.
  */
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
-import { nextTick } from "vue";
+import { nextTick, ref } from "vue";
 import TreeVisualization from "~/components/game/tree-visualization.vue";
 import type { TreeData, TreeNode } from "~/types/tree";
 import type { Animal } from "~/types/animal";
 import type { Clade } from "~/types/clade";
+
+// Mock useColorMode globally for tests
+(globalThis as Record<string, unknown>).useColorMode = () => ({
+  value: ref("light"),
+  preference: "light",
+});
 
 /**
  * Helper function to create a mock animal
@@ -191,6 +197,9 @@ describe("treeVisualization", () => {
       configurable: true,
       value: 768,
     });
+    // Mock canvas getContext to avoid warnings in tests
+    // The component already has a fallback for when getContext returns null
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
   });
 
   describe("component Rendering", () => {
@@ -218,8 +227,8 @@ describe("treeVisualization", () => {
       await nextTick();
 
       expect(wrapper.find(".tree-visualization__svg").exists()).toBe(true);
-      expect(wrapper.find(".tree-nodes").exists()).toBe(true);
-      expect(wrapper.find(".tree-edges").exists()).toBe(true);
+      expect(wrapper.find(".tree-nodes-rough").exists()).toBe(true);
+      expect(wrapper.find(".tree-edges-rough").exists()).toBe(true);
     });
 
     it("renders all nodes from tree data", async () => {
@@ -231,8 +240,10 @@ describe("treeVisualization", () => {
       });
 
       await nextTick();
+      // Wait for Rough.js rendering to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      const nodes = wrapper.findAll(".tree-node-group");
+      const nodes = wrapper.findAll(".tree-node-group-rough");
       expect(nodes.length).toBeGreaterThan(0);
     });
 
@@ -245,8 +256,11 @@ describe("treeVisualization", () => {
       });
 
       await nextTick();
+      // Wait for Rough.js rendering to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      const edges = wrapper.findAll(".tree-edge");
+      // Edges are now rendered as paths with class tree-edge-rough
+      const edges = wrapper.findAll(".tree-edge-rough");
       expect(edges.length).toBeGreaterThan(0);
     });
   });
@@ -261,8 +275,10 @@ describe("treeVisualization", () => {
       });
 
       await nextTick();
+      // Wait for Rough.js rendering to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      const nodes = wrapper.findAll(".tree-node-group");
+      const nodes = wrapper.findAll(".tree-node-group-rough");
       expect(nodes.length).toBeGreaterThan(0);
 
       // Check that nodes have x and y attributes (indicating absolute positioning)
@@ -314,9 +330,11 @@ describe("treeVisualization", () => {
       });
 
       await nextTick();
+      // Wait for Rough.js rendering to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       expect(wrapper.exists()).toBe(true);
-      const nodes = wrapper.findAll(".tree-node-group");
+      const nodes = wrapper.findAll(".tree-node-group-rough");
       expect(nodes.length).toBeGreaterThanOrEqual(1);
     });
   });
@@ -346,8 +364,11 @@ describe("treeVisualization", () => {
       });
 
       await nextTick();
+      // Wait for Rough.js rendering to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      const nodes = wrapper.findAll("rect[role='treeitem']");
+      // Nodes are now rendered as groups with role='treeitem'
+      const nodes = wrapper.findAll("g[role='treeitem']");
       expect(nodes.length).toBeGreaterThan(0);
 
       nodes.forEach((node) => {
@@ -433,7 +454,7 @@ describe("treeVisualization", () => {
 
       // Should focus a node
       await nextTick();
-      expect(wrapper.vm.focusedNodeId).toBeTruthy();
+      expect((wrapper.vm as any).focusedNodeId).toBeTruthy();
     });
 
     it("handles ArrowUp key navigation", async () => {
@@ -454,7 +475,7 @@ describe("treeVisualization", () => {
       await nextTick();
 
       // Focus should change
-      expect(wrapper.vm.focusedNodeId).toBeTruthy();
+      expect((wrapper.vm as any).focusedNodeId).toBeTruthy();
     });
 
     it("handles Escape key to clear focus", async () => {
@@ -471,12 +492,12 @@ describe("treeVisualization", () => {
       await container.trigger("keydown", { key: "ArrowDown" });
       await nextTick();
 
-      expect(wrapper.vm.focusedNodeId).toBeTruthy();
+      expect((wrapper.vm as any).focusedNodeId).toBeTruthy();
 
       await container.trigger("keydown", { key: "Escape" });
       await nextTick();
 
-      expect(wrapper.vm.focusedNodeId).toBeNull();
+      expect((wrapper.vm as any).focusedNodeId).toBeNull();
     });
 
     it("handles Enter key to activate node", async () => {
@@ -493,12 +514,12 @@ describe("treeVisualization", () => {
       await container.trigger("keydown", { key: "ArrowDown" });
       await nextTick();
 
-      const focusedBefore = wrapper.vm.focusedNodeId;
+      const focusedBefore = (wrapper.vm as any).focusedNodeId;
       await container.trigger("keydown", { key: "Enter" });
       await nextTick();
 
       // Focus should remain (node activated)
-      expect(wrapper.vm.focusedNodeId).toBe(focusedBefore);
+      expect((wrapper.vm as any).focusedNodeId).toBe(focusedBefore);
     });
   });
 
@@ -512,13 +533,16 @@ describe("treeVisualization", () => {
       });
 
       await nextTick();
+      // Wait for Rough.js rendering to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      const nodes = wrapper.findAll("rect[role='treeitem']");
+      // Nodes are now rendered as groups with role='treeitem'
+      const nodes = wrapper.findAll("g[role='treeitem']");
       if (nodes.length > 0) {
         await nodes[0]!.trigger("click");
         await nextTick();
 
-        expect(wrapper.vm.focusedNodeId).toBeTruthy();
+        expect((wrapper.vm as any).focusedNodeId).toBeTruthy();
       }
     });
 
@@ -537,7 +561,7 @@ describe("treeVisualization", () => {
         await nodes[0]!.trigger("focus");
         await nextTick();
 
-        expect(wrapper.vm.focusedNodeId).toBeTruthy();
+        expect((wrapper.vm as any).focusedNodeId).toBeTruthy();
       }
     });
   });
