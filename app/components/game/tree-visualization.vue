@@ -529,8 +529,8 @@ async function copyTreeAsMermaid(): Promise<void> {
   height: 100%;
   min-height: 400px;
   position: relative;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--color-surface, #f9fafb);
+  border: 1px solid var(--color-border-subtle, #e5e7eb);
   border-radius: 8px;
   overflow: auto;
   outline: none;
@@ -541,12 +541,12 @@ async function copyTreeAsMermaid(): Promise<void> {
 }
 
 .dark .tree-visualization {
-  background: #1f2937;
-  border-color: #374151;
+  background: var(--color-surface, #020617);
+  border-color: var(--color-border-subtle, #1f2937);
 }
 
 .tree-visualization:focus {
-  outline: 2px solid #00c16a;
+  outline: 2px solid var(--color-focus-ring, #6b7f8e);
   outline-offset: 2px;
 }
 
@@ -562,12 +562,12 @@ async function copyTreeAsMermaid(): Promise<void> {
 }
 
 .tree-visualization__empty-text {
-  color: #6b7280;
+  color: var(--color-ink-subtle, #6b7280);
   font-size: 0.875rem;
 }
 
 .dark .tree-visualization__empty-text {
-  color: #9ca3af;
+  color: var(--color-ink-subtle, #9ca3af);
 }
 
 .tree-visualization__svg {
@@ -577,12 +577,12 @@ async function copyTreeAsMermaid(): Promise<void> {
 }
 
 .tree-edges {
-  stroke: #d1d5db;
+  stroke: var(--color-border-subtle, #d1d5db);
   stroke-width: 2;
 }
 
 .dark .tree-edges {
-  stroke: #4b5563;
+  stroke: var(--color-border-subtle, #4b5563);
 }
 
 .tree-node-group {
@@ -614,77 +614,77 @@ async function copyTreeAsMermaid(): Promise<void> {
 }
 
 .tree-node {
-  fill: white;
-  stroke: #9ca3af;
+  fill: var(--color-paper, #f5f1e8);
+  stroke: var(--color-border-subtle, #e5e7eb);
   stroke-width: 2;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dark .tree-node {
-  fill: #374151;
-  stroke: #6b7280;
+  fill: var(--color-surface-alt, #111827);
+  stroke: var(--color-muted, #6b7280);
 }
 
 .tree-node--animal {
-  fill: #effdf5;
-  stroke: #00dc82;
+  fill: var(--color-primary-soft, #effdf5);
+  stroke: var(--color-primary-strong, #6b8e6b);
 }
 
 .dark .tree-node--animal {
-  fill: #064e3b;
-  stroke: #00dc82;
+  fill: var(--color-primary-soft, #1f2937);
+  stroke: var(--color-primary-strong, #6b8e6b);
 }
 
 .tree-node--animal.tree-node--target {
-  fill: #fef2f2;
-  stroke: #ef4444;
+  fill: var(--color-error-soft, #fef2f2);
+  stroke: var(--color-error, #b87d7a);
   stroke-width: 3;
 }
 
 .dark .tree-node--animal.tree-node--target {
-  fill: #7f1d1d;
-  stroke: #ef4444;
+  fill: var(--color-error-soft, #7f1d1d);
+  stroke: var(--color-error, #fca5a5);
 }
 
 .tree-node--animal.tree-node--guess {
-  fill: #eff6ff;
-  stroke: #60a5fa;
+  fill: var(--color-secondary-soft, #eff6ff);
+  stroke: var(--color-secondary, #6b7f8e);
 }
 
 .dark .tree-node--animal.tree-node--guess {
-  fill: #1e3a8a;
-  stroke: #60a5fa;
+  fill: var(--color-secondary-soft, #1e293b);
+  stroke: var(--color-secondary, #93c5fd);
 }
 
 .tree-node--clade {
-  fill: #f3f4f6;
-  stroke: #6b7280;
+  fill: var(--color-surface-alt, #f3f4f6);
+  stroke: var(--color-muted, #6b7280);
 }
 
 .dark .tree-node--clade {
-  fill: #4b5563;
-  stroke: #9ca3af;
+  fill: var(--color-surface-alt, #1f2937);
+  stroke: var(--color-muted, #9ca3af);
 }
 
 .tree-node--clade.tree-node--lca {
-  fill: #fffbeb;
-  stroke: #eab308;
+  fill: var(--color-warning-soft, #fffbeb);
+  stroke: var(--color-warning, #d4a574);
   stroke-width: 3;
 }
 
 .dark .tree-node--clade.tree-node--lca {
-  fill: #78350f;
-  stroke: #eab308;
+  fill: var(--color-warning-soft, #451a03);
+  stroke: var(--color-warning, #eab308);
 }
 
 .tree-node--focused {
   stroke-width: 4;
-  filter: drop-shadow(0 0 4px #00c16a);
+  filter: drop-shadow(0 0 4px var(--color-focus-ring, #6b7f8e));
 }
 
 .tree-node:focus,
 .tree-node-rect:focus {
-  outline: 2px solid #00c16a;
+  outline: 2px solid var(--color-focus-ring, #6b7f8e);
   outline-offset: 2px;
 }
 
@@ -700,40 +700,40 @@ async function copyTreeAsMermaid(): Promise<void> {
 .tree-node__text {
   font-size: 10px;
   font-weight: 500;
-  fill: #111827;
+  fill: var(--color-ink, #111827);
   pointer-events: none;
   user-select: none;
 }
 
 .dark .tree-node__text {
-  fill: #f9fafb;
+  fill: var(--color-ink, #f9fafb);
 }
 
 .tree-node__text--target {
-  fill: #b91c1c;
+  fill: var(--color-error, #b91c1c);
   font-weight: 700;
 }
 
 .dark .tree-node__text--target {
-  fill: #fca5a5;
+  fill: var(--color-error, #fca5a5);
 }
 
 .tree-node__text--guess {
-  fill: #1e40af;
+  fill: var(--color-secondary, #1e40af);
   font-weight: 600;
 }
 
 .dark .tree-node__text--guess {
-  fill: #93c5fd;
+  fill: var(--color-secondary, #93c5fd);
 }
 
 .tree-node__text--lca {
-  fill: #a16207;
+  fill: var(--color-warning, #a16207);
   font-weight: 600;
 }
 
 .dark .tree-node__text--lca {
-  fill: #fde047;
+  fill: var(--color-warning, #fde047);
 }
 
 /* Screen reader only content */
@@ -762,10 +762,10 @@ async function copyTreeAsMermaid(): Promise<void> {
   min-width: 44px;
   min-height: 44px;
   padding: 0;
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border-subtle, #e5e7eb);
   border-radius: 6px;
-  color: #374151;
+  color: var(--color-ink-muted, #374151);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -773,20 +773,20 @@ async function copyTreeAsMermaid(): Promise<void> {
 }
 
 .dark .tree-visualization__copy-button {
-  background: #374151;
-  border-color: #4b5563;
-  color: #f9fafb;
+  background: var(--color-surface-alt, #1f2937);
+  border-color: var(--color-border-subtle, #4b5563);
+  color: var(--color-ink, #f9fafb);
 }
 
 .tree-visualization__copy-button:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
+  background: var(--color-surface-alt, #f9fafb);
+  border-color: var(--color-border-subtle, #d1d5db);
   box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
 }
 
 .dark .tree-visualization__copy-button:hover {
-  background: #4b5563;
-  border-color: #6b7280;
+  background: var(--color-surface-alt, #4b5563);
+  border-color: var(--color-muted, #6b7280);
 }
 
 .tree-visualization__copy-button:active {
@@ -794,7 +794,7 @@ async function copyTreeAsMermaid(): Promise<void> {
 }
 
 .tree-visualization__copy-button:focus {
-  outline: 2px solid #00c16a;
+  outline: 2px solid var(--color-focus-ring, #6b7f8e);
   outline-offset: 2px;
 }
 

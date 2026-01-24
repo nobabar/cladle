@@ -439,7 +439,7 @@ onUnmounted(() => {
 }
 
 .win-state__content--win .win-state__title {
-  color: #059669;
+  color: var(--color-success, #059669);
 }
 
 .dark .win-state__content--win .win-state__title {
@@ -447,7 +447,7 @@ onUnmounted(() => {
 }
 
 .win-state__content--loss .win-state__title {
-  color: #dc2626;
+  color: var(--color-error, #dc2626);
 }
 
 .dark .win-state__content--loss .win-state__title {
@@ -458,7 +458,7 @@ onUnmounted(() => {
   font-size: 1.125rem;
   line-height: 1.5;
   margin: 0;
-  color: #374151;
+  color: var(--color-ink-muted, #374151);
 }
 
 .dark .win-state__message {
@@ -469,7 +469,7 @@ onUnmounted(() => {
   font-size: 1rem;
   line-height: 1.5;
   margin: 0;
-  color: #6b7280;
+  color: var(--color-ink-subtle, #6b7280);
 }
 
 .dark .win-state__target {
@@ -478,7 +478,7 @@ onUnmounted(() => {
 
 .win-state__target strong {
   font-weight: 600;
-  color: #111827;
+  color: var(--color-ink, #111827);
 }
 
 .dark .win-state__target strong {
@@ -495,7 +495,7 @@ onUnmounted(() => {
   font-size: 0.875rem;
   line-height: 1.5;
   margin: 0;
-  color: #6b7280;
+  color: var(--color-ink-subtle, #6b7280);
 }
 
 .dark .win-state__stats {
@@ -513,7 +513,7 @@ onUnmounted(() => {
   font-weight: 600;
   line-height: 1.5;
   margin: 0;
-  color: #111827;
+  color: var(--color-ink, #111827);
 }
 
 .dark .win-state__tree-title {
@@ -522,10 +522,10 @@ onUnmounted(() => {
 
 .win-state__tree-container {
   width: 100%;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border-subtle, #e5e7eb);
   border-radius: 8px;
   overflow: hidden;
-  background: #f9fafb;
+  background: var(--color-surface, #f9fafb);
 }
 
 .dark .win-state__tree-container {
@@ -541,7 +541,7 @@ onUnmounted(() => {
   width: 400px;
   max-width: 90vw;
   height: 100vh;
-  background: white;
+  background: var(--color-surface, #ffffff);
   box-shadow: -4px 0 6px -1px rgba(0, 0, 0, 0.1);
   z-index: 50;
   overflow-y: auto;
@@ -605,7 +605,7 @@ onUnmounted(() => {
 /* Focus styles for accessibility */
 .win-state:focus,
 .win-state-panel:focus {
-  outline: 2px solid #00c16a;
+  outline: 2px solid var(--color-focus-ring, #6b7f8e);
   outline-offset: 2px;
 }
 </style>

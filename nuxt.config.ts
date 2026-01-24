@@ -9,6 +9,7 @@ export default defineNuxtConfig({
     "@nuxt/icon",
     "@pinia/nuxt",
     "@nuxt/test-utils/module",
+    "@nuxtjs/color-mode",
   ],
 
   devtools: {
@@ -34,5 +35,11 @@ export default defineNuxtConfig({
         braceStyle: "1tbs",
       },
     },
+  },
+
+  colorMode: {
+    preference: "system",
+    fallback: "light",
+    classSuffix: "",
   },
 });
