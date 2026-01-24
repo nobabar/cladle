@@ -1,34 +1,16 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted } from "vue";
 import type { Animal } from "~/types/animal";
 import type { ValidationError } from "~/utils/animalValidator";
 import { useGameStore } from "~/stores/gameStore";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
-import { apiErrorToGameError, validationErrorToGameError } from "~/utils/errorMessages";
+import { apiErrorToGameError } from "~/utils/errorMessages";
 
 // Main game page - foundation for game interface
 // This page will be extended with game components in future stories
 
 const gameStore = useGameStore();
 const api = useBiologicalAPI();
-
-/**
- * Visual feedback state for successful actions
- */
-const showSuccessFeedback = ref(false);
-const successMessage = ref("");
-
-/**
- * Show success feedback
- * @param message - Success message to display
- */
-function showSuccess(message: string) {
-  successMessage.value = message;
-  showSuccessFeedback.value = true;
-  setTimeout(() => {
-    showSuccessFeedback.value = false;
-  }, 3000);
-}
 
 /**
  * Get tree data from game store
@@ -55,9 +37,6 @@ function handleAnimalSelect(animal: Animal) {
     // Animal already has full taxonomy data from validation
     gameStore.processGuess(animal);
 
-    // Show success feedback
-    showSuccess(`Guess submitted: ${animal.name}`);
-
     // Clear tree rendering state after a short delay to allow animation
     setTimeout(() => {
       gameStore.setRenderingTree(false);
@@ -79,12 +58,13 @@ function handleAnimalSelect(animal: Animal) {
 
 /**
  * Handle validation errors
- * @param error - The validation error that occurred
+ * Validation errors are shown inline in the search component, not as store-level errors
+ * @param _error - The validation error that occurred (unused, handled inline)
  */
-function handleValidationError(error: ValidationError) {
-  // Convert validation error to GameError and set in store
-  const gameError = validationErrorToGameError(error);
-  gameStore.setError(gameError);
+function handleValidationError(_error: ValidationError) {
+  // Validation errors are handled inline in the search component
+  // Only critical errors (network, data) should be set in the store
+  // This prevents duplicate error messages
 }
 
 /**
@@ -177,6 +157,25 @@ async function startNewGame() {
 }
 
 /**
+ * Check if an error is critical and should be displayed as GameErrorMessage
+ * Critical errors are network, data, or UI errors that affect the game state
+ * Validation errors are not critical and should only be shown inline
+ * @param error - The error to check
+ * @param error.type - The error type (network, data, ui, validation)
+ * @param error.code - Optional error code for additional filtering
+ * @returns True if the error is critical
+ */
+function isCriticalError(error: { type: string; code?: string }): boolean {
+  // Only show GameErrorMessage for network, data, or critical UI errors
+  // Validation errors are shown inline in the search component
+  const isNetworkOrData = error.type === "network" || error.type === "data";
+  const isCriticalUI = error.type === "ui"
+    && error.code !== "VALIDATION_ERROR"
+    && error.code !== "DUPLICATE";
+  return isNetworkOrData || isCriticalUI;
+}
+
+/**
  * Initialize game on mount if not already started
  */
 onMounted(() => {
@@ -207,9 +206,9 @@ onMounted(() => {
         full-screen
       />
 
-      <!-- Store-Level Error Display -->
+      <!-- Store-Level Error Display (Critical Errors Only) -->
       <div
-        v-if="gameStore.error"
+        v-if="gameStore.error && isCriticalError(gameStore.error)"
         class="max-w-2xl mx-auto mb-4"
       >
         <GameErrorMessage
@@ -217,30 +216,6 @@ onMounted(() => {
           @dismiss="gameStore.clearError"
         />
       </div>
-
-      <!-- Success Feedback -->
-      <Transition
-        enter-active-class="transition ease-out duration-200"
-        enter-from-class="opacity-0 translate-y-2"
-        enter-to-class="opacity-100 translate-y-0"
-        leave-active-class="transition ease-in duration-150"
-        leave-from-class="opacity-100 translate-y-0"
-        leave-to-class="opacity-0 translate-y-2"
-      >
-        <div
-          v-if="showSuccessFeedback"
-          class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 max-w-md mx-auto"
-        >
-          <div
-            class="px-4 py-3 text-sm text-green-800 dark:text-green-200 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-md shadow-lg flex items-center gap-2"
-            role="status"
-            aria-live="polite"
-          >
-            <span aria-hidden="true">✓</span>
-            <span>{{ successMessage }}</span>
-          </div>
-        </div>
-      </Transition>
 
       <!-- Game Status Display -->
       <div
@@ -289,7 +264,8 @@ onMounted(() => {
         <!-- Tree Rendering Loading Indicator -->
         <div
           v-if="gameStore.isRenderingTree"
-          class="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] flex items-center justify-center"
+          class="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]
+            flex items-center justify-center"
         >
           <GameLoadingIndicator
             message="Updating tree..."
@@ -319,7 +295,8 @@ onMounted(() => {
       <!-- Game Info Display (Progressive Disclosure) -->
       <div
         v-if="gameStore.isPlaying && gameStore.guesses.length > 0"
-        class="max-w-2xl mx-auto mt-4 sm:mt-6 md:mt-8 p-4 sm:p-5 md:p-6 bg-gray-100 dark:bg-gray-800 rounded-lg"
+        class="max-w-2xl mx-auto mt-4 sm:mt-6 md:mt-8 p-4 sm:p-5 md:p-6
+          bg-gray-100 dark:bg-gray-800 rounded-lg"
       >
         <h2 class="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4">
           Recent Guesses
@@ -328,7 +305,8 @@ onMounted(() => {
           <li
             v-for="guess in gameStore.guesses.slice().reverse().slice(0, 3)"
             :key="guess.timestamp"
-            class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-2 py-2 sm:py-1"
+            class="flex flex-col sm:flex-row justify-between items-start sm:items-center
+              gap-1 sm:gap-2 py-2 sm:py-1"
           >
             <span class="font-medium text-sm sm:text-base">
               {{ guess.animal.name }}
