@@ -13,6 +13,30 @@ const gameStore = useGameStore();
 const api = useBiologicalAPI();
 
 /**
+ * Color mode toggle
+ */
+const colorMode = useColorMode();
+
+/**
+ * Toggle between light and dark mode
+ */
+function toggleColorMode() {
+  colorMode.preference = colorMode.value === "dark" ? "light" : "dark";
+}
+
+/**
+ * Get current color mode icon
+ */
+const colorModeIcon = computed(() => colorMode.value === "dark" ? "i-lucide-sun" : "i-lucide-moon");
+
+/**
+ * Get color mode label for accessibility
+ */
+const colorModeLabel = computed(() => colorMode.value === "dark"
+  ? "Switch to light mode"
+  : "Switch to dark mode");
+
+/**
  * Get tree data from game store
  */
 const treeData = computed(() => gameStore.treeData);
@@ -190,7 +214,20 @@ onMounted(() => {
     <!-- Game page structure - mobile-first responsive design -->
     <div class="container mx-auto px-4 py-4 sm:py-6 md:py-8">
       <!-- Header -->
-      <header class="mb-4 sm:mb-6 md:mb-8">
+      <header class="mb-4 sm:mb-6 md:mb-8 relative">
+        <!-- Color Mode Toggle -->
+        <div class="absolute top-0 right-0 sm:top-2 sm:right-2">
+          <UButton
+            :icon="colorModeIcon"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            :aria-label="colorModeLabel"
+            :title="colorModeLabel"
+            class="min-w-[44px] min-h-[44px] touch-target justify-center items-center"
+            @click="toggleColorMode"
+          />
+        </div>
         <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-2 sm:mb-4">
           Cladle
         </h1>

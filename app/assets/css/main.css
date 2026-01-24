@@ -2,8 +2,67 @@
 @import "@nuxt/ui";
 
 @theme static {
-  --font-sans: 'Public Sans', sans-serif;
+  /* Typography tokens (UX type scale) */
+  --font-sans: "Lexend", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-dyslexia: "OpenDyslexic", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
+  --text-h1: 2rem; /* 32px */
+  --leading-h1: 1.2;
+  --text-h2: 1.5rem; /* 24px */
+  --leading-h2: 1.3;
+  --text-h3: 1.25rem; /* 20px */
+  --leading-h3: 1.4;
+  --text-body: 1rem; /* 16px */
+  --leading-body: 1.6;
+  --text-sm: 0.875rem; /* 14px */
+  --leading-sm: 1.5;
+  --text-xs: 0.75rem; /* 12px */
+  --leading-xs: 1.4;
+
+  /* Spacing tokens (4, 8, 12, 16, 24, 32, 48, 64) */
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem; /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-5: 1.5rem; /* 24px */
+  --space-6: 2rem; /* 32px */
+  --space-7: 3rem; /* 48px */
+  --space-8: 4rem; /* 64px */
+
+  /* Anatomical notebook palette (light theme) */
+  --color-background: #F5F1E8; /* paper background */
+  --color-paper: #F5F1E8;
+  --color-surface: #F9F7F0;
+  --color-surface-alt: #FDFBF5;
+
+  --color-ink: #2C2416; /* primary text */
+  --color-ink-muted: #4B4333;
+  --color-ink-subtle: #6B7280;
+
+  --color-primary: #8B9A7A; /* Soft Sage Green */
+  --color-primary-soft: #D4DECC;
+  --color-primary-strong: #6B8E6B;
+
+  --color-secondary: #6B7F8E; /* Muted Blue */
+  --color-secondary-soft: #CED5DD;
+
+  --color-accent: #B87D5A; /* Warm Terracotta */
+  --color-accent-soft: #E4C7B3;
+
+  --color-border: #8B6F47; /* Sepia Brown */
+  --color-border-subtle: #E2D6C3;
+  --color-muted: #9CA3AF;
+
+  --color-success: #6B8E6B;
+  --color-success-soft: #ECFDF3;
+  --color-warning: #D4A574;
+  --color-warning-soft: #FFF7ED;
+  --color-error: #B87D7A;
+  --color-error-soft: #FEF2F2;
+
+  --color-focus-ring: #6B7F8E;
+
+  /* Nuxt UI default green palette (used for success & legacy UI) */
   --color-green-50: #EFFDF5;
   --color-green-100: #D9FBE8;
   --color-green-200: #B3F5D1;
@@ -16,11 +75,56 @@
   --color-green-900: #0A5331;
   --color-green-950: #052E16;
 
-  /* Anatomical chart aesthetic colors */
+  /* Brand palette used by Nuxt UI for primary actions (Soft Sage Green) */
+  --color-brand-50: #F5F1E8;
+  --color-brand-100: #E6E0CF;
+  --color-brand-200: #D4D0B9;
+  --color-brand-300: #C2C1A4;
+  --color-brand-400: #AFAF8F;
+  --color-brand-500: #8B9A7A;
+  --color-brand-600: #6E7B62;
+  --color-brand-700: #545E4B;
+  --color-brand-800: #3A4134;
+  --color-brand-900: #262A22;
+  --color-brand-950: #161814;
+
+  /* Raw palette aliases (backwards compatibility with earlier CSS) */
   --color-cream: #F5F1E8;
   --color-sage-green: #8B9A7A;
   --color-terracotta: #B87D5A;
   --color-muted-blue: #6B7F8E;
+}
+
+/* Color mode support: light (default) and dark */
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* Dark notebook palette */
+  --color-background: #020617;
+  --color-paper: #020617;
+  --color-surface: #020617;
+  --color-surface-alt: #0b1120;
+
+  --color-ink: #f9fafb;
+  --color-ink-muted: #e5e7eb;
+  --color-ink-subtle: #9ca3af;
+
+  --color-border: #4b5563;
+  --color-border-subtle: #1f2937;
+  --color-muted: #6b7280;
+
+  /* Keep brand and accent colors but ensure they read on dark backgrounds */
+  --color-primary-soft: #1f2937;
+  --color-secondary-soft: #111827;
+  --color-success-soft: #064e3b;
+  --color-warning-soft: #451a03;
+  --color-error-soft: #7f1d1d;
+
+  --color-focus-ring: #6b7f8e;
 }
 
 /* Mobile-first responsive design */
@@ -34,9 +138,19 @@ html {
 
 body {
   min-height: 100vh;
-  /* Dyslexia-friendly font, minimum 14px (16px preferred) */
-  font-size: 1rem; /* 16px */
-  line-height: 1.5;
+  /* Dyslexia-friendly font and minimum 16px body size */
+  font-family: var(
+    --font-sans,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif
+  );
+  font-size: var(--text-body, 1rem); /* 16px */
+  line-height: var(--leading-body, 1.6);
+  background-color: var(--color-background, #F5F1E8);
+  color: var(--color-ink, #2C2416);
 }
 
 /* Touch targets: minimum 44x44px on mobile */
@@ -61,7 +175,7 @@ body {
   a + a,
   button + a,
   a + button {
-    margin-left: 0.5rem; /* 8px */
+    margin-left: var(--space-2, 0.5rem); /* 8px */
   }
 }
 
@@ -96,8 +210,8 @@ body {
   width: 100%;
   margin-left: auto;
   margin-right: auto;
-  padding-left: 1rem; /* 16px */
-  padding-right: 1rem; /* 16px */
+  padding-left: var(--space-4, 1rem); /* 16px */
+  padding-right: var(--space-4, 1rem); /* 16px */
 }
 
 @media (min-width: 640px) {
@@ -109,16 +223,16 @@ body {
 @media (min-width: 768px) {
   .container {
     max-width: 768px;
-    padding-left: 1.5rem; /* 24px */
-    padding-right: 1.5rem; /* 24px */
+    padding-left: var(--space-5, 1.5rem); /* 24px */
+    padding-right: var(--space-5, 1.5rem); /* 24px */
   }
 }
 
 @media (min-width: 1024px) {
   .container {
     max-width: 1024px;
-    padding-left: 2rem; /* 32px */
-    padding-right: 2rem; /* 32px */
+    padding-left: var(--space-6, 2rem); /* 32px */
+    padding-right: var(--space-6, 2rem); /* 32px */
   }
 }
 
@@ -140,6 +254,6 @@ html {
 
 /* Focus styles for accessibility */
 *:focus-visible {
-  outline: 2px solid #00c16a;
+  outline: 2px solid var(--color-focus-ring, #6B7F8E);
   outline-offset: 2px;
 }
