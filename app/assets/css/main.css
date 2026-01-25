@@ -138,6 +138,26 @@ html {
   text-size-adjust: 100%;
 }
 
+/* Support for 200% zoom - ensure layout remains usable */
+@media (min-resolution: 192dpi) {
+  html {
+    font-size: 16px; /* Maintain base size for zoom calculations */
+  }
+}
+
+/* Ensure containers scale properly at 200% zoom */
+.container,
+.notebook-sheet {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Prevent horizontal scrolling issues at high zoom */
+body {
+  overflow-x: hidden;
+  min-width: 0;
+}
+
 body {
   min-height: 100vh;
   /* Dyslexia-friendly font and minimum 16px body size */
@@ -260,6 +280,51 @@ html {
   outline-offset: 2px;
 }
 
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --color-focus-ring: #000000;
+    --color-border: #000000;
+    --color-border-subtle: #000000;
+  }
+
+  .dark {
+    --color-focus-ring: #ffffff;
+    --color-border: #ffffff;
+    --color-border-subtle: #ffffff;
+  }
+
+  /* Ensure all focus indicators are highly visible */
+  *:focus-visible {
+    outline: 3px solid var(--color-focus-ring);
+    outline-offset: 3px;
+  }
+
+  /* Increase contrast for text */
+  body {
+    color: var(--color-ink);
+    background-color: var(--color-paper);
+  }
+
+  /* Ensure buttons have clear borders */
+  button,
+  [role="button"] {
+    border: 2px solid var(--color-border);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Notebook-style layout shell */
 .notebook-layout {
   min-height: 100vh;
@@ -282,6 +347,8 @@ html {
 /* Paper sheet container */
 .notebook-sheet {
   background-color: var(--color-paper, #FDFBF5);
+  /* Height adapts to content - no min-height constraint */
+  height: fit-content;
   min-height: calc(100vh - var(--space-4, 1rem) * 2);
   padding: var(--space-4, 1rem) var(--space-3, 0.75rem); /* 16px top/bottom, 12px sides on mobile */
   position: relative;
@@ -289,6 +356,8 @@ html {
   border-radius: 2px;
   max-width: 100%;
   margin: 0 auto;
+  /* Only the notebook-sheet should scroll, not content inside */
+  overflow: visible;
 }
 
 @media (min-width: 768px) {
@@ -297,8 +366,10 @@ html {
     padding-bottom: var(--space-6, 2rem); /* 32px bottom */
     padding-left: 72px; /* 48px (margin line) + 24px (equal spacing) */
     padding-right: 24px; /* Equal spacing to match left side after margin */
+    height: fit-content;
     min-height: calc(100vh - var(--space-8, 4rem));
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+    overflow: visible;
   }
 }
 
@@ -309,7 +380,9 @@ html {
     padding-left: 96px; /* 64px (margin line) + 32px (equal spacing) */
     padding-right: 32px; /* Equal spacing to match left side after margin */
     max-width: 1200px;
+    height: fit-content;
     min-height: calc(100vh - var(--space-8, 4rem));
+    overflow: visible;
   }
 }
 

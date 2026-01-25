@@ -114,6 +114,8 @@ function handleEscape(event: KeyboardEvent) {
   if (event.key === "Escape" && hasEnded.value) {
     // Escape key handling - modal/panel should stay open during win/loss
     // This is for future enhancement if we want to allow closing
+    // For now, we prevent default to avoid any unwanted behavior
+    event.preventDefault();
   }
 }
 
@@ -125,12 +127,19 @@ function manageFocus() {
     // Store previous focus
     previousFocusElement = document.activeElement as HTMLElement;
     // Focus the modal/panel content
-    const firstFocusable = focusTrapRef.value.querySelector(
-      "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])",
-    ) as HTMLElement;
-    if (firstFocusable) {
-      firstFocusable.focus();
+    // For modal/panel, focus the container first, then first focusable element
+    if (focusTrapRef.value instanceof HTMLElement) {
+      focusTrapRef.value.focus();
     }
+    // Then focus first interactive element if available
+    nextTick(() => {
+      const firstFocusable = focusTrapRef.value?.querySelector(
+        "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])",
+      ) as HTMLElement;
+      if (firstFocusable) {
+        firstFocusable.focus();
+      }
+    });
   } else if (previousFocusElement) {
     // Restore previous focus when closed
     previousFocusElement.focus();
@@ -300,10 +309,12 @@ onUnmounted(() => {
   <div
     v-else-if="isPanelOpen"
     ref="focusTrapRef"
-    role="dialog"
+    role="complementary"
     aria-labelledby="win-state-title"
     aria-describedby="win-state-description"
+    aria-label="Game result panel"
     class="win-state-panel"
+    tabindex="-1"
   >
     <!-- Win State -->
     <div v-if="isWon" class="win-state__content win-state__content--win">

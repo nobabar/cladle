@@ -85,16 +85,25 @@ const errorColorClasses = computed(() => {
     <div
       v-if="error"
       role="alert"
-      aria-live="polite"
-      class="px-3 py-2 text-sm border rounded-sm notebook-error"
+      aria-live="assertive"
+      aria-atomic="true"
+      class="px-3 py-2 text-sm border-2 rounded-sm notebook-error"
       :class="[
         errorColorClasses,
         props.class,
       ]"
     >
       <div class="flex items-start">
-        <span class="flex-shrink-0 mr-2" aria-hidden="true">{{ errorIcon }}</span>
-        <span class="flex-1">{{ error.message }}</span>
+        <span
+          class="flex-shrink-0 mr-2"
+          aria-hidden="true"
+          role="img"
+        >
+          {{ errorIcon }}
+        </span>
+        <span class="flex-1">
+          <span class="sr-only">Error: </span>{{ error.message }}
+        </span>
         <UButton
           v-if="dismissible"
           color="neutral"

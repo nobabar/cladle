@@ -438,7 +438,11 @@ function renderTreeWithRough(): void {
           nodeGroup.setAttribute("aria-label", getNodeAriaLabel(node));
           nodeGroup.setAttribute("aria-selected", focusedNodeId.value === node.id ? "true" : "false");
           nodeGroup.setAttribute("role", "treeitem");
-          nodeGroup.setAttribute("tabindex", "0");
+          // Set tabindex: focused node gets "0", first node gets "0" if none focused, others get "-1"
+          const isFirstNode = Array.from(computedNodes.value.values()).indexOf(node) === 0;
+          const shouldBeFocusable = focusedNodeId.value === node.id
+            || (!focusedNodeId.value && isFirstNode);
+          nodeGroup.setAttribute("tabindex", shouldBeFocusable ? "0" : "-1");
 
           // Add an invisible hit area rectangle so the group is clickable
           const hitArea = document.createElementNS("http://www.w3.org/2000/svg", "rect");
@@ -448,17 +452,56 @@ function renderTreeWithRough(): void {
           hitArea.setAttribute("height", String(nodeHeight));
           hitArea.setAttribute("fill", "transparent");
           hitArea.setAttribute("cursor", "pointer");
+          hitArea.setAttribute("aria-hidden", "true");
           nodeGroup.appendChild(hitArea);
+
+          // Add visual indicator for node state (non-color cue)
+          // Add a shape indicator for different node types
+          if (node.type === "animal") {
+            // Add a small circle indicator for animals
+            const indicator = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            indicator.setAttribute("cx", String(node.position.x - nodeWidth / 2 + 8));
+            indicator.setAttribute("cy", String(node.position.y - nodeHeight / 2 + 8));
+            indicator.setAttribute("r", "3");
+            indicator.setAttribute("fill", "currentColor");
+            indicator.setAttribute("aria-hidden", "true");
+            if (node.isTarget) {
+              indicator.setAttribute("class", "tree-node-indicator tree-node-indicator--target");
+            } else if (node.isGuess) {
+              indicator.setAttribute("class", "tree-node-indicator tree-node-indicator--guess");
+            } else {
+              indicator.setAttribute("class", "tree-node-indicator tree-node-indicator--animal");
+            }
+            nodeGroup.appendChild(indicator);
+          } else {
+            // Add a small square indicator for clades
+            const indicator = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            indicator.setAttribute("x", String(node.position.x - nodeWidth / 2 + 5));
+            indicator.setAttribute("y", String(node.position.y - nodeHeight / 2 + 5));
+            indicator.setAttribute("width", "6");
+            indicator.setAttribute("height", "6");
+            indicator.setAttribute("fill", "currentColor");
+            indicator.setAttribute("aria-hidden", "true");
+            if (node.isLCA) {
+              indicator.setAttribute("class", "tree-node-indicator tree-node-indicator--lca");
+            } else {
+              indicator.setAttribute("class", "tree-node-indicator tree-node-indicator--clade");
+            }
+            nodeGroup.appendChild(indicator);
+          }
 
           // Add click handlers
           nodeGroup.addEventListener("click", () => handleNodeClick(node));
           nodeGroup.addEventListener("focus", () => {
             focusedNodeId.value = node.id;
+            // Update tabindex for all nodes when one is focused
+            nextTick(() => {
+              updateNodeTabIndices();
+            });
           });
           nodeGroup.addEventListener("blur", () => {
-            if (focusedNodeId.value === node.id) {
-              focusedNodeId.value = null;
-            }
+            // Don't clear focus immediately on blur - let keyboard navigation handle it
+            // This prevents focus loss when clicking outside
           });
 
           // Add keyboard navigation support
@@ -466,6 +509,13 @@ function renderTreeWithRough(): void {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
               handleNodeClick(node);
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              // Remove focus from node
+              if (nodeGroup instanceof SVGElement) {
+                nodeGroup.blur();
+              }
+              focusedNodeId.value = null;
             }
           });
 
@@ -512,6 +562,27 @@ watch(
 );
 
 /**
+ * Update tabindex for all tree nodes based on focused node
+ * Only the focused node should have tabindex="0", others should have "-1"
+ * This enables arrow key navigation while preventing tab from cycling through all nodes
+ */
+function updateNodeTabIndices(): void {
+  if (!nodesGroupRef.value) {
+    return;
+  }
+
+  const nodeGroups = nodesGroupRef.value.querySelectorAll("[data-node-id]");
+  nodeGroups.forEach((group) => {
+    const nodeId = group.getAttribute("data-node-id");
+    if (nodeId === focusedNodeId.value) {
+      group.setAttribute("tabindex", "0");
+    } else {
+      group.setAttribute("tabindex", "-1");
+    }
+  });
+}
+
+/**
  * Get node ARIA label
  * @param node - The tree node
  * @returns ARIA label string for accessibility
@@ -549,6 +620,7 @@ function getNodeAriaLabel(node: TreeNode): string {
  */
 function handleNodeClick(node: TreeNode): void {
   focusedNodeId.value = node.id;
+  updateNodeTabIndices();
   // Emit event for future interactivity (Story 4.1)
 }
 
@@ -577,9 +649,11 @@ function handleKeyDown(event: KeyboardEvent): void {
           .find(n => (n.depth || 0) >= (current.depth || 0));
         if (next) {
           focusedNodeId.value = next.id;
+          focusNodeElement(next.id);
         }
       } else if (nodes.length > 0) {
         focusedNodeId.value = nodes[0]!.id;
+        focusNodeElement(nodes[0]!.id);
       }
       break;
     }
@@ -594,6 +668,39 @@ function handleKeyDown(event: KeyboardEvent): void {
           .find(n => (n.depth || 0) <= (current.depth || 0));
         if (prev) {
           focusedNodeId.value = prev.id;
+          focusNodeElement(prev.id);
+        }
+      }
+      break;
+    }
+    case "ArrowRight": {
+      event.preventDefault();
+      // Move to first child node if available
+      const current = nodes[currentIndex];
+      if (current) {
+        const child = nodes.find(n =>
+          // Find a node that is a child of current (deeper depth, connected in tree)
+          (n.depth || 0) > (current.depth || 0) && nodes.indexOf(n) > currentIndex,
+        );
+        if (child) {
+          focusedNodeId.value = child.id;
+          focusNodeElement(child.id);
+        }
+      }
+      break;
+    }
+    case "ArrowLeft": {
+      event.preventDefault();
+      // Move to parent node if available
+      const current = nodes[currentIndex];
+      if (current && current.depth && current.depth > 0) {
+        const parent = nodes
+          .slice(0, currentIndex)
+          .reverse()
+          .find(n => (n.depth || 0) < (current.depth || 0));
+        if (parent) {
+          focusedNodeId.value = parent.id;
+          focusNodeElement(parent.id);
         }
       }
       break;
@@ -612,9 +719,48 @@ function handleKeyDown(event: KeyboardEvent): void {
     case "Escape": {
       event.preventDefault();
       focusedNodeId.value = null;
+      updateNodeTabIndices();
+      // Return focus to container
+      if (containerRef.value) {
+        containerRef.value.focus();
+      }
+      break;
+    }
+    case "Home": {
+      event.preventDefault();
+      // Move to first node
+      if (nodes.length > 0) {
+        focusedNodeId.value = nodes[0]!.id;
+        focusNodeElement(nodes[0]!.id);
+      }
+      break;
+    }
+    case "End": {
+      event.preventDefault();
+      // Move to last node
+      if (nodes.length > 0) {
+        focusedNodeId.value = nodes[nodes.length - 1]!.id;
+        focusNodeElement(nodes[nodes.length - 1]!.id);
+      }
       break;
     }
   }
+}
+
+/**
+ * Focus a specific node element by ID
+ * @param nodeId - The ID of the node to focus
+ */
+function focusNodeElement(nodeId: string): void {
+  nextTick(() => {
+    if (nodesGroupRef.value) {
+      const nodeGroup = nodesGroupRef.value.querySelector(`[data-node-id="${nodeId}"]`) as SVGElement;
+      if (nodeGroup && typeof nodeGroup.focus === "function") {
+        nodeGroup.focus();
+      }
+    }
+    updateNodeTabIndices();
+  });
 }
 
 // ResizeObserver to watch for container size changes
@@ -750,7 +896,7 @@ async function copyTreeAsMermaid(): Promise<void> {
       aria-atomic="true"
     >
       <template v-if="hasTreeData && treeData">
-        Phylogenetic tree with {{ treeData.nodes.length }} nodes.
+        Phylogenetic tree with {{ treeData.nodes.length }} {{ treeData.nodes.length === 1 ? "node" : "nodes" }}.
         <template v-if="treeData.guesses.length > 0">
           {{ treeData.guesses.length }} guessed
           {{ treeData.guesses.length === 1 ? "animal" : "animals" }}.
@@ -990,6 +1136,44 @@ async function copyTreeAsMermaid(): Promise<void> {
 
 .dark .tree-node__text--lca {
   fill: var(--color-warning, #fde047);
+}
+
+/* Non-color visual indicators for tree nodes */
+.tree-node-indicator {
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.tree-node-indicator--target {
+  /* Target nodes: circle with thicker stroke */
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.tree-node-indicator--guess {
+  /* Guessed nodes: circle with dashed stroke */
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-dasharray: 2, 2;
+  fill: none;
+}
+
+.tree-node-indicator--animal {
+  /* Regular animal nodes: filled circle */
+  fill: currentColor;
+}
+
+.tree-node-indicator--lca {
+  /* LCA clades: square with thicker stroke */
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.tree-node-indicator--clade {
+  /* Regular clades: filled square */
+  fill: currentColor;
 }
 
 /* Screen reader only content */
