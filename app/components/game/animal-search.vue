@@ -482,8 +482,10 @@ onUnmounted(() => {
         :disabled="disabled || isSubmitting"
         :loading="isSearching"
         :ui="{ trailing: 'pe-1' }"
+        role="combobox"
         aria-label="Search for an animal"
-        :aria-expanded="isOpen"
+        :aria-expanded="isOpen ? 'true' : 'false'"
+        aria-haspopup="listbox"
         aria-autocomplete="list"
         :aria-controls="showSuggestions ? 'animal-suggestions' : undefined"
         :aria-activedescendant="
@@ -533,7 +535,8 @@ onUnmounted(() => {
       <div
         v-if="validationError"
         role="alert"
-        aria-live="polite"
+        aria-live="assertive"
+        aria-atomic="true"
         class="
           mt-2 px-3 py-2 text-sm
           text-[var(--color-error)] dark:text-[var(--color-error)]
@@ -544,7 +547,7 @@ onUnmounted(() => {
         "
       >
         <div class="flex items-start">
-          <span class="flex-shrink-0 mr-2">✏️</span>
+          <span class="flex-shrink-0 mr-2" aria-hidden="true">✏️</span>
           <span>{{ validationError.message }}</span>
         </div>
       </div>
@@ -564,7 +567,11 @@ onUnmounted(() => {
         id="animal-suggestions"
         ref="suggestionsRef"
         role="listbox"
-        :aria-label="`${filteredSuggestions.length} suggestions available`"
+        :aria-label="
+          `${filteredSuggestions.length} ${
+            filteredSuggestions.length === 1 ? 'suggestion' : 'suggestions'
+          } available. Use arrow keys to navigate, Enter to select.`
+        "
         class="
           absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-sm
           border border-[var(--color-secondary)] dark:border-[var(--color-secondary)]
@@ -577,7 +584,8 @@ onUnmounted(() => {
           :id="getSuggestionId(index)"
           :key="animal.id"
           role="option"
-          :aria-selected="index === highlightedIndex"
+          :aria-selected="index === highlightedIndex ? 'true' : 'false'"
+          :aria-label="`${animal.name}${animal.scientificName ? `, ${animal.scientificName}` : ''}`"
           class="
             min-h-[44px] px-3 sm:px-4 py-3 cursor-pointer text-sm sm:text-base
             transition-colors touch-target
@@ -585,9 +593,12 @@ onUnmounted(() => {
           "
           :class="[
             index === highlightedIndex
-              ? 'bg-[var(--color-secondary-soft)] dark:bg-[var(--color-secondary-soft)]'
+              ? 'bg-[var(--color-secondary-soft)] dark:bg-[var(--color-secondary-soft)] '
+                + 'focus-within:outline focus-within:outline-2 '
+                + 'focus-within:outline-[var(--color-focus-ring)] focus-within:outline-offset-[-2px]'
               : 'bg-[var(--color-paper)] dark:bg-[var(--color-paper)]',
           ]"
+          tabindex="-1"
           @click="selectAnimal(animal)"
           @mouseenter="highlightedIndex = index"
         >
@@ -652,9 +663,12 @@ onUnmounted(() => {
             && searchQuery.length >= minChars
             && filteredSuggestions.length === 0
         "
+        role="status"
+        aria-live="polite"
         class="
-          absolute z-50 mt-1 w-full rounded-sm border border-[var(--color-border-subtle)]
-          dark:border-[var(--color-border-subtle)] bg-[var(--color-paper)] dark:bg-[var(--color-paper)]
+          absolute z-50 mt-1 w-full rounded-sm
+          border border-[var(--color-border-subtle)] dark:border-[var(--color-border-subtle)]
+          bg-[var(--color-paper)] dark:bg-[var(--color-paper)]
           p-4 text-center text-[var(--color-ink-subtle)] dark:text-[var(--color-ink-subtle)]
         "
       >
