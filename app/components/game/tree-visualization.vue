@@ -6,7 +6,7 @@ import {
   getViewBoxFromDimensions,
 } from "~/utils/treeLayoutCalculator";
 import { treeToMermaid } from "~/utils/mermaidExporter";
-import { useRoughSvg } from "~/composables/useRoughSvg";
+import { DEFAULT_ROUGHNESS, resolveColor, useRoughSvg } from "~/composables/useRoughSvg";
 
 /**
  * Props
@@ -55,11 +55,7 @@ const isCopied = ref(false);
 // Rough.js integration
 const edgesGroupRef = ref<SVGGElement | null>(null);
 const nodesGroupRef = ref<SVGGElement | null>(null);
-const {
-  getRoughGenerator,
-  drawRoughPath,
-  drawRoughRect,
-} = useRoughSvg(svgRef);
+const { getRoughGenerator } = useRoughSvg(svgRef);
 const lastRenderedLayoutHash = ref<string | null>(null);
 const isRendering = ref(false);
 
@@ -391,7 +387,12 @@ function renderTreeWithRough(): void {
             getNodeHeight(edge.from),
             getNodeHeight(edge.to),
           );
-          const roughPath = drawRoughPath(generator, pathData, edgeColor, 2);
+          const roughPath = generator.path(pathData, {
+            stroke: resolveColor(edgeColor) || "currentColor",
+            strokeWidth: 2,
+            fill: "none",
+            roughness: DEFAULT_ROUGHNESS,
+          });
           if (roughPath) {
             roughPath.setAttribute("class", "tree-edge-rough");
             edgesGroupRef.value.appendChild(roughPath);
@@ -400,7 +401,7 @@ function renderTreeWithRough(): void {
       }
     }
 
-    // Render nodes
+    // Render nodes using Rough.js rectangle() method
     if (nodesGroupRef.value) {
       for (const node of Array.from(computedNodes.value.values())) {
         if (!node.position) {
@@ -411,20 +412,23 @@ function renderTreeWithRough(): void {
         const nodeHeight = getNodeHeight(node);
         const colors = getNodeColors(node);
 
-        const roughRect = drawRoughRect(
-          generator,
-          node.position.x,
-          node.position.y,
-          nodeWidth,
-          nodeHeight,
-          {
-            fill: colors.fill,
-            stroke: colors.stroke,
-            strokeWidth: colors.strokeWidth,
-            borderRadius: 4,
-            centered: true,
-          },
-        );
+        // Calculate top-left position (Rough.js rectangle uses top-left, not center)
+        const rectX = node.position.x - nodeWidth / 2;
+        const rectY = node.position.y - nodeHeight / 2;
+
+        // Resolve CSS variables to actual colors
+        const fillColor = resolveColor(colors.fill);
+        const strokeColor = resolveColor(colors.stroke);
+
+        // Use Rough.js rectangle() method directly
+        const roughRect = generator.rectangle(rectX, rectY, nodeWidth, nodeHeight, {
+          fill: fillColor || "transparent",
+          stroke: strokeColor || "currentColor",
+          strokeWidth: colors.strokeWidth,
+          roughness: DEFAULT_ROUGHNESS,
+          fillStyle: "solid",
+          fillWeight: 0.3,
+        });
 
         if (roughRect) {
           // Create a group for this node to maintain accessibility
