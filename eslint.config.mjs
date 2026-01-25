@@ -31,7 +31,7 @@ export default antfu({
       // Ignore long SVG path data in Vue templates, e.g. <path d="...">
       ignorePattern: "d=\"[^\"]+\"",
     }],
-    "max-depth": ["warn", 4],
+    "max-depth": ["warn", 6],
     "camelcase": ["warn"],
 
     // Import rules

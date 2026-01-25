@@ -330,10 +330,14 @@ describe("winState Component", () => {
       const wrapper = mountWithStubs(WinState);
       await nextTick();
 
+      // Check for either dialog (mobile) or complementary (desktop) role
       const dialog = wrapper.find("[role=\"dialog\"]");
-      expect(dialog.exists()).toBe(true);
-      expect(dialog.attributes("aria-labelledby")).toBe("win-state-title");
-      expect(dialog.attributes("aria-describedby")).toBe("win-state-description");
+      const complementary = wrapper.find("[role=\"complementary\"]");
+      const element = dialog.exists() ? dialog : complementary;
+
+      expect(element.exists()).toBe(true);
+      expect(element.attributes("aria-labelledby")).toBe("win-state-title");
+      expect(element.attributes("aria-describedby")).toBe("win-state-description");
     });
 
     it("should have proper ARIA labels for loss state", async () => {
@@ -346,10 +350,14 @@ describe("winState Component", () => {
       const wrapper = mountWithStubs(WinState);
       await nextTick();
 
+      // Check for either dialog (mobile) or complementary (desktop) role
       const dialog = wrapper.find("[role=\"dialog\"]");
-      expect(dialog.exists()).toBe(true);
-      expect(dialog.attributes("aria-labelledby")).toBe("win-state-title");
-      expect(dialog.attributes("aria-describedby")).toBe("win-state-description");
+      const complementary = wrapper.find("[role=\"complementary\"]");
+      const element = dialog.exists() ? dialog : complementary;
+
+      expect(element.exists()).toBe(true);
+      expect(element.attributes("aria-labelledby")).toBe("win-state-title");
+      expect(element.attributes("aria-describedby")).toBe("win-state-description");
     });
 
     it("should announce win state to screen readers", async () => {
