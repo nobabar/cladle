@@ -358,8 +358,8 @@ onUnmounted(() => {
           <GameTreeVisualization
             :tree-data="treeData"
             :show-target="true"
-            :width="600"
-            :height="500"
+            :width="380"
+            :height="600"
           />
         </div>
       </div>
@@ -406,8 +406,8 @@ onUnmounted(() => {
           <GameTreeVisualization
             :tree-data="treeData"
             :show-target="true"
-            :width="600"
-            :height="500"
+            :width="380"
+            :height="600"
           />
         </div>
       </div>
@@ -434,6 +434,9 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  min-height: 0;
+  flex: 1;
+  margin-top: 2rem;
 }
 
 .win-state__header {
@@ -517,6 +520,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
 }
 
 .win-state__tree-title {
@@ -533,32 +538,38 @@ onUnmounted(() => {
 
 .win-state__tree-container {
   width: 100%;
-  border: 1px solid var(--color-border-subtle, #E2D6C3);
-  border-radius: 2px;
-  overflow: hidden;
-  background: var(--color-paper, #FDFBF5);
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
   box-shadow: none;
+  min-height: 200px;
 }
 
 .dark .win-state__tree-container {
-  border-color: var(--color-border-subtle, #1f2937);
-  background: var(--color-paper, #1e293b);
+  background: transparent;
 }
 
 /* Desktop Side Panel - notebook/anatomical palette */
+/* Positioned relative to .notebook-sheet (parent) */
 .win-state-panel {
-  position: fixed;
+  position: absolute;
+  /* Align with notebook-sheet's top edge */
   top: 0;
+  /* Align with notebook-sheet's bottom edge */
+  bottom: 0;
+  /* Align with notebook-sheet's right edge */
   right: 0;
   width: 400px;
   max-width: 90vw;
-  height: 100vh;
   background: var(--color-paper, #FDFBF5);
   border-left: 1px solid var(--color-border-subtle, #E2D6C3);
   box-shadow: -2px 0 4px -1px rgba(0, 0, 0, 0.08);
   z-index: 50;
-  overflow-y: auto;
   padding: 1.5rem;
+  box-sizing: border-box;
+  /* Remove internal scroll - content extends naturally and scrolls with page */
+  overflow: visible;
 }
 
 .dark .win-state-panel {
@@ -611,8 +622,14 @@ onUnmounted(() => {
   }
 
   .win-state__tree-container {
-    max-height: 500px;
-    overflow: auto;
+    max-height: none;
+    min-height: 400px;
+    overflow: visible;
+    width: 100%;
+  }
+
+  .win-state__content {
+    min-height: 0;
   }
 }
 

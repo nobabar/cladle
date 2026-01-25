@@ -274,9 +274,6 @@ onMounted(() => {
           </p>
         </div>
 
-        <!-- Win/Loss State Component -->
-        <GameWinState />
-
         <!-- Animal Search Component -->
         <div class="max-w-2xl mx-auto mb-4 sm:mb-6 md:mb-8">
           <GameAnimalSearch
@@ -378,6 +375,9 @@ onMounted(() => {
           </ul>
         </div>
       </div>
+
+      <!-- Win/Loss State Component - positioned relative to notebook-sheet -->
+      <GameWinState />
     </div>
   </div>
 </template>
