@@ -30,8 +30,9 @@ import {
  * iNaturalist API Configuration
  */
 const INATURALIST_BASE_URL = "https://api.inaturalist.org/v1";
-// 100ms delay between requests to respect API usage policies and prevent rate limiting
-const RATE_LIMIT_DELAY = 100;
+// ~1 request / second to respect iNaturalist API recommended practices.
+// See: https://www.inaturalist.org/pages/api+recommended+practices
+const RATE_LIMIT_DELAY = 1000;
 const MAX_RETRIES = 3;
 const TIMEOUT_MS = 5000; // 5 seconds timeout between retries
 
@@ -408,7 +409,17 @@ class INaturalistAPIClient implements BiologicalAPIClient {
           });
 
           if (attempt < MAX_RETRIES - 1) {
-            await this.waitForBackoff(attempt);
+            // If we were rate-limited, prefer server-provided backoff (Retry-After) when present.
+            if (response.status === 429) {
+              const retryAfterMs = this.getRetryAfterMs(response);
+              if (retryAfterMs !== null) {
+                await this.wait(retryAfterMs);
+              } else {
+                await this.waitForBackoff(attempt);
+              }
+            } else {
+              await this.waitForBackoff(attempt);
+            }
             continue;
           }
 
@@ -499,7 +510,34 @@ class INaturalistAPIClient implements BiologicalAPIClient {
    */
   private async waitForBackoff(attempt: number): Promise<void> {
     const delay = 2 ** attempt * 1000; // 1s, 2s, 4s
-    return new Promise(resolve => setTimeout(resolve, delay));
+    return this.wait(delay);
+  }
+
+  /**
+   * Parse Retry-After header (seconds or HTTP date) into a millisecond delay.
+   * @param response
+   * @returns delay in ms, or null if header missing/invalid.
+   */
+  private getRetryAfterMs(response: Response): number | null {
+    const raw = response.headers?.get?.("Retry-After");
+    if (!raw) return null;
+
+    // Retry-After can be either seconds or an HTTP date.
+    const seconds = Number.parseInt(raw, 10);
+    if (!Number.isNaN(seconds) && seconds >= 0) {
+      return seconds * 1000;
+    }
+
+    const dateMs = Date.parse(raw);
+    if (!Number.isNaN(dateMs)) {
+      return Math.max(0, dateMs - Date.now());
+    }
+
+    return null;
+  }
+
+  private async wait(delayMs: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, delayMs));
   }
 
   /**
@@ -625,7 +663,6 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       const idsParam = ancestorIds.join(",");
       const url = `${INATURALIST_BASE_URL}/taxa/${idsParam}`;
 
-      await this.rateLimiter.throttle();
       const response = await this.makeRequest<INaturalistResponse>(url);
 
       if (!response.results || response.results.length === 0) {
