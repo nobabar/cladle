@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useGameStore } from "~/stores/gameStore";
 import { useResponsive } from "~/composables/useResponsive";
 
