@@ -475,14 +475,76 @@ describe("api client", () => {
       // Advance through rate limiter and retry delay
       await vi.advanceTimersByTimeAsync(0); // Rate limiter initial
       await vi.advanceTimersByTimeAsync(1000); // First retry backoff
-      await vi.advanceTimersByTimeAsync(100); // Rate limiter for retry
-      await vi.advanceTimersByTimeAsync(100); // Rate limiter for ancestor fetch
+      await vi.advanceTimersByTimeAsync(1000); // Rate limiter for ancestor fetch
 
       const result = await promise;
 
       // Assert
       expect(result.data).not.toBeNull();
       expect(globalThis.fetch).toHaveBeenCalledTimes(3); // Initial + retry + ancestor fetch
+    });
+
+    it("should honor Retry-After header on 429 before retrying", async () => {
+      // Arrange - First call returns 429 with Retry-After=2, then succeeds
+      /* eslint-disable camelcase */
+      const mockAnimalResponse = {
+        results: [{
+          id: 1,
+          name: "Test",
+          preferred_common_name: "Test",
+          rank: "species",
+          ancestry: "1",
+          ancestor_ids: [1],
+        }],
+      };
+      /* eslint-enable camelcase */
+      const mockAncestorResponse = {
+        results: [{ id: 1, name: "Animalia", rank: "kingdom" }],
+      };
+
+      const retryAfterSeconds = 2;
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 429,
+          statusText: "Too Many Requests",
+          headers: {
+            get: (name: string) => (name.toLowerCase() === "retry-after" ? String(retryAfterSeconds) : null),
+          },
+        } as unknown as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockAnimalResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockAncestorResponse,
+        } as Response);
+
+      // Act
+      const promise = client.fetchAnimalData("1");
+
+      // Let the initial call proceed
+      await vi.advanceTimersByTimeAsync(0);
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+
+      // Not yet retried (waiting for Retry-After)
+      await vi.advanceTimersByTimeAsync((retryAfterSeconds * 1000) - 1);
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+
+      // Retry kicks in after Retry-After delay
+      await vi.advanceTimersByTimeAsync(1);
+      // Then ancestor fetch is throttled by the rate limiter (~1s)
+      await vi.advanceTimersByTimeAsync(1000);
+
+      const result = await promise;
+
+      // Assert
+      expect(result.data).not.toBeNull();
+      expect(globalThis.fetch).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -526,10 +588,8 @@ describe("api client", () => {
       // Advance through rate limiter and retries
       await vi.advanceTimersByTimeAsync(0); // Rate limiter initial
       await vi.advanceTimersByTimeAsync(1000); // First retry (2^0 * 1000)
-      await vi.advanceTimersByTimeAsync(100); // Rate limiter
       await vi.advanceTimersByTimeAsync(2000); // Second retry (2^1 * 1000)
-      await vi.advanceTimersByTimeAsync(100); // Rate limiter
-      await vi.advanceTimersByTimeAsync(100); // Rate limiter for ancestor fetch
+      await vi.advanceTimersByTimeAsync(1000); // Rate limiter for ancestor fetch
 
       const result = await promise;
 
@@ -581,8 +641,7 @@ describe("api client", () => {
       // Advance through rate limiter and retry
       await vi.advanceTimersByTimeAsync(0); // Rate limiter initial
       await vi.advanceTimersByTimeAsync(1000); // First retry backoff
-      await vi.advanceTimersByTimeAsync(100); // Rate limiter for retry
-      await vi.advanceTimersByTimeAsync(100); // Rate limiter for ancestor fetch
+      await vi.advanceTimersByTimeAsync(1000); // Rate limiter for ancestor fetch
 
       const result = await promise;
 
