@@ -93,6 +93,7 @@ interface INaturalistTaxon {
   ancestry?: string;
   ancestor_ids?: number[];
   ancestors?: INaturalistTaxon[];
+  iconic_taxon_name?: string;
   wikipedia_url?: string;
   default_photo?: {
     medium_url?: string;
@@ -101,6 +102,16 @@ interface INaturalistTaxon {
 
 interface INaturalistResponse {
   results: INaturalistTaxon[];
+}
+
+interface INaturalistSearchResult<TRecord> {
+  type?: string;
+  score?: number;
+  record?: TRecord;
+}
+
+interface INaturalistSearchResponse {
+  results: Array<INaturalistSearchResult<INaturalistTaxon>>;
 }
 
 /**
@@ -195,49 +206,88 @@ class INaturalistAPIClient implements BiologicalAPIClient {
 
     const normalizedQuery = trimmedQuery.toLowerCase();
 
-    // Metazoa (animals) taxon ID is 1 in iNaturalist
-    // Using taxon_id=1 filters for all descendants of Metazoa (animals only)
-    // Using is_active=true filters for only active animals
-    // Order by observations_count to get most popular animals first
-    // Also filter by rank to get species/subspecies level results
-    // NOTE: Not including ancestors here - taxonomy will be fetched when animal is selected
-    const url = `${INATURALIST_BASE_URL}/taxa?q=${encodeURIComponent(trimmedQuery)}&taxon_id=1&is_active=true&rank=species,subspecies&per_page=${limit}&order_by=observations_count&order=desc`;
+    // Use iNaturalist's relevance-ranked search endpoint.
+    // Unlike /taxa, /search ranks by textual match score (better for "Tiger" → Panthera tigris).
+    // Caveat: /search doesn't support the same filters (rank/taxon_id) we used before, so we
+    // post-filter results client-side to keep only Animalia + species/subspecies taxa.
+    const url = `${INATURALIST_BASE_URL}/search?q=${encodeURIComponent(trimmedQuery)}&sources=taxa&per_page=${limit * 3}`;
 
     try {
-      const response = await this.makeRequest<INaturalistResponse>(url);
+      const response = await this.makeRequest<INaturalistSearchResponse>(url);
 
       if (!response.results || response.results.length === 0) {
         return { data: [], error: null };
       }
 
-      // Map and validate all results (without fetching taxonomy for performance)
-      const animals: Animal[] = [];
-      for (const taxon of response.results) {
+      const ANIMALIA_TAXON_ID = 48460;
+      const isAnimaliaDescendant = (taxon: INaturalistTaxon): boolean => {
+        if (taxon.id === ANIMALIA_TAXON_ID) return true;
+        if (Array.isArray(taxon.ancestor_ids) && taxon.ancestor_ids.includes(ANIMALIA_TAXON_ID)) {
+          return true;
+        }
+        if (typeof taxon.ancestry === "string") {
+          const ancestryParts = taxon.ancestry.split("/").map(p => p.trim()).filter(Boolean);
+          return ancestryParts.includes(String(ANIMALIA_TAXON_ID));
+        }
+        return false;
+      };
+
+      const allowedRanks = new Set(["species", "subspecies"]);
+
+      // Map + validate all results (without fetching taxonomy for performance)
+      const candidates: Array<{
+        animal: Animal;
+        score: number;
+        idx: number;
+      }> = [];
+
+      for (let idx = 0; idx < response.results.length; idx++) {
+        const item = response.results[idx];
+        const taxon = item?.record;
+        if (!taxon) continue;
+
+        // Be defensive: only keep taxa results
+        const itemType = (item.type || "").toLowerCase();
+        if (itemType && itemType !== "taxon" && itemType !== "taxa") continue;
+
+        if (!taxon.rank || !allowedRanks.has(taxon.rank)) continue;
+        if (!isAnimaliaDescendant(taxon)) continue;
+
         const mappedAnimal = this.mapToAnimalLightweight(taxon);
         const validation = validateAnimalData(mappedAnimal);
+        if (!validation.valid || !validation.data) continue;
 
-        if (validation.valid && validation.data) {
-          animals.push(validation.data);
-        }
+        candidates.push({
+          animal: validation.data,
+          score: typeof item.score === "number" ? item.score : 0,
+          idx,
+        });
       }
 
-      // Sort results to prioritize common name matches, then scientific name matches
-      // Common name matches come first, then scientific name matches
-      const sortedAnimals = animals.sort((a, b) => {
-        const aCommonMatch = a.name.toLowerCase().includes(normalizedQuery);
-        const bCommonMatch = b.name.toLowerCase().includes(normalizedQuery);
+      // Rerank: keep iNat's relevance score, but strongly boost exact/common-name matches.
+      const boost = (a: Animal): number => {
+        const common = a.name.toLowerCase();
+        const sci = a.scientificName.toLowerCase();
+        const q = normalizedQuery;
 
-        // Prioritize common name matches
-        if (aCommonMatch && !bCommonMatch) return -1;
-        if (!aCommonMatch && bCommonMatch) return 1;
-
-        // If both match common name or both match scientific name, maintain API order (by popularity)
-        // This preserves the observations_count ordering from the API
+        if (common === q) return 100;
+        if (sci === q) return 90;
+        if (common.startsWith(q)) return 50;
+        if (sci.startsWith(q)) return 40;
+        if (common.includes(q)) return 10;
+        if (sci.includes(q)) return 5;
         return 0;
+      };
+
+      candidates.sort((a, b) => {
+        const aBoost = boost(a.animal);
+        const bBoost = boost(b.animal);
+        if (aBoost !== bBoost) return bBoost - aBoost;
+        if (a.score !== b.score) return b.score - a.score;
+        return a.idx - b.idx; // stable fallback
       });
 
-      // Return limited results after sorting
-      return { data: sortedAnimals.slice(0, limit), error: null };
+      return { data: candidates.slice(0, limit).map(c => c.animal), error: null };
     } catch (error) {
       // For search, return empty array on error rather than error response
       // This allows the UI to continue working even if API fails
