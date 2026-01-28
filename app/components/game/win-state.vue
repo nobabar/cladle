@@ -7,8 +7,8 @@ import { useResponsive } from "~/composables/useResponsive";
  * Win/Loss State Component
  *
  * Displays win or loss state with target animal name, completion feedback,
- * and full tree structure. Uses modal on mobile/tablet (< 1024px) and side panel
- * on desktop (>= 1024px).
+ * and full tree structure. Uses custom overlay modal (teleported to body) on mobile/tablet
+ * (< 1024px) and side panel on desktop (>= 1024px).
  */
 
 const gameStore = useGameStore();
@@ -189,125 +189,134 @@ onUnmounted(() => {
     {{ screenReaderAnnouncement }}
   </div>
 
-  <!-- Mobile Modal (< 1024px) -->
-  <UModal
-    v-if="isModalOpen"
-    :model-value="isModalOpen"
-    :ui="{
-      width: 'w-full max-w-2xl',
-      padding: 'p-4 sm:p-5 md:p-6',
-    }"
-    :prevent-close="true"
-  >
-    <div
-      ref="focusTrapRef"
-      role="dialog"
-      aria-labelledby="win-state-title"
-      aria-describedby="win-state-description"
-      class="win-state"
+  <!-- Mobile Modal (< 1024px) - Overlay modal for small devices -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition-opacity duration-300"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-opacity duration-300"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
     >
-      <!-- Win State -->
-      <div v-if="isWon" class="win-state__content win-state__content--win">
-        <div class="win-state__header">
-          <h2
-            id="win-state-title"
-            class="win-state__title"
-          >
-            🎉 You Won!
-          </h2>
-          <p
-            id="win-state-description"
-            class="win-state__message"
-          >
-            {{ winMessage }}
-          </p>
-          <p
-            v-if="targetAnimal"
-            class="win-state__target"
-          >
-            Target: <strong>{{ targetAnimal.name }}</strong>
-            <span
-              v-if="targetAnimal.scientificName"
-              class="win-state__scientific-name"
-            >
-              ({{ targetAnimal.scientificName }})
-            </span>
-          </p>
-          <p class="win-state__stats">
-            Completed in {{ guessCount }} {{ guessCount === 1 ? "guess" : "guesses" }}
-            out of {{ maxGuesses }}.
-          </p>
-        </div>
+      <div
+        v-if="isModalOpen"
+        class="win-state-modal-overlay"
+        @click.self.prevent
+      >
+        <div
+          ref="focusTrapRef"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="win-state-title"
+          aria-describedby="win-state-description"
+          class="win-state-modal"
+          @click.stop
+        >
+          <!-- Win State -->
+          <div v-if="isWon" class="win-state__content win-state__content--win">
+            <div class="win-state__header">
+              <h2
+                id="win-state-title"
+                class="win-state__title"
+              >
+                🎉 You Won!
+              </h2>
+              <p
+                id="win-state-description"
+                class="win-state__message"
+              >
+                {{ winMessage }}
+              </p>
+              <p
+                v-if="targetAnimal"
+                class="win-state__target"
+              >
+                Target: <strong>{{ targetAnimal.name }}</strong>
+                <span
+                  v-if="targetAnimal.scientificName"
+                  class="win-state__scientific-name"
+                >
+                  ({{ targetAnimal.scientificName }})
+                </span>
+              </p>
+              <p class="win-state__stats">
+                Completed in {{ guessCount }} {{ guessCount === 1 ? "guess" : "guesses" }}
+                out of {{ maxGuesses }}.
+              </p>
+            </div>
 
-        <!-- Full Tree Visualization -->
-        <div class="win-state__tree">
-          <h3 class="win-state__tree-title">
-            Complete Phylogenetic Tree
-          </h3>
-          <div class="win-state__tree-container">
-            <GameTreeVisualization
-              :tree-data="treeData"
-              :show-target="true"
-              :width="800"
-              :height="400"
-            />
+            <!-- Full Tree Visualization -->
+            <div class="win-state__tree">
+              <h3 class="win-state__tree-title">
+                Complete Phylogenetic Tree
+              </h3>
+              <div class="win-state__tree-container">
+                <GameTreeVisualization
+                  :tree-data="treeData"
+                  :show-target="true"
+                  :width="800"
+                  :height="400"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Loss State -->
+          <div v-else-if="isLost" class="win-state__content win-state__content--loss">
+            <div class="win-state__header">
+              <h2
+                id="win-state-title"
+                class="win-state__title"
+              >
+                Game Over
+              </h2>
+              <p
+                id="win-state-description"
+                class="win-state__message"
+              >
+                {{ lossMessage }}
+              </p>
+              <p
+                v-if="targetAnimal"
+                class="win-state__target"
+              >
+                Target: <strong>{{ targetAnimal.name }}</strong>
+                <span
+                  v-if="targetAnimal.scientificName"
+                  class="win-state__scientific-name"
+                >
+                  ({{ targetAnimal.scientificName }})
+                </span>
+              </p>
+              <p class="win-state__stats">
+                You used all {{ maxGuesses }} guesses. Keep learning and try again!
+              </p>
+            </div>
+
+            <!-- Full Tree Visualization -->
+            <div class="win-state__tree">
+              <h3 class="win-state__tree-title">
+                Complete Phylogenetic Tree
+              </h3>
+              <div class="win-state__tree-container">
+                <GameTreeVisualization
+                  :tree-data="treeData"
+                  :show-target="true"
+                  :width="800"
+                  :height="400"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      <!-- Loss State -->
-      <div v-else-if="isLost" class="win-state__content win-state__content--loss">
-        <div class="win-state__header">
-          <h2
-            id="win-state-title"
-            class="win-state__title"
-          >
-            Game Over
-          </h2>
-          <p
-            id="win-state-description"
-            class="win-state__message"
-          >
-            {{ lossMessage }}
-          </p>
-          <p
-            v-if="targetAnimal"
-            class="win-state__target"
-          >
-            Target: <strong>{{ targetAnimal.name }}</strong>
-            <span
-              v-if="targetAnimal.scientificName"
-              class="win-state__scientific-name"
-            >
-              ({{ targetAnimal.scientificName }})
-            </span>
-          </p>
-          <p class="win-state__stats">
-            You used all {{ maxGuesses }} guesses. Keep learning and try again!
-          </p>
-        </div>
-
-        <!-- Full Tree Visualization -->
-        <div class="win-state__tree">
-          <h3 class="win-state__tree-title">
-            Complete Phylogenetic Tree
-          </h3>
-          <div class="win-state__tree-container">
-            <GameTreeVisualization
-              :tree-data="treeData"
-              :show-target="true"
-              :width="800"
-              :height="400"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  </UModal>
+    </Transition>
+  </Teleport>
 
   <!-- Desktop Side Panel (>= 1024px) -->
   <div
-    v-else-if="isPanelOpen"
+    v-if="isPanelOpen"
     ref="focusTrapRef"
     role="complementary"
     aria-labelledby="win-state-title"
@@ -436,6 +445,10 @@ onUnmounted(() => {
   gap: 1.5rem;
   min-height: 0;
   flex: 1;
+}
+
+/* Add top margin only for desktop panel, not modal */
+.win-state-panel .win-state__content {
   margin-top: 2rem;
 }
 
@@ -633,9 +646,56 @@ onUnmounted(() => {
   }
 }
 
+/* Mobile Modal Overlay (< 1024px) */
+.win-state-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.win-state-modal {
+  background: var(--color-paper, #FDFBF5);
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  max-width: 42rem; /* max-w-2xl */
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 1rem;
+  position: relative;
+  margin: auto;
+}
+
+.dark .win-state-modal {
+  background: var(--color-paper, #1e293b);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+}
+
+@media (min-width: 640px) {
+  .win-state-modal {
+    padding: 1.25rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .win-state-modal {
+    padding: 1.5rem;
+  }
+}
+
 /* Focus styles for accessibility */
 .win-state:focus,
-.win-state-panel:focus {
+.win-state-panel:focus,
+.win-state-modal:focus {
   outline: 2px solid var(--color-focus-ring, #6b7f8e);
   outline-offset: 2px;
 }

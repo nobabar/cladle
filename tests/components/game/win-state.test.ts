@@ -14,17 +14,6 @@ import { createPinia, setActivePinia } from "pinia";
 import type { Animal } from "~/types/animal";
 import type { TreeData, TreeNode } from "~/types/tree";
 
-// Stub UModal component from Nuxt UI
-const UModalStub = {
-  name: "UModal",
-  template: `
-    <div v-if="modelValue" class="u-modal-stub">
-      <slot />
-    </div>
-  `,
-  props: ["modelValue"],
-};
-
 // Stub GameTreeVisualization component
 const GameTreeVisualizationStub = {
   name: "GameTreeVisualization",
@@ -43,7 +32,8 @@ function mountWithStubs(component: any, options: any = {}) {
     global: {
       ...options.global,
       stubs: {
-        UModal: UModalStub,
+        // Render teleported content in-place for predictable DOM assertions
+        Teleport: true,
         GameTreeVisualization: GameTreeVisualizationStub,
         ...options.global?.stubs,
       },
@@ -124,7 +114,7 @@ describe("winState Component", () => {
 
       const wrapper = mountWithStubs(WinState);
 
-      expect(wrapper.find(".win-state").exists()).toBe(false);
+      expect(wrapper.find(".win-state-modal-overlay").exists()).toBe(false);
       expect(wrapper.find(".win-state-panel").exists()).toBe(false);
     });
 
@@ -269,9 +259,9 @@ describe("winState Component", () => {
       const wrapper = mountWithStubs(WinState);
       await nextTick();
 
-      // Check for UModal (Nuxt UI modal component)
-      // The modal should be rendered when isMobile is true
-      expect(wrapper.find(".win-state").exists()).toBe(true);
+      // Modal overlay should be rendered when isMobileOrTablet is true
+      expect(wrapper.find(".win-state-modal-overlay").exists()).toBe(true);
+      expect(wrapper.find(".win-state-modal").exists()).toBe(true);
     });
 
     it("should show side panel on desktop (>= 1024px)", async () => {
