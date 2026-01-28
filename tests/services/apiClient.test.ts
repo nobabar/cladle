@@ -257,6 +257,127 @@ describe("api client", () => {
     });
   });
 
+  describe("searchAnimals", () => {
+    it("should surface Panthera tigris for query 'Tiger' even when insects are present", async () => {
+      // Arrange
+      /* eslint-disable camelcase */
+      const mockSearchResponse = {
+        results: [
+          {
+            type: "Taxon",
+            score: 50,
+            record: {
+              id: 123,
+              name: "Papilio glaucus",
+              preferred_common_name: "Eastern Tiger Swallowtail",
+              rank: "species",
+              ancestry: "48460/47158/211194/47224",
+              ancestor_ids: [48460, 47158, 211194, 47224],
+            },
+          },
+          {
+            type: "Taxon",
+            score: 10,
+            record: {
+              id: 947378,
+              name: "Panthera tigris",
+              preferred_common_name: "Tiger",
+              rank: "species",
+              ancestry: "48460/1/2/355675/40151/41066/41067/947378",
+              ancestor_ids: [48460, 1, 2, 355675, 40151, 41066, 41067, 947378],
+              wikipedia_url: "https://en.wikipedia.org/wiki/Tiger",
+              default_photo: { medium_url: "https://example.com/tiger.jpg" },
+            },
+          },
+        ],
+      };
+      /* eslint-enable camelcase */
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSearchResponse,
+      } as Response);
+
+      // Act
+      const promise = client.searchAnimals("Tiger", 10);
+      await vi.runAllTimersAsync(); // Process rate limiter queue
+      const result = await promise;
+
+      // Assert
+      expect(result.error).toBeNull();
+      expect(result.data).not.toBeNull();
+      expect(result.data?.length).toBeGreaterThan(0);
+      expect(result.data?.[0]?.name).toBe("Tiger");
+      expect(result.data?.[0]?.scientificName).toBe("Panthera tigris");
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("https://api.inaturalist.org/v1/search?q=Tiger"),
+        expect.any(Object),
+      );
+    });
+
+    it("should filter out non-animal taxa and non-species ranks", async () => {
+      // Arrange
+      /* eslint-disable camelcase */
+      const mockSearchResponse = {
+        results: [
+          {
+            type: "Taxon",
+            score: 100,
+            record: {
+              id: 999,
+              name: "Tiger lily",
+              preferred_common_name: "Tiger lily",
+              rank: "species",
+              ancestry: "47126/47125", // Plantae-ish, does NOT include Animalia (48460)
+              ancestor_ids: [47126, 47125],
+            },
+          },
+          {
+            type: "Taxon",
+            score: 80,
+            record: {
+              id: 41066,
+              name: "Panthera",
+              preferred_common_name: "Panthers",
+              rank: "genus", // Should be excluded (not species/subspecies)
+              ancestry: "48460/1/2/355675/40151/41066",
+              ancestor_ids: [48460, 1, 2, 355675, 40151, 41066],
+            },
+          },
+          {
+            type: "Taxon",
+            score: 10,
+            record: {
+              id: 947378,
+              name: "Panthera tigris",
+              preferred_common_name: "Tiger",
+              rank: "species",
+              ancestry: "48460/1/2/355675/40151/41066/41067/947378",
+              ancestor_ids: [48460, 1, 2, 355675, 40151, 41066, 41067, 947378],
+            },
+          },
+        ],
+      };
+      /* eslint-enable camelcase */
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSearchResponse,
+      } as Response);
+
+      // Act
+      const promise = client.searchAnimals("Tiger", 10);
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      // Assert
+      expect(result.error).toBeNull();
+      expect(result.data?.map(a => a.scientificName)).toEqual(["Panthera tigris"]);
+    });
+  });
+
   describe("rate limiting", () => {
     it("should throttle rapid requests", async () => {
       // Arrange
