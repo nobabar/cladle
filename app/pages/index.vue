@@ -101,6 +101,18 @@ function handleInput(_value: string) {
 }
 
 /**
+ * Handle node click events from tree visualization
+ * This will be used to display information panels in future stories (5.2-5.5)
+ * @param node - The tree node that was clicked
+ */
+function handleNodeClick(node: import("~/types/tree").TreeNode) {
+  // For now, just log the click - information panel will be implemented in Story 5.2
+  // This ensures node click events are properly received by parent component
+  // Panel state management will be handled in Story 5.5
+  console.warn("Node clicked:", node.id, node.name, node.type);
+}
+
+/**
  * Start a new game with a target animal
  * For now, uses a default animal (Panthera tigris) - can be enhanced later with random selection
  */
@@ -326,6 +338,7 @@ onMounted(() => {
               :tree-data="treeData"
               :show-target="false"
               class="w-full h-full"
+              @nodeClick="handleNodeClick"
             />
           </div>
           <!-- Progressive disclosure: Show interaction hint when tree has data -->

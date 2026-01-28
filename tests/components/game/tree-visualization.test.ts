@@ -367,8 +367,8 @@ describe("treeVisualization", () => {
       // Wait for Rough.js rendering to complete
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Nodes are now rendered as groups with role='treeitem'
-      const nodes = wrapper.findAll("g[role='treeitem']");
+      // Nodes are now rendered as groups with role='button' (clickable)
+      const nodes = wrapper.findAll("g[role='button']");
       expect(nodes.length).toBeGreaterThan(0);
 
       nodes.forEach((node) => {
@@ -500,7 +500,7 @@ describe("treeVisualization", () => {
       expect((wrapper.vm as any).focusedNodeId).toBeNull();
     });
 
-    it("handles Enter key to activate node", async () => {
+    it("handles Enter key to activate node and emit nodeClick event", async () => {
       const treeData = createSimpleTreeData();
       const wrapper = mountWithStubs(TreeVisualization, {
         props: {
@@ -520,11 +520,43 @@ describe("treeVisualization", () => {
 
       // Focus should remain (node activated)
       expect((wrapper.vm as any).focusedNodeId).toBe(focusedBefore);
+
+      // Verify nodeClick event was emitted
+      const emitted = wrapper.emitted("nodeClick");
+      expect(emitted).toBeTruthy();
+      expect(emitted!.length).toBeGreaterThan(0);
+    });
+
+    it("handles Space key to activate node and emit nodeClick event", async () => {
+      const treeData = createSimpleTreeData();
+      const wrapper = mountWithStubs(TreeVisualization, {
+        props: {
+          treeData,
+        },
+      });
+
+      await nextTick();
+
+      const container = wrapper.find(".tree-visualization");
+      await container.trigger("keydown", { key: "ArrowDown" });
+      await nextTick();
+
+      const focusedBefore = (wrapper.vm as any).focusedNodeId;
+      await container.trigger("keydown", { key: " " });
+      await nextTick();
+
+      // Focus should remain (node activated)
+      expect((wrapper.vm as any).focusedNodeId).toBe(focusedBefore);
+
+      // Verify nodeClick event was emitted
+      const emitted = wrapper.emitted("nodeClick");
+      expect(emitted).toBeTruthy();
+      expect(emitted!.length).toBeGreaterThan(0);
     });
   });
 
   describe("node Interactions", () => {
-    it("handles node click", async () => {
+    it("handles node click and emits nodeClick event", async () => {
       const treeData = createSimpleTreeData();
       const wrapper = mountWithStubs(TreeVisualization, {
         props: {
@@ -536,13 +568,82 @@ describe("treeVisualization", () => {
       // Wait for Rough.js rendering to complete
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Nodes are now rendered as groups with role='treeitem'
-      const nodes = wrapper.findAll("g[role='treeitem']");
+      // Nodes are now rendered as groups with role='button' (clickable)
+      const nodes = wrapper.findAll("g[role='button']");
+      expect(nodes.length).toBeGreaterThan(0);
+
       if (nodes.length > 0) {
         await nodes[0]!.trigger("click");
         await nextTick();
 
+        // Verify focus is set
         expect((wrapper.vm as any).focusedNodeId).toBeTruthy();
+
+        // Verify nodeClick event was emitted
+        const emitted = wrapper.emitted("nodeClick");
+        expect(emitted).toBeTruthy();
+        expect(emitted!.length).toBeGreaterThan(0);
+        expect(emitted![0]![0]).toHaveProperty("id");
+        expect(emitted![0]![0]).toHaveProperty("name");
+        expect(emitted![0]![0]).toHaveProperty("type");
+      }
+    });
+
+    it("emits nodeClick event with correct node data for animal nodes", async () => {
+      const treeData = createSimpleTreeData();
+      const wrapper = mountWithStubs(TreeVisualization, {
+        props: {
+          treeData,
+        },
+      });
+
+      await nextTick();
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const nodes = wrapper.findAll("g[role='button']");
+      const animalNode = nodes.find((node) => {
+        const ariaLabel = node.attributes("aria-label");
+        return ariaLabel && ariaLabel.includes("Animal");
+      });
+
+      if (animalNode) {
+        await animalNode.trigger("click");
+        await nextTick();
+
+        const emitted = wrapper.emitted("nodeClick");
+        expect(emitted).toBeTruthy();
+        const clickedNode = emitted![0]![0] as TreeNode;
+        expect(clickedNode.type).toBe("animal");
+        expect(clickedNode.data).toBeDefined();
+      }
+    });
+
+    it("emits nodeClick event with correct node data for clade nodes", async () => {
+      const treeData = createSimpleTreeData();
+      const wrapper = mountWithStubs(TreeVisualization, {
+        props: {
+          treeData,
+        },
+      });
+
+      await nextTick();
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const nodes = wrapper.findAll("g[role='button']");
+      const cladeNode = nodes.find((node) => {
+        const ariaLabel = node.attributes("aria-label");
+        return ariaLabel && ariaLabel.includes("Clade");
+      });
+
+      if (cladeNode) {
+        await cladeNode.trigger("click");
+        await nextTick();
+
+        const emitted = wrapper.emitted("nodeClick");
+        expect(emitted).toBeTruthy();
+        const clickedNode = emitted![0]![0] as TreeNode;
+        expect(clickedNode.type).toBe("clade");
+        expect(clickedNode.cladeData).toBeDefined();
       }
     });
 
@@ -555,14 +656,65 @@ describe("treeVisualization", () => {
       });
 
       await nextTick();
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      const nodes = wrapper.findAll("rect[role='treeitem']");
+      const nodes = wrapper.findAll("g[role='button']");
       if (nodes.length > 0) {
-        await nodes[0]!.trigger("focus");
+        // Trigger focus event on the node group
+        const nodeGroup = nodes[0]!;
+        const nodeId = nodeGroup.attributes("data-node-id");
+
+        // Simulate focus event by dispatching focus event
+        const focusEvent = new FocusEvent("focus", { bubbles: true });
+        nodeGroup.element.dispatchEvent(focusEvent);
         await nextTick();
 
-        expect((wrapper.vm as any).focusedNodeId).toBeTruthy();
+        // Verify focus was set (may require additional nextTick for reactive updates)
+        await nextTick();
+        const focusedNodeId = (wrapper.vm as any).focusedNodeId;
+        // Focus should be set to the node ID
+        expect(focusedNodeId).toBe(nodeId);
       }
+    });
+
+    it("ensures touch targets meet minimum 44x44px requirement", async () => {
+      const treeData = createSimpleTreeData();
+      const wrapper = mountWithStubs(TreeVisualization, {
+        props: {
+          treeData,
+        },
+      });
+
+      await nextTick();
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Find hit area rectangles (transparent rectangles with cursor pointer)
+      // These are the actual clickable areas for nodes
+      // Hit areas are children of node groups and have cursor="pointer"
+      const nodeGroups = wrapper.findAll("g[role='button']");
+      expect(nodeGroups.length).toBeGreaterThan(0);
+
+      // Check that each node group has a hit area rectangle
+      nodeGroups.forEach((nodeGroup) => {
+        const hitArea = nodeGroup.find("rect[cursor='pointer']");
+        if (hitArea.exists()) {
+          const width = Number.parseFloat(hitArea.attributes("width") || "0");
+          const height = Number.parseFloat(hitArea.attributes("height") || "0");
+
+          // Touch targets should be at least 44x44px (nodes are minimum 60x60px)
+          expect(width).toBeGreaterThanOrEqual(44);
+          expect(height).toBeGreaterThanOrEqual(44);
+        }
+      });
+
+      // Verify at least one hit area meets the requirement
+      const hitAreas = wrapper.findAll("rect[cursor='pointer']");
+      const validHitAreas = hitAreas.filter((hitArea) => {
+        const width = Number.parseFloat(hitArea.attributes("width") || "0");
+        const height = Number.parseFloat(hitArea.attributes("height") || "0");
+        return width >= 44 && height >= 44;
+      });
+      expect(validHitAreas.length).toBeGreaterThan(0);
     });
   });
 

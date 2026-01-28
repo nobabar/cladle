@@ -30,6 +30,13 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 /**
+ * Emits
+ */
+const emit = defineEmits<{
+  nodeClick: [node: TreeNode];
+}>();
+
+/**
  * Layout Configuration
  */
 const layoutConfig: TreeLayoutConfig = {
@@ -437,7 +444,7 @@ function renderTreeWithRough(): void {
           nodeGroup.setAttribute("data-node-id", node.id);
           nodeGroup.setAttribute("aria-label", getNodeAriaLabel(node));
           nodeGroup.setAttribute("aria-selected", focusedNodeId.value === node.id ? "true" : "false");
-          nodeGroup.setAttribute("role", "treeitem");
+          nodeGroup.setAttribute("role", "button");
           // Set tabindex: focused node gets "0", first node gets "0" if none focused, others get "-1"
           const isFirstNode = Array.from(computedNodes.value.values()).indexOf(node) === 0;
           const shouldBeFocusable = focusedNodeId.value === node.id
@@ -616,17 +623,18 @@ function getNodeAriaLabel(node: TreeNode): string {
 
 /**
  * Handle node click
- * @param node
+ * @param node - The tree node that was clicked
  */
 function handleNodeClick(node: TreeNode): void {
   focusedNodeId.value = node.id;
   updateNodeTabIndices();
-  // Emit event for future interactivity (Story 4.1)
+  // Emit node click event for parent component to handle information display
+  emit("nodeClick", node);
 }
 
 /**
  * Handle keyboard navigation
- * @param event
+ * @param event - The keyboard event
  */
 function handleKeyDown(event: KeyboardEvent): void {
   if (!hasTreeData.value || !props.treeData) {
