@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import type { Animal } from "~/types/animal";
+import type { TreeNode } from "~/types/tree";
 import type { ValidationError } from "~/utils/animalValidator";
 import { useGameStore } from "~/stores/gameStore";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
@@ -101,15 +102,28 @@ function handleInput(_value: string) {
 }
 
 /**
+ * Information panel state
+ */
+const isInformationPanelOpen = ref(false);
+const selectedNode = ref<TreeNode | null>(null);
+
+/**
  * Handle node click events from tree visualization
- * This will be used to display information panels in future stories (5.2-5.5)
+ * Opens the information panel with the clicked node's data
  * @param node - The tree node that was clicked
  */
-function handleNodeClick(node: import("~/types/tree").TreeNode) {
-  // For now, just log the click - information panel will be implemented in Story 5.2
-  // This ensures node click events are properly received by parent component
-  // Panel state management will be handled in Story 5.5
-  console.warn("Node clicked:", node.id, node.name, node.type);
+function handleNodeClick(node: TreeNode) {
+  selectedNode.value = node;
+  isInformationPanelOpen.value = true;
+}
+
+/**
+ * Handle information panel close
+ */
+function handleInformationPanelClose() {
+  isInformationPanelOpen.value = false;
+  // Keep selectedNode for potential future use (e.g., animations)
+  // Will be cleared when a new node is selected
 }
 
 /**
@@ -391,6 +405,14 @@ onMounted(() => {
 
       <!-- Win/Loss State Component - positioned relative to notebook-sheet -->
       <GameWinState />
+
+      <!-- Information Panel Component - positioned relative to notebook-sheet -->
+      <GameInformationPanelPostit
+        :is-open="isInformationPanelOpen"
+        :node-data="selectedNode"
+        @close="handleInformationPanelClose"
+        @update:is-open="isInformationPanelOpen = $event"
+      />
     </div>
   </div>
 </template>
