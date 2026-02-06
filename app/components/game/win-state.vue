@@ -315,113 +315,122 @@ onUnmounted(() => {
   </Teleport>
 
   <!-- Desktop Side Panel (>= 1024px) -->
-  <div
-    v-if="isPanelOpen"
-    ref="focusTrapRef"
-    role="complementary"
-    aria-labelledby="win-state-title"
-    aria-describedby="win-state-description"
-    aria-label="Game result panel"
-    class="win-state-panel"
-    tabindex="-1"
+  <Transition
+    enter-active-class="win-state-panel-enter-active"
+    enter-from-class="win-state-panel-enter-from"
+    enter-to-class="win-state-panel-enter-to"
+    leave-active-class="win-state-panel-leave-active"
+    leave-from-class="win-state-panel-leave-from"
+    leave-to-class="win-state-panel-leave-to"
   >
-    <!-- Win State -->
-    <div v-if="isWon" class="win-state__content win-state__content--win">
-      <div class="win-state__header">
-        <h2
-          id="win-state-title"
-          class="win-state__title"
-        >
-          🎉 You Won!
-        </h2>
-        <p
-          id="win-state-description"
-          class="win-state__message"
-        >
-          {{ winMessage }}
-        </p>
-        <p
-          v-if="targetAnimal"
-          class="win-state__target"
-        >
-          Target: <strong>{{ targetAnimal.name }}</strong>
-          <span
-            v-if="targetAnimal.scientificName"
-            class="win-state__scientific-name"
+    <div
+      v-if="isPanelOpen"
+      ref="focusTrapRef"
+      role="complementary"
+      aria-labelledby="win-state-title"
+      aria-describedby="win-state-description"
+      aria-label="Game result panel"
+      class="win-state-panel"
+      tabindex="-1"
+    >
+      <!-- Win State -->
+      <div v-if="isWon" class="win-state__content win-state__content--win">
+        <div class="win-state__header">
+          <h2
+            id="win-state-title"
+            class="win-state__title"
           >
-            ({{ targetAnimal.scientificName }})
-          </span>
-        </p>
-        <p class="win-state__stats">
-          Completed in {{ guessCount }} {{ guessCount === 1 ? "guess" : "guesses" }}
-          out of {{ maxGuesses }}.
-        </p>
+            🎉 You Won!
+          </h2>
+          <p
+            id="win-state-description"
+            class="win-state__message"
+          >
+            {{ winMessage }}
+          </p>
+          <p
+            v-if="targetAnimal"
+            class="win-state__target"
+          >
+            Target: <strong>{{ targetAnimal.name }}</strong>
+            <span
+              v-if="targetAnimal.scientificName"
+              class="win-state__scientific-name"
+            >
+              ({{ targetAnimal.scientificName }})
+            </span>
+          </p>
+          <p class="win-state__stats">
+            Completed in {{ guessCount }} {{ guessCount === 1 ? "guess" : "guesses" }}
+            out of {{ maxGuesses }}.
+          </p>
+        </div>
+
+        <!-- Full Tree Visualization -->
+        <div class="win-state__tree">
+          <h3 class="win-state__tree-title">
+            Complete Phylogenetic Tree
+          </h3>
+          <div class="win-state__tree-container">
+            <GameTreeVisualization
+              :tree-data="treeData"
+              :show-target="true"
+              :width="380"
+              :height="600"
+            />
+          </div>
+        </div>
       </div>
 
-      <!-- Full Tree Visualization -->
-      <div class="win-state__tree">
-        <h3 class="win-state__tree-title">
-          Complete Phylogenetic Tree
-        </h3>
-        <div class="win-state__tree-container">
-          <GameTreeVisualization
-            :tree-data="treeData"
-            :show-target="true"
-            :width="380"
-            :height="600"
-          />
+      <!-- Loss State -->
+      <div v-else-if="isLost" class="win-state__content win-state__content--loss">
+        <div class="win-state__header">
+          <h2
+            id="win-state-title"
+            class="win-state__title"
+          >
+            Game Over
+          </h2>
+          <p
+            id="win-state-description"
+            class="win-state__message"
+          >
+            {{ lossMessage }}
+          </p>
+          <p
+            v-if="targetAnimal"
+            class="win-state__target"
+          >
+            Target: <strong>{{ targetAnimal.name }}</strong>
+            <span
+              v-if="targetAnimal.scientificName"
+              class="win-state__scientific-name"
+            >
+              ({{ targetAnimal.scientificName }})
+            </span>
+          </p>
+          <p class="win-state__stats">
+            You used all {{ maxGuesses }} guesses. Keep learning and try again!
+          </p>
+        </div>
+
+        <!-- Full Tree Visualization -->
+        <div class="win-state__tree">
+          <h3 class="win-state__tree-title">
+            Complete Phylogenetic Tree
+          </h3>
+          <div class="win-state__tree-container">
+            <GameTreeVisualization
+              :tree-data="treeData"
+              :show-target="true"
+              :width="380"
+              :height="600"
+            />
+          </div>
         </div>
       </div>
     </div>
-
-    <!-- Loss State -->
-    <div v-else-if="isLost" class="win-state__content win-state__content--loss">
-      <div class="win-state__header">
-        <h2
-          id="win-state-title"
-          class="win-state__title"
-        >
-          Game Over
-        </h2>
-        <p
-          id="win-state-description"
-          class="win-state__message"
-        >
-          {{ lossMessage }}
-        </p>
-        <p
-          v-if="targetAnimal"
-          class="win-state__target"
-        >
-          Target: <strong>{{ targetAnimal.name }}</strong>
-          <span
-            v-if="targetAnimal.scientificName"
-            class="win-state__scientific-name"
-          >
-            ({{ targetAnimal.scientificName }})
-          </span>
-        </p>
-        <p class="win-state__stats">
-          You used all {{ maxGuesses }} guesses. Keep learning and try again!
-        </p>
-      </div>
-
-      <!-- Full Tree Visualization -->
-      <div class="win-state__tree">
-        <h3 class="win-state__tree-title">
-          Complete Phylogenetic Tree
-        </h3>
-        <div class="win-state__tree-container">
-          <GameTreeVisualization
-            :tree-data="treeData"
-            :show-target="true"
-            :width="380"
-            :height="600"
-          />
-        </div>
-      </div>
-    </div>
-  </div>
+  </Transition>
 </template>
 
 <style scoped>
@@ -583,6 +592,31 @@ onUnmounted(() => {
   box-sizing: border-box;
   /* Remove internal scroll - content extends naturally and scrolls with page */
   overflow: visible;
+}
+
+/* Slide animation for side panel */
+.win-state-panel-enter-active {
+  transition: transform 0.3s ease-out;
+}
+
+.win-state-panel-enter-from {
+  transform: translateX(100%);
+}
+
+.win-state-panel-enter-to {
+  transform: translateX(0);
+}
+
+.win-state-panel-leave-active {
+  transition: transform 0.3s ease-in;
+}
+
+.win-state-panel-leave-from {
+  transform: translateX(0);
+}
+
+.win-state-panel-leave-to {
+  transform: translateX(100%);
 }
 
 .dark .win-state-panel {
