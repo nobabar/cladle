@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { TreeNode } from "~/types/tree";
+import type { Clade } from "~/types/clade";
+import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 
 /**
  * Information Panel Post-it Component
@@ -34,6 +36,11 @@ const emit = defineEmits<{
 }>();
 
 /**
+ * Container element ref (moves both post-it and image card together)
+ */
+const containerRef = ref<HTMLElement | null>(null);
+
+/**
  * Focus trap element ref
  */
 const focusTrapRef = ref<HTMLElement | null>(null);
@@ -57,6 +64,11 @@ const dragStartX = ref(0);
 const dragStartY = ref(0);
 const dragOffsetX = ref(0);
 const dragOffsetY = ref(0);
+
+/**
+ * Which element is in front: 'postit' or 'image'
+ */
+const frontElement = ref<"postit" | "image">("postit");
 
 /**
  * Handle escape key to close panel
@@ -91,18 +103,58 @@ function handleStickyTabClick(_event: MouseEvent) {
 }
 
 /**
+ * Handle post-it click to bring it to front
+ * @param event - Mouse event
+ */
+function handlePostitClick(event: MouseEvent) {
+  // Don't switch if clicking on sticky tab
+  if ((event.target as HTMLElement).closest(".information-panel-postit__sticky-tab")) {
+    return;
+  }
+  // Don't switch if we just dragged (check if mouse moved significantly)
+  if (hasDragged.value) {
+    // Reset hasDragged for next interaction
+    hasDragged.value = false;
+    return;
+  }
+  // Only switch if post-it is currently behind
+  if (frontElement.value === "image") {
+    event.stopPropagation();
+    frontElement.value = "postit";
+  }
+}
+
+/**
+ * Handle image card click to bring it to front
+ * @param event - Mouse event
+ */
+function handleImageCardClick(event: MouseEvent) {
+  // Don't switch if we just dragged (check if mouse moved significantly)
+  if (hasDragged.value) {
+    // Reset hasDragged for next interaction
+    hasDragged.value = false;
+    return;
+  }
+  // Only switch if image is currently behind
+  if (frontElement.value === "postit") {
+    event.stopPropagation();
+    frontElement.value = "image";
+  }
+}
+
+/**
  * Handle mouse down on sticky tab to start drag
  * @param event - Mouse event
  */
 function handleStickyTabMouseDown(event: MouseEvent) {
-  if (!focusTrapRef.value) return;
+  if (!containerRef.value) return;
 
   isDragging.value = true;
   hasDragged.value = false;
   dragStartX.value = event.clientX;
   dragStartY.value = event.clientY;
 
-  const rect = focusTrapRef.value.getBoundingClientRect();
+  const rect = containerRef.value.getBoundingClientRect();
   dragOffsetX.value = event.clientX - rect.left;
   dragOffsetY.value = event.clientY - rect.top;
 
@@ -114,7 +166,7 @@ function handleStickyTabMouseDown(event: MouseEvent) {
  * @param event - Mouse event
  */
 function handleMouseMove(event: MouseEvent) {
-  if (!isDragging.value || !focusTrapRef.value) return;
+  if (!isDragging.value || !containerRef.value) return;
 
   const deltaX = event.clientX - dragStartX.value;
   const deltaY = event.clientY - dragStartY.value;
@@ -125,9 +177,9 @@ function handleMouseMove(event: MouseEvent) {
     hasDragged.value = true;
   }
 
-  // Update position
-  focusTrapRef.value.style.transform = `translate(${deltaX}px, ${deltaY}px) rotate(${2 + deltaX * 0.1}deg)`;
-  focusTrapRef.value.style.opacity = String(1 - Math.abs(deltaY) / 200);
+  // Update position of entire container
+  containerRef.value.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+  containerRef.value.style.opacity = String(1 - Math.abs(deltaY) / 200);
 }
 
 /**
@@ -135,7 +187,7 @@ function handleMouseMove(event: MouseEvent) {
  * @param event - Mouse event
  */
 function handleMouseUp(event: MouseEvent) {
-  if (!isDragging.value || !focusTrapRef.value) return;
+  if (!isDragging.value || !containerRef.value) return;
 
   const deltaX = event.clientX - dragStartX.value;
   const deltaY = event.clientY - dragStartY.value;
@@ -146,11 +198,13 @@ function handleMouseUp(event: MouseEvent) {
     closePanel();
   } else {
     // Snap back to original position
-    focusTrapRef.value.style.transform = "";
-    focusTrapRef.value.style.opacity = "";
+    containerRef.value.style.transform = "";
+    containerRef.value.style.opacity = "";
   }
 
   isDragging.value = false;
+  // Reset hasDragged immediately - click handlers will check distance themselves
+  hasDragged.value = false;
 }
 
 /**
@@ -158,7 +212,7 @@ function handleMouseUp(event: MouseEvent) {
  * @param event - Touch event
  */
 function handleStickyTabTouchStart(event: TouchEvent) {
-  if (!focusTrapRef.value || event.touches.length === 0) return;
+  if (!containerRef.value || event.touches.length === 0) return;
 
   const touch = event.touches[0];
   if (!touch) return;
@@ -168,7 +222,7 @@ function handleStickyTabTouchStart(event: TouchEvent) {
   dragStartX.value = touch.clientX;
   dragStartY.value = touch.clientY;
 
-  const rect = focusTrapRef.value.getBoundingClientRect();
+  const rect = containerRef.value.getBoundingClientRect();
   dragOffsetX.value = touch.clientX - rect.left;
   dragOffsetY.value = touch.clientY - rect.top;
 
@@ -180,7 +234,7 @@ function handleStickyTabTouchStart(event: TouchEvent) {
  * @param event - Touch event
  */
 function handleTouchMove(event: TouchEvent) {
-  if (!isDragging.value || !focusTrapRef.value || event.touches.length === 0) return;
+  if (!isDragging.value || !containerRef.value || event.touches.length === 0) return;
 
   const touch = event.touches[0];
   if (!touch) return;
@@ -194,8 +248,8 @@ function handleTouchMove(event: TouchEvent) {
     hasDragged.value = true;
   }
 
-  focusTrapRef.value.style.transform = `translate(${deltaX}px, ${deltaY}px) rotate(${2 + deltaX * 0.1}deg)`;
-  focusTrapRef.value.style.opacity = String(1 - Math.abs(deltaY) / 200);
+  containerRef.value.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+  containerRef.value.style.opacity = String(1 - Math.abs(deltaY) / 200);
 }
 
 /**
@@ -203,7 +257,7 @@ function handleTouchMove(event: TouchEvent) {
  * @param event - Touch event
  */
 function handleTouchEnd(event: TouchEvent) {
-  if (!isDragging.value || !focusTrapRef.value || event.changedTouches.length === 0) return;
+  if (!isDragging.value || !containerRef.value || event.changedTouches.length === 0) return;
 
   const touch = event.changedTouches[0];
   if (!touch) return;
@@ -215,11 +269,15 @@ function handleTouchEnd(event: TouchEvent) {
   if (distance > 100) {
     closePanel();
   } else {
-    focusTrapRef.value.style.transform = "";
-    focusTrapRef.value.style.opacity = "";
+    containerRef.value.style.transform = "";
+    containerRef.value.style.opacity = "";
   }
 
   isDragging.value = false;
+  // Reset hasDragged after a short delay to allow click handlers to check it
+  setTimeout(() => {
+    hasDragged.value = false;
+  }, 10);
 }
 
 /**
@@ -278,6 +336,88 @@ function handleTabKey(event: KeyboardEvent) {
 }
 
 /**
+ * Biological API client
+ */
+const api = useBiologicalAPI();
+
+/**
+ * Clade data state
+ */
+const cladeData = ref<Clade | null>(null);
+const isLoadingClade = ref(false);
+const cladeError = ref<string | null>(null);
+
+/**
+ * Fetch clade information
+ * @param cladeName - Name of the clade to fetch
+ */
+async function fetchCladeInfo(cladeName: string) {
+  isLoadingClade.value = true;
+  cladeError.value = null;
+  cladeData.value = null;
+
+  try {
+    const response = await api.fetchCladeData(cladeName);
+    if (response.error) {
+      cladeError.value = response.error.message || "Failed to load clade information";
+    } else if (response.data) {
+      cladeData.value = response.data;
+    }
+  } catch (err) {
+    cladeError.value = "Failed to load clade information";
+    console.error("Error fetching clade data:", err);
+  } finally {
+    isLoadingClade.value = false;
+  }
+}
+
+/**
+ * Watch for node data changes to refresh clade information
+ */
+watch(
+  () => props.nodeData,
+  (newNodeData) => {
+    // Clear previous data when node changes
+    cladeData.value = null;
+    cladeError.value = null;
+    isLoadingClade.value = false;
+
+    // Fetch clade data if node is a clade
+    if (newNodeData && newNodeData.type === "clade" && props.isOpen) {
+      const cladeName = newNodeData.cladeData?.name || newNodeData.name;
+      if (cladeName) {
+        fetchCladeInfo(cladeName);
+      }
+    }
+  },
+  { immediate: true },
+);
+
+/**
+ * Watch for panel open state to fetch data when panel opens
+ */
+watch(
+  () => props.isOpen,
+  (isOpen) => {
+    if (isOpen && props.nodeData && props.nodeData.type === "clade") {
+      const cladeName = props.nodeData.cladeData?.name || props.nodeData.name;
+      if (cladeName && !cladeData.value) {
+        fetchCladeInfo(cladeName);
+      }
+    }
+  },
+);
+
+/**
+ * Format rank for display (capitalize first letter)
+ */
+const formattedRank = computed(() => {
+  if (!cladeData.value?.rank) return "";
+  const rank = cladeData.value.rank;
+  return rank.charAt(0).toUpperCase() + rank.slice(1);
+});
+
+/**
  * Screen reader announcement for panel open/close
  */
 const screenReaderAnnouncement = computed(() => {
@@ -310,9 +450,10 @@ watch(() => props.isOpen, (newValue) => {
     // Reset drag state and transform when closing
     isDragging.value = false;
     hasDragged.value = false;
-    if (focusTrapRef.value) {
-      focusTrapRef.value.style.transform = "";
-      focusTrapRef.value.style.opacity = "";
+    frontElement.value = "postit"; // Reset to default when closing
+    if (containerRef.value) {
+      containerRef.value.style.transform = "";
+      containerRef.value.style.opacity = "";
     }
     // Restore focus when closing
     if (previousFocusElement) {
@@ -362,7 +503,7 @@ onUnmounted(() => {
     {{ screenReaderAnnouncement }}
   </div>
 
-  <!-- Post-it Note -->
+  <!-- Post-it Note and Image Card Container -->
   <Teleport to="body">
     <Transition
       enter-active-class="postit-enter-active"
@@ -374,59 +515,145 @@ onUnmounted(() => {
     >
       <div
         v-if="isOpen"
-        ref="focusTrapRef"
-        role="complementary"
-        aria-labelledby="postit-panel-title"
-        aria-describedby="postit-panel-description"
-        aria-label="Information post-it"
-        class="information-panel-postit"
-        :class="{ 'information-panel-postit--dragging': isDragging }"
-        tabindex="-1"
+        ref="containerRef"
+        class="information-panel-container"
+        :class="{ 'information-panel-container--dragging': isDragging }"
       >
-        <!-- Sticky Tab (adhesive part) -->
+        <!-- Post-it Note -->
         <div
-          ref="stickyTabRef"
-          class="information-panel-postit__sticky-tab"
-          role="button"
-          tabindex="0"
-          aria-label="Drag to remove post-it or click to close"
-          @mousedown="handleStickyTabMouseDown"
-          @touchstart="handleStickyTabTouchStart"
-          @click="handleStickyTabClick"
-          @keydown.enter="closePanel"
-          @keydown.space.prevent="closePanel"
+          ref="focusTrapRef"
+          role="complementary"
+          aria-labelledby="postit-panel-title"
+          aria-describedby="postit-panel-description"
+          aria-label="Information post-it"
+          class="information-panel-postit"
+          :class="{
+            'information-panel-postit--dragging': isDragging,
+            'information-panel-postit--front': frontElement === 'postit',
+            'information-panel-postit--behind': frontElement === 'image',
+          }"
+          tabindex="-1"
+          @click="handlePostitClick"
         >
-          <div class="information-panel-postit__sticky-tab-texture" />
-        </div>
-
-        <!-- Post-it Header -->
-        <div class="information-panel-postit__header">
-          <h2
-            id="postit-panel-title"
-            class="information-panel-postit__title"
+          <!-- Sticky Tab (adhesive part) -->
+          <div
+            ref="stickyTabRef"
+            class="information-panel-postit__sticky-tab"
+            role="button"
+            tabindex="0"
+            aria-label="Drag to remove post-it or click to close"
+            @mousedown="handleStickyTabMouseDown"
+            @touchstart="handleStickyTabTouchStart"
+            @click="handleStickyTabClick"
+            @keydown.enter="closePanel"
+            @keydown.space.prevent="closePanel"
           >
-            {{ nodeData?.name || "Information" }}
-          </h2>
-        </div>
+            <div class="information-panel-postit__sticky-tab-texture" />
+          </div>
 
-        <!-- Post-it Content -->
-        <div
-          id="postit-panel-description"
-          class="information-panel-postit__content"
-        >
-          <p v-if="!nodeData" class="information-panel-postit__empty">
-            No information available.
-          </p>
-          <div v-else>
-            <p class="information-panel-postit__type">
-              Type: <strong>{{ nodeData.type === "animal" ? "Animal" : "Clade" }}</strong>
+          <!-- Post-it Header -->
+          <div class="information-panel-postit__header">
+            <h2
+              id="postit-panel-title"
+              class="information-panel-postit__title"
+            >
+              {{ nodeData?.name || "Information" }}
+            </h2>
+          </div>
+
+          <!-- Post-it Content -->
+          <div
+            id="postit-panel-description"
+            class="information-panel-postit__content"
+          >
+            <p v-if="!nodeData" class="information-panel-postit__empty">
+              No information available.
             </p>
-            <!-- Content will be added in Stories 5.3 and 5.4 -->
-            <p class="information-panel-postit__placeholder">
-              Detailed information will be displayed here in upcoming stories.
-            </p>
+            <!-- Clade Information Display -->
+            <div v-else-if="nodeData.type === 'clade'">
+              <!-- Loading State -->
+              <div v-if="isLoadingClade" class="information-panel-postit__loading">
+                <p>Loading clade information...</p>
+              </div>
+              <!-- Error State -->
+              <div v-else-if="cladeError" class="information-panel-postit__error">
+                <p>{{ cladeError }}</p>
+              </div>
+              <!-- Clade Data Display -->
+              <div v-else-if="cladeData" class="information-panel-postit__clade-info">
+                <!-- Clade Name and Rank -->
+                <div class="information-panel-postit__clade-header">
+                  <h3 class="information-panel-postit__clade-name">
+                    {{ cladeData.name }}
+                  </h3>
+                  <p v-if="formattedRank" class="information-panel-postit__clade-rank">
+                    {{ formattedRank }}
+                  </p>
+                </div>
+
+                <!-- Clade Description -->
+                <div
+                  v-if="cladeData.description"
+                  class="information-panel-postit__clade-description"
+                >
+                  <p>{{ cladeData.description }}</p>
+                </div>
+
+                <!-- No additional data message -->
+                <p v-if="!cladeData.description" class="information-panel-postit__empty">
+                  No additional information available for this clade.
+                </p>
+              </div>
+              <!-- Fallback: No clade data loaded yet -->
+              <div v-else class="information-panel-postit__empty">
+                <p>Loading clade information...</p>
+              </div>
+            </div>
+            <!-- Animal Information (placeholder for Story 5.4) -->
+            <div v-else-if="nodeData.type === 'animal'">
+              <p class="information-panel-postit__type">
+                Type: <strong>Animal</strong>
+              </p>
+              <p class="information-panel-postit__placeholder">
+                Detailed animal information will be displayed here in Story 5.4.
+              </p>
+            </div>
           </div>
         </div>
+
+        <!-- Image Card (only for clades with images, positioned behind post-it) -->
+        <Transition
+          enter-active-class="image-card-enter-active"
+          enter-from-class="image-card-enter-from"
+          enter-to-class="image-card-enter-to"
+          leave-active-class="image-card-leave-active"
+          leave-from-class="image-card-leave-from"
+          leave-to-class="image-card-leave-to"
+        >
+          <div
+            v-if="
+              nodeData?.type === 'clade'
+                && cladeData?.imageUrl
+                && !isLoadingClade
+                && !cladeError
+            "
+            class="information-panel-image-card"
+            :class="{
+              'information-panel-image-card--front': frontElement === 'image',
+              'information-panel-image-card--behind': frontElement === 'postit',
+            }"
+            @click="handleImageCardClick"
+          >
+            <div class="information-panel-image-card__content">
+              <img
+                :src="cladeData.imageUrl"
+                :alt="`Image of ${cladeData.name} clade showing representative species`"
+                class="information-panel-image-card__image"
+                loading="lazy"
+              >
+            </div>
+          </div>
+        </Transition>
       </div>
     </Transition>
   </Teleport>
@@ -446,14 +673,27 @@ onUnmounted(() => {
   border-width: 0;
 }
 
-/* Post-it Note Container */
-.information-panel-postit {
+/* Container for post-it and image card */
+.information-panel-container {
   position: fixed;
   bottom: 1rem;
   right: 1rem;
   z-index: 9999;
-  width: 320px;
+  width: 400px;
   max-width: calc(100vw - 2rem);
+  height: fit-content;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.information-panel-container--dragging {
+  transition: none;
+}
+
+/* Post-it Note Container */
+.information-panel-postit {
+  position: relative;
+  width: 320px;
+  max-width: 100%;
   background: linear-gradient(
     135deg,
     #fef9e7 0%,
@@ -469,12 +709,26 @@ onUnmounted(() => {
     0 0 0 1px rgba(0, 0, 0, 0.05),
     0 10px 15px -3px rgba(0, 0, 0, 0.1);
   transform: rotate(2deg);
-  transition: transform 0.2s ease, opacity 0.2s ease;
+  transition: transform 0.2s ease, opacity 0.2s ease, z-index 0.2s ease;
   box-sizing: border-box;
   cursor: default;
+  margin-left: auto;
 }
 
-.information-panel-postit:hover {
+.information-panel-postit--front {
+  z-index: 2;
+}
+
+.information-panel-postit--behind {
+  z-index: 1;
+  cursor: pointer;
+}
+
+.information-panel-postit--behind:hover {
+  transform: rotate(2deg) scale(1.02);
+}
+
+.information-panel-postit--front:hover {
   transform: rotate(1deg) scale(1.02);
 }
 
@@ -487,10 +741,10 @@ onUnmounted(() => {
 .dark .information-panel-postit {
   background: linear-gradient(
     135deg,
-    #5a4530 0%,
-    #6b5238 30%,
-    #7d6245 60%,
-    #8f7252 100%
+    #1e293b 0%,
+    #243141 30%,
+    #2a3849 60%,
+    #304051 100%
   );
   box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.4),
@@ -500,13 +754,13 @@ onUnmounted(() => {
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-/* Sticky Tab (adhesive part) */
+/* Sticky Tab (adhesive part - connects both elements) */
 .information-panel-postit__sticky-tab {
   position: absolute;
-  top: -12px;
-  right: 20px;
-  width: 60px;
-  height: 24px;
+  top: -16px;
+  right: 40px;
+  width: 120px;
+  height: 32px;
   background: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.9) 0%,
@@ -523,7 +777,7 @@ onUnmounted(() => {
     0 -2px 4px rgba(0, 0, 0, 0.1),
     inset 0 1px 2px rgba(255, 255, 255, 0.8);
   transition: all 0.2s ease;
-  z-index: 1;
+  z-index: 10;
 }
 
 .information-panel-postit__sticky-tab:hover {
@@ -552,9 +806,9 @@ onUnmounted(() => {
 .dark .information-panel-postit__sticky-tab {
   background: linear-gradient(
     180deg,
-    rgba(90, 69, 48, 0.95) 0%,
-    rgba(107, 82, 56, 0.85) 50%,
-    rgba(125, 98, 69, 0.75) 100%
+    rgba(30, 41, 59, 0.95) 0%,
+    rgba(36, 49, 65, 0.85) 50%,
+    rgba(42, 56, 73, 0.75) 100%
   );
   border-color: rgba(255, 255, 255, 0.15);
   box-shadow:
@@ -566,9 +820,9 @@ onUnmounted(() => {
 .dark .information-panel-postit__sticky-tab:hover {
   background: linear-gradient(
     180deg,
-    rgba(107, 82, 56, 0.98) 0%,
-    rgba(125, 98, 69, 0.9) 50%,
-    rgba(143, 114, 82, 0.8) 100%
+    rgba(36, 49, 65, 0.98) 0%,
+    rgba(42, 56, 73, 0.9) 50%,
+    rgba(48, 64, 81, 0.8) 100%
   );
   box-shadow:
     0 -2px 6px rgba(0, 0, 0, 0.5),
@@ -685,16 +939,191 @@ onUnmounted(() => {
   color: var(--color-ink-subtle, #9ca3af);
 }
 
+/* Loading State */
+.information-panel-postit__loading {
+  padding: 1rem 0;
+  text-align: center;
+}
+
+.information-panel-postit__loading p {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0;
+  color: var(--color-ink-subtle, #6B7280);
+}
+
+.dark .information-panel-postit__loading p {
+  color: var(--color-ink-subtle, #9ca3af);
+}
+
+/* Error State */
+.information-panel-postit__error {
+  padding: 1rem 0;
+}
+
+.information-panel-postit__error p {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0;
+  color: var(--color-error, #dc2626);
+}
+
+.dark .information-panel-postit__error p {
+  color: var(--color-error, #ef4444);
+}
+
+/* Clade Information */
+.information-panel-postit__clade-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.information-panel-postit__clade-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dark .information-panel-postit__clade-header {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.information-panel-postit__clade-name {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0;
+  color: var(--color-ink, #2C2416);
+}
+
+.dark .information-panel-postit__clade-name {
+  color: var(--color-ink, #f9fafb);
+}
+
+.information-panel-postit__clade-rank {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  margin: 0;
+  color: var(--color-ink-muted, #4B4333);
+  font-style: italic;
+}
+
+.dark .information-panel-postit__clade-rank {
+  color: var(--color-ink-muted, #e5e7eb);
+}
+
+/* Image Card (positioned behind post-it) */
+.information-panel-image-card {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 280px;
+  max-width: 100%;
+  background: var(--color-paper, #FDFBF5);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  transform: rotate(-1deg) translateX(-20px);
+  transition: transform 0.2s ease, opacity 0.2s ease, z-index 0.2s ease;
+  cursor: default;
+}
+
+.information-panel-image-card--front {
+  z-index: 2;
+}
+
+.information-panel-image-card--behind {
+  z-index: 1;
+  cursor: pointer;
+}
+
+.information-panel-image-card--behind:hover {
+  transform: rotate(-0.5deg) translateX(-20px) scale(1.02);
+}
+
+.information-panel-image-card--front:hover {
+  transform: rotate(-0.5deg) translateX(-20px) scale(1.02);
+}
+
+.dark .information-panel-image-card {
+  background: var(--color-paper, #1e293b);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.4),
+    0 2px 4px -1px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.information-panel-image-card__content {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 0.375rem;
+}
+
+.information-panel-image-card__image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  border-radius: 0.375rem;
+}
+
+/* Clade Description */
+.information-panel-postit__clade-description {
+  margin-top: 0.25rem;
+}
+
+.information-panel-postit__clade-description p {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin: 0;
+  color: var(--color-ink, #2C2416);
+  text-align: justify;
+}
+
+.dark .information-panel-postit__clade-description p {
+  color: var(--color-ink, #f9fafb);
+}
+
 /* Responsive Sizing */
 /* Mobile (< 768px) */
 @media (max-width: 767px) {
-  .information-panel-postit {
-    width: 280px;
+  .information-panel-container {
     bottom: 0.75rem;
     right: 0.75rem;
+    width: 320px;
+  }
+
+  .information-panel-postit {
+    width: 280px;
     padding: 0.75rem;
     padding-top: 1.25rem;
     transform: rotate(1.5deg);
+  }
+
+  .information-panel-postit__sticky-tab {
+    top: -14px;
+    right: 30px;
+    width: 100px;
+    height: 28px;
+  }
+
+  .information-panel-image-card {
+    width: 240px;
+    transform: rotate(-0.5deg) translateX(-15px);
+  }
+
+  .information-panel-image-card--behind:hover {
+    transform: rotate(-0.25deg) translateX(-15px) scale(1.02);
+  }
+
+  .information-panel-image-card--front:hover {
+    transform: rotate(-0.25deg) translateX(-15px) scale(1.02);
   }
 
   .information-panel-postit__sticky-tab {
@@ -722,19 +1151,65 @@ onUnmounted(() => {
 
 /* Tablet (768px - 1023px) */
 @media (min-width: 768px) and (max-width: 1023px) {
+  .information-panel-container {
+    width: 420px;
+  }
+
   .information-panel-postit {
     width: 340px;
-    bottom: 1rem;
-    right: 1rem;
+  }
+
+  .information-panel-postit__sticky-tab {
+    top: -15px;
+    right: 35px;
+    width: 110px;
+    height: 30px;
+  }
+
+  .information-panel-image-card {
+    width: 300px;
+    transform: rotate(-1deg) translateX(-15px);
+  }
+
+  .information-panel-image-card--behind:hover {
+    transform: rotate(-0.5deg) translateX(-15px) scale(1.02);
+  }
+
+  .information-panel-image-card--front:hover {
+    transform: rotate(-0.5deg) translateX(-15px) scale(1.02);
   }
 }
 
 /* Desktop (>= 1024px) */
 @media (min-width: 1024px) {
-  .information-panel-postit {
-    width: 360px;
+  .information-panel-container {
     bottom: 1.5rem;
     right: 1.5rem;
+    width: 440px;
+  }
+
+  .information-panel-postit {
+    width: 360px;
+  }
+
+  .information-panel-postit__sticky-tab {
+    top: -16px;
+    right: 40px;
+    width: 120px;
+    height: 32px;
+  }
+
+  .information-panel-image-card {
+    width: 320px;
+    transform: rotate(-1deg) translateX(-20px);
+  }
+
+  .information-panel-image-card--behind:hover {
+    transform: rotate(-0.5deg) translateX(-20px) scale(1.02);
+  }
+
+  .information-panel-image-card--front:hover {
+    transform: rotate(-0.5deg) translateX(-20px) scale(1.02);
   }
 
   .information-panel-postit__header {
@@ -774,6 +1249,35 @@ onUnmounted(() => {
 .postit-leave-to {
   opacity: 0;
   transform: rotate(5deg) scale(0.8) translateY(20px);
+}
+
+/* Image Card Transitions */
+.image-card-enter-active {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.image-card-enter-from {
+  opacity: 0;
+  transform: rotate(-3deg) scale(0.8) translateY(20px);
+}
+
+.image-card-enter-to {
+  opacity: 1;
+  transform: rotate(-1deg) scale(1) translateY(0);
+}
+
+.image-card-leave-active {
+  transition: all 0.2s ease-in;
+}
+
+.image-card-leave-from {
+  opacity: 1;
+  transform: rotate(-1deg) scale(1) translateY(0);
+}
+
+.image-card-leave-to {
+  opacity: 0;
+  transform: rotate(-3deg) scale(0.8) translateY(20px);
 }
 
 /* Focus styles for accessibility */
