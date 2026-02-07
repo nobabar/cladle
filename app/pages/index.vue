@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import type { Animal } from "~/types/animal";
 import type { TreeNode } from "~/types/tree";
 import type { ValidationError } from "~/utils/animalValidator";
@@ -110,9 +110,18 @@ const selectedNode = ref<TreeNode | null>(null);
 /**
  * Handle node click events from tree visualization
  * Opens the information panel with the clicked node's data
+ * Closes the panel if the same node is clicked again (optional enhancement)
  * @param node - The tree node that was clicked
  */
 function handleNodeClick(node: TreeNode) {
+  // If clicking the same node and panel is open, close it
+  if (selectedNode.value?.id === node.id && isInformationPanelOpen.value) {
+    isInformationPanelOpen.value = false;
+    selectedNode.value = null;
+    return;
+  }
+
+  // Otherwise, open/update panel with new node
   selectedNode.value = node;
   isInformationPanelOpen.value = true;
 }
@@ -122,9 +131,25 @@ function handleNodeClick(node: TreeNode) {
  */
 function handleInformationPanelClose() {
   isInformationPanelOpen.value = false;
-  // Keep selectedNode for potential future use (e.g., animations)
-  // Will be cleared when a new node is selected
+  selectedNode.value = null;
 }
+
+/**
+ * Watch for game state changes and close panel when appropriate
+ * Closes panel on: new guess, game reset, game won/lost
+ */
+watch(
+  () => [gameStore.status, gameStore.guesses.length],
+  () => {
+    // Close panel on game state changes that affect the tree
+    // This includes: new guesses, game reset, game won/lost
+    if (isInformationPanelOpen.value) {
+      // Close panel smoothly when game state changes
+      isInformationPanelOpen.value = false;
+      selectedNode.value = null;
+    }
+  },
+);
 
 /**
  * Start a new game with a target animal
