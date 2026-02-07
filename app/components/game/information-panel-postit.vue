@@ -471,21 +471,93 @@ const formattedRank = computed(() => {
 });
 
 /**
- * Format taxonomy for display
+ * Sanitize HTML to only allow basic formatting tags (<b>, <i>)
+ * Uses DOM API for secure parsing and filtering - much safer than regex
+ * Removes all other HTML tags, attributes, and potentially dangerous content
+ * @param html - HTML string to sanitize
+ * @returns Sanitized HTML string with only <b> and <i> tags (no attributes)
  */
-const formattedTaxonomy = computed(() => {
-  if (!animalData.value?.taxonomy || animalData.value.taxonomy.length === 0) {
-    return "";
+function sanitizeBasicHTML(html: string): string {
+  if (!html || typeof window === "undefined") return html || "";
+
+  try {
+    // Create a temporary container to parse the HTML
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = html;
+
+    /**
+     * Recursively sanitize DOM nodes
+     * Only keeps text nodes and allowed tags (<b>, <i>) without attributes
+     * @param node - DOM node to sanitize
+     * @returns Sanitized HTML string
+     */
+    function sanitizeNode(node: Node): string {
+      if (node.nodeType === Node.TEXT_NODE) {
+        // Text nodes are safe - just return the text content
+        return node.textContent || "";
+      }
+
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as Element;
+        const tagName = element.tagName.toLowerCase();
+
+        // Only allow <b> and <i> tags
+        if (tagName === "b" || tagName === "i") {
+          // Get sanitized children
+          let childrenHTML = "";
+          for (const child of Array.from(element.childNodes)) {
+            childrenHTML += sanitizeNode(child);
+          }
+          // Return tag without any attributes (security: strip all attributes)
+          return `<${tagName}>${childrenHTML}</${tagName}>`;
+        }
+
+        // For disallowed tags, process children but don't include the tag itself
+        // This preserves text content while removing dangerous tags
+        let childrenHTML = "";
+        for (const child of Array.from(element.childNodes)) {
+          childrenHTML += sanitizeNode(child);
+        }
+        return childrenHTML;
+      }
+
+      // For other node types (comments, etc.), return empty string
+      return "";
+    }
+
+    // Sanitize all child nodes
+    let sanitized = "";
+    for (const child of Array.from(tempDiv.childNodes)) {
+      sanitized += sanitizeNode(child);
+    }
+
+    return sanitized;
+  } catch (error) {
+    // If parsing fails, escape everything for safety
+    console.warn("HTML sanitization failed, escaping content:", error);
+    return html
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
-  // Format as "Kingdom: Animalia, Phylum: Chordata, ..."
-  const ranks = ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"];
-  return animalData.value.taxonomy
-    .map((taxon, index) => {
-      const rank = ranks[index] || "";
-      return rank ? `${rank}: ${taxon}` : taxon;
-    })
-    .filter(item => item)
-    .join(", ");
+}
+
+/**
+ * Sanitized animal description with basic HTML formatting
+ */
+const sanitizedAnimalDescription = computed(() => {
+  if (!animalData.value?.description) return "";
+  return sanitizeBasicHTML(animalData.value.description);
+});
+
+/**
+ * Sanitized clade description with basic HTML formatting
+ */
+const sanitizedCladeDescription = computed(() => {
+  if (!cladeData.value?.description) return "";
+  return sanitizeBasicHTML(cladeData.value.description);
 });
 
 /**
@@ -647,13 +719,14 @@ onUnmounted(() => {
           tabindex="-1"
           @click="handlePostitClick"
         >
-          <!-- Post-it Header -->
+          <!-- Post-it Header (title only shown when no node data) -->
           <div class="information-panel-postit__header">
             <h2
+              v-if="!nodeData"
               id="postit-panel-title"
               class="information-panel-postit__title"
             >
-              {{ nodeData?.name || "Information" }}
+              Information
             </h2>
           </div>
 
@@ -692,13 +765,48 @@ onUnmounted(() => {
                   v-if="cladeData.description"
                   class="information-panel-postit__clade-description"
                 >
-                  <p>{{ cladeData.description }}</p>
+                  <!-- eslint-disable-next-line vue/no-v-html -->
+                  <p v-html="sanitizedCladeDescription" />
                 </div>
 
-                <!-- No additional data message -->
-                <p v-if="!cladeData.description" class="information-panel-postit__empty">
-                  No additional information available for this clade.
-                </p>
+                <!-- Clade Links -->
+                <div
+                  v-if="cladeData.url || cladeData.wikipediaUrl"
+                  class="information-panel-postit__links"
+                >
+                  <a
+                    v-if="cladeData.url"
+                    :href="cladeData.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="information-panel-postit__link"
+                    aria-label="View on iNaturalist"
+                  >
+                    <Icon
+                      name="i-lucide-external-link"
+                      class="information-panel-postit__link-icon"
+                    />
+                    iNaturalist
+                  </a>
+                  <span
+                    v-if="cladeData.url && cladeData.wikipediaUrl"
+                    class="information-panel-postit__link-separator"
+                  >·</span>
+                  <a
+                    v-if="cladeData.wikipediaUrl"
+                    :href="cladeData.wikipediaUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="information-panel-postit__link"
+                    aria-label="View on Wikipedia"
+                  >
+                    <Icon
+                      name="i-lucide-external-link"
+                      class="information-panel-postit__link-icon"
+                    />
+                    Wikipedia
+                  </a>
+                </div>
               </div>
               <!-- Fallback: No clade data loaded yet -->
               <div v-else class="information-panel-postit__empty">
@@ -730,34 +838,53 @@ onUnmounted(() => {
                   </p>
                 </div>
 
-                <!-- Animal Description -->
+                <!-- Animal Description (Wikipedia Summary) -->
                 <div
                   v-if="animalData.description"
                   class="information-panel-postit__animal-description"
                 >
-                  <p>{{ animalData.description }}</p>
+                  <!-- eslint-disable-next-line vue/no-v-html -->
+                  <p v-html="sanitizedAnimalDescription" />
                 </div>
 
-                <!-- Taxonomic Classification -->
+                <!-- Animal Links -->
                 <div
-                  v-if="formattedTaxonomy"
-                  class="information-panel-postit__animal-taxonomy"
+                  v-if="animalData.url || animalData.wikipediaUrl"
+                  class="information-panel-postit__links"
                 >
-                  <p class="information-panel-postit__animal-taxonomy-label">
-                    Classification:
-                  </p>
-                  <p class="information-panel-postit__animal-taxonomy-value">
-                    {{ formattedTaxonomy }}
-                  </p>
+                  <a
+                    v-if="animalData.url"
+                    :href="animalData.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="information-panel-postit__link"
+                    aria-label="View on iNaturalist"
+                  >
+                    <Icon
+                      name="i-lucide-external-link"
+                      class="information-panel-postit__link-icon"
+                    />
+                    iNaturalist
+                  </a>
+                  <span
+                    v-if="animalData.url && animalData.wikipediaUrl"
+                    class="information-panel-postit__link-separator"
+                  >·</span>
+                  <a
+                    v-if="animalData.wikipediaUrl"
+                    :href="animalData.wikipediaUrl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="information-panel-postit__link"
+                    aria-label="View on Wikipedia"
+                  >
+                    <Icon
+                      name="i-lucide-external-link"
+                      class="information-panel-postit__link-icon"
+                    />
+                    Wikipedia
+                  </a>
                 </div>
-
-                <!-- No additional data message -->
-                <p
-                  v-if="!animalData.description && !formattedTaxonomy"
-                  class="information-panel-postit__empty"
-                >
-                  No additional information available for this animal.
-                </p>
               </div>
               <!-- Fallback: No animal data loaded yet -->
               <div v-else class="information-panel-postit__empty">
@@ -1025,6 +1152,10 @@ onUnmounted(() => {
   padding-bottom: 0.75rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   margin-bottom: 0.75rem;
+}
+
+.information-panel-postit__header:empty {
+  display: none;
 }
 
 .dark .information-panel-postit__header {
@@ -1307,6 +1438,72 @@ onUnmounted(() => {
 
 .dark .information-panel-postit__animal-description p {
   color: var(--color-ink, #f9fafb);
+}
+
+/* Links Section - Subtle inline style */
+.information-panel-postit__links {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.information-panel-postit__link {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-ink-muted, #6B7280);
+  text-decoration: none;
+  transition: color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  opacity: 0.7;
+}
+
+.information-panel-postit__link:hover {
+  color: var(--color-ink, #2C2416);
+  opacity: 1;
+  text-decoration: none;
+}
+
+.information-panel-postit__link:focus {
+  outline: 2px solid var(--color-focus-ring, #6b7f8e);
+  outline-offset: 2px;
+  border-radius: 2px;
+  opacity: 1;
+}
+
+.dark .information-panel-postit__link {
+  color: var(--color-ink-muted, #9ca3af);
+}
+
+.dark .information-panel-postit__link:hover {
+  color: var(--color-ink, #f9fafb);
+}
+
+.information-panel-postit__link-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.information-panel-postit__link:hover .information-panel-postit__link-icon {
+  opacity: 1;
+}
+
+.information-panel-postit__link-separator {
+  color: var(--color-ink-subtle, #9ca3af);
+  opacity: 0.5;
+  font-size: 0.875rem;
+  line-height: 1;
+  user-select: none;
+}
+
+.dark .information-panel-postit__link-separator {
+  color: var(--color-ink-subtle, #6b7280);
 }
 
 .information-panel-postit__animal-taxonomy {

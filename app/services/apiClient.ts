@@ -96,6 +96,7 @@ interface INaturalistTaxon {
   ancestors?: INaturalistTaxon[];
   iconic_taxon_name?: string;
   wikipedia_url?: string;
+  wikipedia_summary?: string;
   default_photo?: {
     medium_url?: string;
   };
@@ -560,6 +561,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       url: `https://www.inaturalist.org/taxa/${taxon.id}`,
       wikipediaUrl: taxon.wikipedia_url,
       imageUrl: taxon.default_photo?.medium_url,
+      description: taxon.wikipedia_summary,
     };
   }
 
@@ -584,6 +586,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       url: `https://www.inaturalist.org/taxa/${taxon.id}`,
       wikipediaUrl: taxon.wikipedia_url,
       imageUrl: taxon.default_photo?.medium_url,
+      description: taxon.wikipedia_summary,
     };
   }
 
@@ -599,6 +602,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       url: `https://www.inaturalist.org/taxa/${taxon.id}`,
       wikipediaUrl: taxon.wikipedia_url,
       imageUrl: taxon.default_photo?.medium_url,
+      description: taxon.wikipedia_summary,
     };
   }
 
