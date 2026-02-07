@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { TreeNode } from "~/types/tree";
 import type { Clade } from "~/types/clade";
+import type { Animal } from "~/types/animal";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 
 /**
@@ -348,6 +349,13 @@ const isLoadingClade = ref(false);
 const cladeError = ref<string | null>(null);
 
 /**
+ * Animal data state
+ */
+const animalData = ref<Animal | null>(null);
+const isLoadingAnimal = ref(false);
+const animalError = ref<string | null>(null);
+
+/**
  * Fetch clade information
  * @param cladeName - Name of the clade to fetch
  */
@@ -372,7 +380,31 @@ async function fetchCladeInfo(cladeName: string) {
 }
 
 /**
- * Watch for node data changes to refresh clade information
+ * Fetch animal information
+ * @param animalId - ID of the animal to fetch
+ */
+async function fetchAnimalInfo(animalId: string) {
+  isLoadingAnimal.value = true;
+  animalError.value = null;
+  animalData.value = null;
+
+  try {
+    const response = await api.fetchAnimalData(animalId);
+    if (response.error) {
+      animalError.value = response.error.message || "Failed to load animal information";
+    } else if (response.data) {
+      animalData.value = response.data;
+    }
+  } catch (err) {
+    animalError.value = "Failed to load animal information";
+    console.error("Error fetching animal data:", err);
+  } finally {
+    isLoadingAnimal.value = false;
+  }
+}
+
+/**
+ * Watch for node data changes to refresh clade and animal information
  */
 watch(
   () => props.nodeData,
@@ -381,12 +413,23 @@ watch(
     cladeData.value = null;
     cladeError.value = null;
     isLoadingClade.value = false;
+    animalData.value = null;
+    animalError.value = null;
+    isLoadingAnimal.value = false;
 
     // Fetch clade data if node is a clade
     if (newNodeData && newNodeData.type === "clade" && props.isOpen) {
       const cladeName = newNodeData.cladeData?.name || newNodeData.name;
       if (cladeName) {
         fetchCladeInfo(cladeName);
+      }
+    }
+
+    // Fetch animal data if node is an animal
+    if (newNodeData && newNodeData.type === "animal" && props.isOpen) {
+      const animalId = newNodeData.data?.id || newNodeData.id;
+      if (animalId) {
+        fetchAnimalInfo(animalId);
       }
     }
   },
@@ -399,10 +442,17 @@ watch(
 watch(
   () => props.isOpen,
   (isOpen) => {
-    if (isOpen && props.nodeData && props.nodeData.type === "clade") {
-      const cladeName = props.nodeData.cladeData?.name || props.nodeData.name;
-      if (cladeName && !cladeData.value) {
-        fetchCladeInfo(cladeName);
+    if (isOpen && props.nodeData) {
+      if (props.nodeData.type === "clade") {
+        const cladeName = props.nodeData.cladeData?.name || props.nodeData.name;
+        if (cladeName && !cladeData.value) {
+          fetchCladeInfo(cladeName);
+        }
+      } else if (props.nodeData.type === "animal") {
+        const animalId = props.nodeData.data?.id || props.nodeData.id;
+        if (animalId && !animalData.value) {
+          fetchAnimalInfo(animalId);
+        }
       }
     }
   },
@@ -415,6 +465,24 @@ const formattedRank = computed(() => {
   if (!cladeData.value?.rank) return "";
   const rank = cladeData.value.rank;
   return rank.charAt(0).toUpperCase() + rank.slice(1);
+});
+
+/**
+ * Format taxonomy for display
+ */
+const formattedTaxonomy = computed(() => {
+  if (!animalData.value?.taxonomy || animalData.value.taxonomy.length === 0) {
+    return "";
+  }
+  // Format as "Kingdom: Animalia, Phylum: Chordata, ..."
+  const ranks = ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"];
+  return animalData.value.taxonomy
+    .map((taxon, index) => {
+      const rank = ranks[index] || "";
+      return rank ? `${rank}: ${taxon}` : taxon;
+    })
+    .filter(item => item)
+    .join(", ");
 });
 
 /**
@@ -609,19 +677,69 @@ onUnmounted(() => {
                 <p>Loading clade information...</p>
               </div>
             </div>
-            <!-- Animal Information (placeholder for Story 5.4) -->
+            <!-- Animal Information Display -->
             <div v-else-if="nodeData.type === 'animal'">
-              <p class="information-panel-postit__type">
-                Type: <strong>Animal</strong>
-              </p>
-              <p class="information-panel-postit__placeholder">
-                Detailed animal information will be displayed here in Story 5.4.
-              </p>
+              <!-- Loading State -->
+              <div v-if="isLoadingAnimal" class="information-panel-postit__loading">
+                <p>Loading animal information...</p>
+              </div>
+              <!-- Error State -->
+              <div v-else-if="animalError" class="information-panel-postit__error">
+                <p>{{ animalError }}</p>
+              </div>
+              <!-- Animal Data Display -->
+              <div v-else-if="animalData" class="information-panel-postit__animal-info">
+                <!-- Animal Name and Scientific Name -->
+                <div class="information-panel-postit__animal-header">
+                  <h3 class="information-panel-postit__animal-name">
+                    {{ animalData.name }}
+                  </h3>
+                  <p
+                    v-if="animalData.scientificName"
+                    class="information-panel-postit__animal-scientific-name"
+                  >
+                    <em>{{ animalData.scientificName }}</em>
+                  </p>
+                </div>
+
+                <!-- Animal Description -->
+                <div
+                  v-if="animalData.description"
+                  class="information-panel-postit__animal-description"
+                >
+                  <p>{{ animalData.description }}</p>
+                </div>
+
+                <!-- Taxonomic Classification -->
+                <div
+                  v-if="formattedTaxonomy"
+                  class="information-panel-postit__animal-taxonomy"
+                >
+                  <p class="information-panel-postit__animal-taxonomy-label">
+                    Classification:
+                  </p>
+                  <p class="information-panel-postit__animal-taxonomy-value">
+                    {{ formattedTaxonomy }}
+                  </p>
+                </div>
+
+                <!-- No additional data message -->
+                <p
+                  v-if="!animalData.description && !formattedTaxonomy"
+                  class="information-panel-postit__empty"
+                >
+                  No additional information available for this animal.
+                </p>
+              </div>
+              <!-- Fallback: No animal data loaded yet -->
+              <div v-else class="information-panel-postit__empty">
+                <p>Loading animal information...</p>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Image Card (only for clades with images, positioned behind post-it) -->
+        <!-- Image Card (for clades and animals with images, positioned behind post-it) -->
         <Transition
           enter-active-class="image-card-enter-active"
           enter-from-class="image-card-enter-from"
@@ -632,10 +750,14 @@ onUnmounted(() => {
         >
           <div
             v-if="
-              nodeData?.type === 'clade'
+              (nodeData?.type === 'clade'
                 && cladeData?.imageUrl
                 && !isLoadingClade
-                && !cladeError
+                && !cladeError)
+                || (nodeData?.type === 'animal'
+                  && animalData?.imageUrl
+                  && !isLoadingAnimal
+                  && !animalError)
             "
             class="information-panel-image-card"
             :class="{
@@ -645,9 +767,19 @@ onUnmounted(() => {
             @click="handleImageCardClick"
           >
             <div class="information-panel-image-card__content">
+              <!-- Clade Image -->
               <img
+                v-if="nodeData?.type === 'clade' && cladeData?.imageUrl"
                 :src="cladeData.imageUrl"
                 :alt="`Image of ${cladeData.name} clade showing representative species`"
+                class="information-panel-image-card__image"
+                loading="lazy"
+              >
+              <!-- Animal Image -->
+              <img
+                v-else-if="nodeData?.type === 'animal' && animalData?.imageUrl"
+                :src="animalData.imageUrl"
+                :alt="`Image of ${animalData.name} (${animalData.scientificName || 'animal'})`"
                 class="information-panel-image-card__image"
                 loading="lazy"
               >
@@ -1087,6 +1219,100 @@ onUnmounted(() => {
 }
 
 .dark .information-panel-postit__clade-description p {
+  color: var(--color-ink, #f9fafb);
+}
+
+/* Animal Information */
+.information-panel-postit__animal-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.information-panel-postit__animal-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dark .information-panel-postit__animal-header {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.information-panel-postit__animal-name {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0;
+  color: var(--color-ink, #2C2416);
+}
+
+.dark .information-panel-postit__animal-name {
+  color: var(--color-ink, #f9fafb);
+}
+
+.information-panel-postit__animal-scientific-name {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  margin: 0;
+  color: var(--color-ink-muted, #4B4333);
+  font-style: italic;
+}
+
+.dark .information-panel-postit__animal-scientific-name {
+  color: var(--color-ink-muted, #e5e7eb);
+}
+
+.information-panel-postit__animal-description {
+  margin-top: 0.25rem;
+}
+
+.information-panel-postit__animal-description p {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin: 0;
+  color: var(--color-ink, #2C2416);
+  text-align: justify;
+}
+
+.dark .information-panel-postit__animal-description p {
+  color: var(--color-ink, #f9fafb);
+}
+
+.information-panel-postit__animal-taxonomy {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dark .information-panel-postit__animal-taxonomy {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.information-panel-postit__animal-taxonomy-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0 0 0.25rem 0;
+  color: var(--color-ink-muted, #4B4333);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dark .information-panel-postit__animal-taxonomy-label {
+  color: var(--color-ink-muted, #e5e7eb);
+}
+
+.information-panel-postit__animal-taxonomy-value {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  margin: 0;
+  color: var(--color-ink, #2C2416);
+}
+
+.dark .information-panel-postit__animal-taxonomy-value {
   color: var(--color-ink, #f9fafb);
 }
 
