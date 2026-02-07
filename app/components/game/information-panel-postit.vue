@@ -65,6 +65,7 @@ const dragStartX = ref(0);
 const dragStartY = ref(0);
 const dragOffsetX = ref(0);
 const dragOffsetY = ref(0);
+const isClosingViaDrag = ref(false);
 
 /**
  * Which element is in front: 'postit' or 'image'
@@ -180,7 +181,7 @@ function handleMouseMove(event: MouseEvent) {
 
   // Update position of entire container
   containerRef.value.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-  containerRef.value.style.opacity = String(1 - Math.abs(deltaY) / 200);
+  containerRef.value.style.opacity = String(1 - distance / 200);
 }
 
 /**
@@ -196,6 +197,7 @@ function handleMouseUp(event: MouseEvent) {
 
   // If dragged far enough (more than 100px), remove the post-it
   if (distance > 100) {
+    isClosingViaDrag.value = true;
     closePanel();
   } else {
     // Snap back to original position
@@ -250,7 +252,7 @@ function handleTouchMove(event: TouchEvent) {
   }
 
   containerRef.value.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-  containerRef.value.style.opacity = String(1 - Math.abs(deltaY) / 200);
+  containerRef.value.style.opacity = String(1 - distance / 200);
 }
 
 /**
@@ -268,6 +270,7 @@ function handleTouchEnd(event: TouchEvent) {
   const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
   if (distance > 100) {
+    isClosingViaDrag.value = true;
     closePanel();
   } else {
     containerRef.value.style.transform = "";
@@ -507,6 +510,12 @@ watch(() => props.isOpen, (newValue) => {
     // Reset drag state when opening
     isDragging.value = false;
     hasDragged.value = false;
+    isClosingViaDrag.value = false;
+    // Reset transform in case it was left from previous close
+    if (containerRef.value) {
+      containerRef.value.style.transform = "";
+      containerRef.value.style.opacity = "";
+    }
     // Use nextTick to ensure DOM is updated
     nextTick(() => {
       // Small delay to ensure transition classes are applied
@@ -519,10 +528,29 @@ watch(() => props.isOpen, (newValue) => {
     isDragging.value = false;
     hasDragged.value = false;
     frontElement.value = "postit"; // Reset to default when closing
-    if (containerRef.value) {
-      containerRef.value.style.transform = "";
-      containerRef.value.style.opacity = "";
+
+    // If closing via drag, preserve transform during transition
+    // The transform should remain from the drag operation
+    if (isClosingViaDrag.value) {
+      // Wait for transition to complete (0.2s based on postit-leave-active)
+      // Use nextTick to ensure Vue has started the transition
+      nextTick(() => {
+        setTimeout(() => {
+          if (containerRef.value) {
+            containerRef.value.style.transform = "";
+            containerRef.value.style.opacity = "";
+          }
+          isClosingViaDrag.value = false;
+        }, 200);
+      });
+    } else {
+      // Reset immediately for non-drag closes
+      if (containerRef.value) {
+        containerRef.value.style.transform = "";
+        containerRef.value.style.opacity = "";
+      }
     }
+
     // Restore focus when closing
     if (previousFocusElement) {
       previousFocusElement.focus();
@@ -587,6 +615,22 @@ onUnmounted(() => {
         class="information-panel-container"
         :class="{ 'information-panel-container--dragging': isDragging }"
       >
+        <!-- Sticky Tab (adhesive part - always on top) -->
+        <div
+          ref="stickyTabRef"
+          class="information-panel-postit__sticky-tab"
+          role="button"
+          tabindex="0"
+          aria-label="Drag to remove post-it or click to close"
+          @mousedown="handleStickyTabMouseDown"
+          @touchstart="handleStickyTabTouchStart"
+          @click="handleStickyTabClick"
+          @keydown.enter="closePanel"
+          @keydown.space.prevent="closePanel"
+        >
+          <div class="information-panel-postit__sticky-tab-texture" />
+        </div>
+
         <!-- Post-it Note -->
         <div
           ref="focusTrapRef"
@@ -603,22 +647,6 @@ onUnmounted(() => {
           tabindex="-1"
           @click="handlePostitClick"
         >
-          <!-- Sticky Tab (adhesive part) -->
-          <div
-            ref="stickyTabRef"
-            class="information-panel-postit__sticky-tab"
-            role="button"
-            tabindex="0"
-            aria-label="Drag to remove post-it or click to close"
-            @mousedown="handleStickyTabMouseDown"
-            @touchstart="handleStickyTabTouchStart"
-            @click="handleStickyTabClick"
-            @keydown.enter="closePanel"
-            @keydown.space.prevent="closePanel"
-          >
-            <div class="information-panel-postit__sticky-tab-texture" />
-          </div>
-
           <!-- Post-it Header -->
           <div class="information-panel-postit__header">
             <h2
@@ -886,7 +914,7 @@ onUnmounted(() => {
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-/* Sticky Tab (adhesive part - connects both elements) */
+/* Sticky Tab (adhesive part - connects both elements, always on top) */
 .information-panel-postit__sticky-tab {
   position: absolute;
   top: -16px;
@@ -909,7 +937,7 @@ onUnmounted(() => {
     0 -2px 4px rgba(0, 0, 0, 0.1),
     inset 0 1px 2px rgba(255, 255, 255, 0.8);
   transition: all 0.2s ease;
-  z-index: 10;
+  z-index: 100;
 }
 
 .information-panel-postit__sticky-tab:hover {
