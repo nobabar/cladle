@@ -217,10 +217,17 @@ const svgViewBox = computed(() => {
 
 /**
  * Get node width based on text content
+ * For target nodes when hidden, use fixed width to prevent giving clues
  * @param node - The tree node
  * @returns Calculated node width
  */
 function getNodeWidth(node: TreeNode): number {
+  // If this is a target node and it's hidden, use fixed width for "?"
+  // This prevents players from guessing the animal based on node width
+  if (node.isTarget && !props.showTarget) {
+    return calculateTextWidth("?", 10);
+  }
+  // Otherwise, use the actual name width
   return calculateTextWidth(node.name, 10);
 }
 
@@ -891,7 +898,7 @@ async function copyTreeAsMermaid(): Promise<void> {
             :aria-hidden="true"
             pointer-events="none"
           >
-            {{ node.name }}
+            {{ node.isTarget && !props.showTarget ? "?" : node.name }}
           </text>
         </template>
       </g>
@@ -904,7 +911,8 @@ async function copyTreeAsMermaid(): Promise<void> {
       aria-atomic="true"
     >
       <template v-if="hasTreeData && treeData">
-        Phylogenetic tree with {{ treeData.nodes.length }} {{ treeData.nodes.length === 1 ? "node" : "nodes" }}.
+        Phylogenetic tree with {{ treeData.nodes.length }}
+        {{ treeData.nodes.length === 1 ? "node" : "nodes" }}.
         <template v-if="treeData.guesses.length > 0">
           {{ treeData.guesses.length }} guessed
           {{ treeData.guesses.length === 1 ? "animal" : "animals" }}.
