@@ -6,6 +6,11 @@ import type { LCAResult } from "~/utils/lcaCalculator";
 import type { GameError } from "~/utils/errorMessages";
 
 /**
+ * Default maximum number of guesses allowed per game
+ */
+export const DEFAULT_MAX_GUESSES = 20;
+
+/**
  * Game State
  */
 export type GameStatus = "idle" | "playing" | "won" | "lost";
@@ -67,7 +72,7 @@ export const useGameStore = defineStore("game", {
     status: "idle",
     target: null,
     guesses: [],
-    maxGuesses: 6,
+    maxGuesses: DEFAULT_MAX_GUESSES,
     treeData: null,
     nodeMap: new Map(),
     cladeMap: new Map(),
@@ -178,9 +183,9 @@ export const useGameStore = defineStore("game", {
     /**
      * Initialize a new game with a target animal
      * @param target - The target animal to guess
-     * @param maxGuesses - Maximum number of guesses (default: 6)
+     * @param maxGuesses - Maximum number of guesses (default: DEFAULT_MAX_GUESSES)
      */
-    startGame(target: Animal, maxGuesses: number = 6): void {
+    startGame(target: Animal, maxGuesses: number = DEFAULT_MAX_GUESSES): void {
       this.target = target;
       this.guesses = [];
       this.status = "playing";
@@ -195,10 +200,10 @@ export const useGameStore = defineStore("game", {
     /**
      * Initialize a new game with a target animal (story requirement: initializeGame)
      * @param target - The target animal to guess
-     * @param maxGuesses - Maximum number of guesses (default: 6)
+     * @param maxGuesses - Maximum number of guesses (default: DEFAULT_MAX_GUESSES)
      * @param puzzleDate - Current puzzle date (YYYY-MM-DD format, optional)
      */
-    initializeGame(target: Animal, maxGuesses: number = 6, puzzleDate: string = ""): void {
+    initializeGame(target: Animal, maxGuesses: number = DEFAULT_MAX_GUESSES, puzzleDate: string = ""): void {
       this.setTargetAnimal(target);
       this.guesses = [];
       this.status = "playing";

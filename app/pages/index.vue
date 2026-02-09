@@ -3,9 +3,10 @@ import { computed, onMounted, ref, watch } from "vue";
 import type { Animal } from "~/types/animal";
 import type { TreeNode } from "~/types/tree";
 import type { ValidationError } from "~/utils/animalValidator";
-import { useGameStore } from "~/stores/gameStore";
+import { DEFAULT_MAX_GUESSES, useGameStore } from "~/stores/gameStore";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 import { apiErrorToGameError } from "~/utils/errorMessages";
+import { selectTargetAnimalWithDifficulty } from "~/utils/puzzleSelector";
 
 // Main game page - foundation for game interface
 // This page will be extended with game components in future stories
@@ -152,8 +153,8 @@ watch(
 );
 
 /**
- * Start a new game with a target animal
- * For now, uses a default animal (Panthera tigris) - can be enhanced later with random selection
+ * Start a new game with a target animal selected from the puzzle selector
+ * Uses the current date to deterministically select a target animal
  */
 async function startNewGame() {
   // Clear any previous errors
@@ -163,11 +164,21 @@ async function startNewGame() {
   gameStore.setLoading(true);
 
   try {
-    // Use real iNaturalist ID for Panthera tigris (Tiger)
-    const tigerId = "41967";
+    // Get current date in YYYY-MM-DD format
+    const puzzleDate = gameStore.getCurrentDate();
+
+    // Select target animal based on current date (deterministic selection)
+    let targetAnimalId: string;
+    try {
+      targetAnimalId = selectTargetAnimalWithDifficulty(puzzleDate);
+    } catch (error) {
+      // If puzzle selector fails, fallback to default animal
+      console.error("Failed to select target animal:", error);
+      targetAnimalId = "41967"; // Tiger as fallback
+    }
 
     // Fetch full animal data from API to ensure we have complete, accurate data
-    const animalResponse = await api.fetchAnimalData(tigerId);
+    const animalResponse = await api.fetchAnimalData(targetAnimalId);
 
     if (animalResponse.error || !animalResponse.data) {
       // Convert API error to GameError
@@ -178,7 +189,7 @@ async function startNewGame() {
 
       // Fallback to hardcoded data if API fails
       const fallbackTarget: Animal = {
-        id: tigerId,
+        id: targetAnimalId,
         name: "Tiger",
         scientificName: "Panthera tigris",
         taxonomy: [
@@ -191,13 +202,13 @@ async function startNewGame() {
           "Panthera tigris",
         ],
       };
-      gameStore.startGame(fallbackTarget, 6);
+      gameStore.initializeGame(fallbackTarget, DEFAULT_MAX_GUESSES, puzzleDate);
       gameStore.setLoading(false);
       return;
     }
 
-    // Use the real animal data from the API
-    gameStore.startGame(animalResponse.data, 6);
+    // Use the real animal data from the API and initialize with puzzle date
+    gameStore.initializeGame(animalResponse.data, DEFAULT_MAX_GUESSES, puzzleDate);
     gameStore.setLoading(false);
   } catch (error) {
     gameStore.setLoading(false);
@@ -213,6 +224,7 @@ async function startNewGame() {
     }
 
     // Fallback to hardcoded data on error
+    const puzzleDate = gameStore.getCurrentDate();
     const fallbackTarget: Animal = {
       id: "41967",
       name: "Tiger",
@@ -227,7 +239,7 @@ async function startNewGame() {
         "Panthera tigris",
       ],
     };
-    gameStore.startGame(fallbackTarget, 6);
+    gameStore.initializeGame(fallbackTarget, DEFAULT_MAX_GUESSES, puzzleDate);
   }
 }
 
@@ -279,7 +291,8 @@ onMounted(() => {
               size="sm"
               :aria-label="colorModeLabel"
               :title="colorModeLabel"
-              class="min-w-[44px] min-h-[44px] touch-target justify-center items-center notebook-button-secondary"
+              class="min-w-[44px] min-h-[44px] touch-target justify-center items-center
+                notebook-button-secondary"
               @click="toggleColorMode"
             />
           </div>
