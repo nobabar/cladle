@@ -15,6 +15,7 @@ import {
   getAnimalsByTaxonomicGroup,
   getCuratedAnimalById,
   getCuratedAnimalsStats,
+  selectRandomTargetAnimal,
   selectTargetAnimal,
   selectTargetAnimalWithDifficulty,
 } from "~/utils/puzzleSelector";
@@ -132,38 +133,78 @@ describe("puzzleSelector", () => {
       expect(animal).toBeDefined();
     });
 
-    it("should return a valid animal from curated list (random selection mode)", () => {
-      // Note: Currently using random selection, so we test that it returns valid animals
+    it("should be deterministic - same date returns same animal", () => {
       const date = "2024-06-15";
-      const animalId = selectTargetAnimalWithDifficulty(date);
+      const animalId1 = selectTargetAnimalWithDifficulty(date);
+      const animalId2 = selectTargetAnimalWithDifficulty(date);
+      const animalId3 = selectTargetAnimalWithDifficulty(date);
 
-      expect(animalId).toBeDefined();
-      expect(typeof animalId).toBe("string");
+      expect(animalId1).toBe(animalId2);
+      expect(animalId2).toBe(animalId3);
 
       // Verify the ID exists in curated list
-      const animal = getCuratedAnimalById(animalId);
+      const animal = getCuratedAnimalById(animalId1);
       expect(animal).toBeDefined();
-      expect(animal?.id).toBe(animalId);
+      expect(animal?.id).toBe(animalId1);
     });
 
-    it("should return animals from curated list (random selection mode)", () => {
-      // Test that random selection returns valid animals from the list
-      // Since it's random, we test multiple calls to ensure variety
-      const dates = ["2024-01-01", "2024-06-15", "2024-12-25", "2025-03-20", "2025-07-10"];
-      const selectedIds = new Set<string>();
+    it("should return different animals for different dates", () => {
+      const date1 = "2024-01-01";
+      const date2 = "2024-01-02";
+      const date3 = "2024-12-31";
 
+      const animalId1 = selectTargetAnimalWithDifficulty(date1);
+      const animalId2 = selectTargetAnimalWithDifficulty(date2);
+      const animalId3 = selectTargetAnimalWithDifficulty(date3);
+
+      // At least two should be different (very likely all three)
+      const allSame = animalId1 === animalId2 && animalId2 === animalId3;
+      expect(allSame).toBe(false);
+    });
+
+    it("should balance difficulty levels over time", () => {
+      // Test many dates to verify difficulty distribution
+      const dates: string[] = [];
+      for (let year = 2024; year <= 2025; year++) {
+        for (let month = 1; month <= 12; month++) {
+          for (let day = 1; day <= 28; day++) {
+            dates.push(`${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`);
+          }
+        }
+      }
+
+      const difficultyCounts = { easy: 0, medium: 0, hard: 0 };
       for (const date of dates) {
         const animalId = selectTargetAnimalWithDifficulty(date);
         const animal = getCuratedAnimalById(animalId);
-
-        expect(animal).toBeDefined();
-        expect(animal?.id).toBe(animalId);
-        selectedIds.add(animalId);
+        if (animal) {
+          difficultyCounts[animal.difficulty]++;
+        }
       }
 
-      // All selected IDs should be valid
-      expect(selectedIds.size).toBeGreaterThan(0);
-      expect(selectedIds.size).toBeLessThanOrEqual(dates.length);
+      // Verify we have animals from all difficulty levels
+      expect(difficultyCounts.easy).toBeGreaterThan(0);
+      expect(difficultyCounts.medium).toBeGreaterThan(0);
+      expect(difficultyCounts.hard).toBeGreaterThan(0);
+
+      // Verify distribution is roughly balanced (40% easy, 40% medium, 20% hard)
+      // Allow some variance (±10%)
+      const total = dates.length;
+      const easyRatio = difficultyCounts.easy / total;
+      const mediumRatio = difficultyCounts.medium / total;
+      const hardRatio = difficultyCounts.hard / total;
+
+      // Easy should be around 40% (±10%)
+      expect(easyRatio).toBeGreaterThanOrEqual(0.30);
+      expect(easyRatio).toBeLessThanOrEqual(0.50);
+
+      // Medium should be around 40% (±10%)
+      expect(mediumRatio).toBeGreaterThanOrEqual(0.30);
+      expect(mediumRatio).toBeLessThanOrEqual(0.50);
+
+      // Hard should be around 20% (±10%)
+      expect(hardRatio).toBeGreaterThanOrEqual(0.10);
+      expect(hardRatio).toBeLessThanOrEqual(0.30);
     });
 
     it("should throw error for invalid date format", () => {
@@ -174,6 +215,58 @@ describe("puzzleSelector", () => {
     it("should throw error for invalid date values", () => {
       expect(() => selectTargetAnimalWithDifficulty("2024-13-01")).toThrow("Invalid date");
       expect(() => selectTargetAnimalWithDifficulty("2024-02-30")).toThrow("Invalid date");
+    });
+  });
+
+  describe("selectRandomTargetAnimal", () => {
+    it("should return a valid animal ID", () => {
+      const animalId = selectRandomTargetAnimal();
+
+      expect(animalId).toBeDefined();
+      expect(typeof animalId).toBe("string");
+      expect(animalId.length).toBeGreaterThan(0);
+
+      // Verify the ID exists in curated list
+      const animal = getCuratedAnimalById(animalId);
+      expect(animal).toBeDefined();
+    });
+
+    it("should return different animals on multiple calls (non-deterministic)", () => {
+      // Call multiple times and collect results
+      const results = new Set<string>();
+      for (let i = 0; i < 10; i++) {
+        results.add(selectRandomTargetAnimal());
+      }
+
+      // With 10 calls, we should get at least 2 different animals
+      // (very likely to get more, but at least 2 proves it's not deterministic)
+      expect(results.size).toBeGreaterThanOrEqual(2);
+    });
+
+    it("should return animals from curated list", () => {
+      // Test multiple calls to ensure all returned IDs are valid
+      for (let i = 0; i < 20; i++) {
+        const animalId = selectRandomTargetAnimal();
+        const animal = getCuratedAnimalById(animalId);
+
+        expect(animal).toBeDefined();
+        expect(animal?.id).toBe(animalId);
+      }
+    });
+
+    it("should eventually return animals from all difficulty levels", () => {
+      // Test many calls to ensure we get animals from different difficulty levels
+      const difficulties = new Set<string>();
+      for (let i = 0; i < 50; i++) {
+        const animalId = selectRandomTargetAnimal();
+        const animal = getCuratedAnimalById(animalId);
+        if (animal) {
+          difficulties.add(animal.difficulty);
+        }
+      }
+
+      // Should have at least 2 different difficulty levels
+      expect(difficulties.size).toBeGreaterThanOrEqual(2);
     });
   });
 
@@ -377,12 +470,15 @@ describe("puzzleSelector", () => {
         const results2 = selectTargetAnimal(date);
         expect(results1).toBe(results2);
 
-        // selectTargetAnimalWithDifficulty uses random selection currently
-        // So we just verify it returns valid IDs
+        // selectTargetAnimalWithDifficulty should also be deterministic
         const result3 = selectTargetAnimalWithDifficulty(date);
-        const animal = getCuratedAnimalById(result3);
-        expect(animal).toBeDefined();
-        expect(animal?.id).toBe(result3);
+        const result4 = selectTargetAnimalWithDifficulty(date);
+        expect(result3).toBe(result4);
+
+        // Verify both return valid IDs
+        const animal1 = getCuratedAnimalById(result3);
+        expect(animal1).toBeDefined();
+        expect(animal1?.id).toBe(result3);
       }
     });
   });
