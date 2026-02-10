@@ -197,12 +197,20 @@ describe("api client", () => {
     it("should fetch clade data successfully", async () => {
       // Arrange
       /* eslint-disable camelcase */
-      const mockResponse = {
+      const mockSearchResponse = {
+        results: [{
+          id: 40151,
+          name: "Mammalia",
+          rank: "class",
+        }],
+      };
+      const mockDetailResponse = {
         results: [{
           id: 40151,
           name: "Mammalia",
           rank: "class",
           wikipedia_url: "https://en.wikipedia.org/wiki/Mammal",
+          wikipedia_summary: "Mammals are a group of vertebrates...",
           default_photo: {
             medium_url: "https://example.com/mammal.jpg",
           },
@@ -210,11 +218,17 @@ describe("api client", () => {
       };
       /* eslint-enable camelcase */
 
-      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => mockResponse,
-      } as Response);
+      (globalThis.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockSearchResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockDetailResponse,
+        } as Response);
 
       // Act
       const promise = client.fetchCladeData("Mammalia");
@@ -227,8 +241,13 @@ describe("api client", () => {
       expect(result.data?.name).toBe("Mammalia");
       expect(result.data?.rank).toBe("class");
       expect(result.data?.imageUrl).toBe("https://example.com/mammal.jpg");
+      expect(result.data?.description).toBe("Mammals are a group of vertebrates...");
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining("/taxa?q=Mammalia"),
+        expect.any(Object),
+      );
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/taxa/40151"),
         expect.any(Object),
       );
     });
@@ -287,6 +306,7 @@ describe("api client", () => {
               ancestor_ids: [48460, 1, 2, 355675, 40151, 41066, 41067, 947378],
               wikipedia_url: "https://en.wikipedia.org/wiki/Tiger",
               default_photo: { medium_url: "https://example.com/tiger.jpg" },
+              observations_count: 5000,
             },
           },
         ],
@@ -355,6 +375,7 @@ describe("api client", () => {
               rank: "species",
               ancestry: "48460/1/2/355675/40151/41066/41067/947378",
               ancestor_ids: [48460, 1, 2, 355675, 40151, 41066, 41067, 947378],
+              observations_count: 5000,
             },
           },
         ],
@@ -375,6 +396,88 @@ describe("api client", () => {
       // Assert
       expect(result.error).toBeNull();
       expect(result.data?.map(a => a.scientificName)).toEqual(["Panthera tigris"]);
+    });
+
+    it("should filter out fungi and mushrooms using iconic_taxon_name and ancestry", async () => {
+      // Arrange
+      /* eslint-disable camelcase */
+      const mockSearchResponse = {
+        results: [
+          {
+            type: "Taxon",
+            score: 100,
+            record: {
+              id: 123456,
+              name: "Amanita muscaria",
+              preferred_common_name: "Fly agaric",
+              rank: "species",
+              iconic_taxon_name: "Fungi", // Should be excluded
+              ancestry: "47125/123/456/789",
+              ancestor_ids: [47125, 123, 456, 789],
+            },
+          },
+          {
+            type: "Taxon",
+            score: 90,
+            record: {
+              id: 789012,
+              name: "Portobello mushroom",
+              preferred_common_name: "Portobello",
+              rank: "species",
+              // No iconic_taxon_name, but Fungi in ancestry
+              ancestry: "47125/345/678/901",
+              ancestor_ids: [47125, 345, 678, 901],
+            },
+          },
+          {
+            type: "Taxon",
+            score: 80,
+            record: {
+              id: 345678,
+              name: "Rosa canina",
+              preferred_common_name: "Dog rose",
+              rank: "species",
+              iconic_taxon_name: "Plantae", // Should be excluded
+              ancestry: "47126/111/222/333",
+              ancestor_ids: [47126, 111, 222, 333],
+            },
+          },
+          {
+            type: "Taxon",
+            score: 10,
+            record: {
+              id: 947378,
+              name: "Panthera tigris",
+              preferred_common_name: "Tiger",
+              rank: "species",
+              iconic_taxon_name: "Animalia", // Should be included
+              ancestry: "48460/1/2/355675/40151/41066/41067/947378",
+              ancestor_ids: [48460, 1, 2, 355675, 40151, 41066, 41067, 947378],
+              observations_count: 5000,
+            },
+          },
+        ],
+      };
+      /* eslint-enable camelcase */
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSearchResponse,
+      } as Response);
+
+      // Act
+      const promise = client.searchAnimals("mushroom", 10);
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      // Assert
+      expect(result.error).toBeNull();
+      expect(result.data?.map(a => a.scientificName)).toEqual(["Panthera tigris"]);
+      // Verify fungi and plants were filtered out
+      expect(result.data?.find(a => a.scientificName === "Amanita muscaria")).toBeUndefined();
+      expect(result.data?.find(a => a.scientificName === "Portobello mushroom")).toBeUndefined();
+      expect(result.data?.find(a => a.scientificName === "Rosa canina")).toBeUndefined();
     });
   });
 
@@ -825,8 +928,14 @@ describe("api client", () => {
     });
 
     it("should validate required clade fields", async () => {
-      // Arrange - Missing rank
-      const mockResponse = {
+      // Arrange - Missing rank in detail response
+      const mockSearchResponse = {
+        results: [{
+          id: 40151,
+          name: "Mammalia",
+        }],
+      };
+      const mockDetailResponse = {
         results: [{
           id: 40151,
           name: "Mammalia",
@@ -834,11 +943,17 @@ describe("api client", () => {
         }],
       };
 
-      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => mockResponse,
-      } as Response);
+      (globalThis.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockSearchResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockDetailResponse,
+        } as Response);
 
       // Act
       const promise = client.fetchCladeData("Mammalia");
@@ -1036,21 +1151,35 @@ describe("api client", () => {
     it("should return cached clade data on second request", async () => {
       // Arrange
       /* eslint-disable camelcase */
-      const mockResponse = {
+      const mockSearchResponse = {
+        results: [{
+          id: 40151,
+          name: "Mammalia",
+          rank: "class",
+        }],
+      };
+      const mockDetailResponse = {
         results: [{
           id: 40151,
           name: "Mammalia",
           rank: "class",
           wikipedia_url: "https://en.wikipedia.org/wiki/Mammal",
+          wikipedia_summary: "Mammals are a group of vertebrates...",
         }],
       };
       /* eslint-enable camelcase */
 
-      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        ok: true,
-        status: 200,
-        json: async () => mockResponse,
-      } as Response);
+      (globalThis.fetch as ReturnType<typeof vi.fn>)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockSearchResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockDetailResponse,
+        } as Response);
 
       // Act - First request (cache miss)
       const result1 = await client.fetchCladeData("Mammalia");
@@ -1060,7 +1189,7 @@ describe("api client", () => {
 
       // Assert
       expect(result1.data).toEqual(result2.data);
-      expect(globalThis.fetch).toHaveBeenCalledTimes(1); // Only called once
+      expect(globalThis.fetch).toHaveBeenCalledTimes(2); // Search + detail (only on first request)
       expect(result2.data?.name).toBe("Mammalia");
     });
 

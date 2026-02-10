@@ -97,6 +97,7 @@ interface INaturalistTaxon {
   iconic_taxon_name?: string;
   wikipedia_url?: string;
   wikipedia_summary?: string;
+  observations_count?: number;
   default_photo?: {
     medium_url?: string;
   };
@@ -206,12 +207,11 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       return { data: [], error: null };
     }
 
-    const normalizedQuery = trimmedQuery.toLowerCase();
-
     // Use iNaturalist's relevance-ranked search endpoint.
     // Unlike /taxa, /search ranks by textual match score (better for "Tiger" → Panthera tigris).
     // Caveat: /search doesn't support the same filters (rank/taxon_id) we used before, so we
     // post-filter results client-side to keep only Animalia + species/subspecies taxa.
+    // Try to use iconic_taxa filter if supported by the search endpoint
     const url = `${INATURALIST_BASE_URL}/search?q=${encodeURIComponent(trimmedQuery)}&sources=taxa&per_page=${limit * 3}`;
 
     try {
@@ -222,74 +222,140 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       }
 
       const ANIMALIA_TAXON_ID = 48460;
+      const PLANTAE_TAXON_ID = 47126;
+      const FUNGI_TAXON_ID = 47125;
+
       const isAnimaliaDescendant = (taxon: INaturalistTaxon): boolean => {
+        // Check if this is Animalia itself
         if (taxon.id === ANIMALIA_TAXON_ID) return true;
-        if (Array.isArray(taxon.ancestor_ids) && taxon.ancestor_ids.includes(ANIMALIA_TAXON_ID)) {
+
+        // Explicitly exclude Plantae and Fungi by ID
+        if (taxon.id === PLANTAE_TAXON_ID || taxon.id === FUNGI_TAXON_ID) {
+          return false;
+        }
+
+        // Check iconic_taxon_name if available
+        if (taxon.iconic_taxon_name) {
+          // Explicitly exclude Plantae and Fungi
+          if (taxon.iconic_taxon_name === "Plantae" || taxon.iconic_taxon_name === "Fungi") {
+            return false;
+          }
+          // If it's Animalia, include it
+          if (taxon.iconic_taxon_name === "Animalia") {
+            return true;
+          }
+          // For other iconic taxa (Mammalia, Aves, etc.), check ancestry to verify
+          // they're descendants of Animalia
+        }
+
+        // Check ancestor_ids array (most reliable)
+        const ancestorIds = taxon.ancestor_ids || [];
+
+        // Exclude if Plantae or Fungi are in ancestor_ids
+        if (ancestorIds.includes(PLANTAE_TAXON_ID) || ancestorIds.includes(FUNGI_TAXON_ID)) {
+          return false;
+        }
+
+        // Include if Animalia is in ancestor_ids
+        if (ancestorIds.includes(ANIMALIA_TAXON_ID)) {
           return true;
         }
+
+        // Check ancestry string as fallback
         if (typeof taxon.ancestry === "string") {
-          const ancestryParts = taxon.ancestry.split("/").map(p => p.trim()).filter(Boolean);
-          return ancestryParts.includes(String(ANIMALIA_TAXON_ID));
+          const ancestryIds = taxon.ancestry
+            .split("/")
+            .map(p => Number.parseInt(p.trim(), 10))
+            .filter(n => !Number.isNaN(n));
+
+          // Exclude if Plantae or Fungi are in ancestry
+          if (ancestryIds.includes(PLANTAE_TAXON_ID) || ancestryIds.includes(FUNGI_TAXON_ID)) {
+            return false;
+          }
+
+          // Include if Animalia is in ancestry
+          if (ancestryIds.includes(ANIMALIA_TAXON_ID)) {
+            return true;
+          }
         }
+
+        // If no clear indication, default to false (be conservative)
         return false;
       };
 
       const allowedRanks = new Set(["species", "subspecies"]);
+      const MIN_OBSERVATIONS = 1000; // Minimum number of observations to include
 
-      // Map + validate all results (without fetching taxonomy for performance)
-      const candidates: Array<{
-        animal: Animal;
-        score: number;
-        idx: number;
-      }> = [];
+      // Helper function to process a single page of results
+      const processResults = (results: Array<INaturalistSearchResult<INaturalistTaxon>>) => {
+        const candidates: Array<{
+          animal: Animal;
+          score: number;
+          idx: number;
+        }> = [];
 
-      for (let idx = 0; idx < response.results.length; idx++) {
-        const item = response.results[idx];
-        const taxon = item?.record;
-        if (!taxon) continue;
+        for (let idx = 0; idx < results.length; idx++) {
+          const item = results[idx];
+          const taxon = item?.record;
+          if (!taxon) continue;
 
-        // Be defensive: only keep taxa results
-        const itemType = (item.type || "").toLowerCase();
-        if (itemType && itemType !== "taxon" && itemType !== "taxa") continue;
+          // Be defensive: only keep taxa results
+          const itemType = (item.type || "").toLowerCase();
+          if (itemType && itemType !== "taxon" && itemType !== "taxa") continue;
 
-        if (!taxon.rank || !allowedRanks.has(taxon.rank)) continue;
-        if (!isAnimaliaDescendant(taxon)) continue;
+          if (!taxon.rank || !allowedRanks.has(taxon.rank)) continue;
 
-        const mappedAnimal = this.mapToAnimalLightweight(taxon);
-        const validation = validateAnimalData(mappedAnimal);
-        if (!validation.valid || !validation.data) continue;
+          if (!isAnimaliaDescendant(taxon)) continue;
 
-        candidates.push({
-          animal: validation.data,
-          score: typeof item.score === "number" ? item.score : 0,
-          idx,
-        });
-      }
+          // Filter out animals with no or too few observations
+          const observationsCount = taxon.observations_count ?? 0;
+          if (observationsCount === 0 || observationsCount < MIN_OBSERVATIONS) {
+            continue;
+          }
 
-      // Rerank: keep iNat's relevance score, but strongly boost exact/common-name matches.
-      const boost = (a: Animal): number => {
-        const common = a.name.toLowerCase();
-        const sci = a.scientificName.toLowerCase();
-        const q = normalizedQuery;
+          const mappedAnimal = this.mapToAnimalLightweight(taxon);
+          const validation = validateAnimalData(mappedAnimal);
+          if (!validation.valid || !validation.data) continue;
 
-        if (common === q) return 100;
-        if (sci === q) return 90;
-        if (common.startsWith(q)) return 50;
-        if (sci.startsWith(q)) return 40;
-        if (common.includes(q)) return 10;
-        if (sci.includes(q)) return 5;
-        return 0;
+          candidates.push({
+            animal: validation.data,
+            score: typeof item.score === "number" ? item.score : 0,
+            idx,
+          });
+        }
+
+        return candidates;
       };
 
-      candidates.sort((a, b) => {
-        const aBoost = boost(a.animal);
-        const bBoost = boost(b.animal);
-        if (aBoost !== bBoost) return bBoost - aBoost;
+      // Process first page
+      let allCandidates = processResults(response.results);
+
+      // If we have fewer than 5 results, fetch next page
+      if (allCandidates.length < 5 && response.results.length === limit * 3) {
+        try {
+          const nextPageUrl = `${INATURALIST_BASE_URL}/search?q=${encodeURIComponent(trimmedQuery)}&sources=taxa&per_page=${limit * 3}&page=2`;
+          const nextPageResponse = await this.makeRequest<INaturalistSearchResponse>(nextPageUrl);
+
+          if (nextPageResponse.results && nextPageResponse.results.length > 0) {
+            const nextPageCandidates = processResults(nextPageResponse.results);
+            allCandidates = [...allCandidates, ...nextPageCandidates];
+          }
+        } catch (error) {
+          // If fetching next page fails, continue with what we have
+          this.logError("Animal Search Pagination Error", {
+            query: trimmedQuery,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+
+      // Sort by iNaturalist's relevance score (higher is better)
+      allCandidates.sort((a, b) => {
         if (a.score !== b.score) return b.score - a.score;
         return a.idx - b.idx; // stable fallback
       });
 
-      return { data: candidates.slice(0, limit).map(c => c.animal), error: null };
+      return { data: allCandidates.slice(0, limit).map(c => c.animal), error: null };
     } catch (error) {
       // For search, return empty array on error rather than error response
       // This allows the UI to continue working even if API fails
@@ -316,20 +382,33 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       return { data: cached, error: null };
     }
 
-    // 2. Cache miss - fetch from API
-    const url = `${INATURALIST_BASE_URL}/taxa?q=${encodeURIComponent(name)}`;
+    // 2. Cache miss - first search for the clade by name to get the ID
+    const searchUrl = `${INATURALIST_BASE_URL}/taxa?q=${encodeURIComponent(name)}`;
 
     try {
-      const response = await this.makeRequest<INaturalistResponse>(url);
+      const searchResponse = await this.makeRequest<INaturalistResponse>(searchUrl);
 
-      if (!response.results || response.results.length === 0) {
+      if (!searchResponse.results || searchResponse.results.length === 0) {
         return this.createErrorResponse(
           getUserFriendlyError("CLADE_NOT_FOUND"),
           "CLADE_NOT_FOUND",
         );
       }
 
-      const taxon = response.results[0]!;
+      // 3. Get the taxon ID from search results and fetch full taxon details
+      // This ensures we get wikipedia_summary and other complete data
+      const taxonId = searchResponse.results[0]!.id;
+      const detailUrl = `${INATURALIST_BASE_URL}/taxa/${taxonId}`;
+      const detailResponse = await this.makeRequest<INaturalistResponse>(detailUrl);
+
+      if (!detailResponse.results || detailResponse.results.length === 0) {
+        return this.createErrorResponse(
+          getUserFriendlyError("CLADE_NOT_FOUND"),
+          "CLADE_NOT_FOUND",
+        );
+      }
+
+      const taxon = detailResponse.results[0]!;
       const mappedClade = this.mapToClade(taxon);
 
       // Validate mapped clade data with comprehensive validation
@@ -361,7 +440,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
 
       return { data: validation.data, error: null };
     } catch (error) {
-      return this.handleError(error, url);
+      return this.handleError(error, searchUrl);
     }
   }
 
