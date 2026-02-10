@@ -8,6 +8,7 @@ export default defineNuxtConfig({
     "@nuxt/ui",
     "@nuxt/icon",
     "@pinia/nuxt",
+    "pinia-plugin-persistedstate/nuxt",
     "@nuxt/test-utils/module",
     "@nuxtjs/color-mode",
   ],

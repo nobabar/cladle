@@ -21,6 +21,11 @@ export type GameStatus = "idle" | "playing" | "won" | "lost";
 export type CompletionStatus = "playing" | "won" | "lost";
 
 /**
+ * Game Mode
+ */
+export type GameMode = "daily" | "free-play";
+
+/**
  * Guess Entry
  * Represents a single guess with its LCA result
  */
@@ -34,9 +39,33 @@ export interface GuessEntry {
 }
 
 /**
+ * Mode-specific game state snapshot
+ */
+interface ModeGameState {
+  /** Current game status */
+  status: GameStatus;
+  /** Target animal to guess */
+  target: Animal | null;
+  /** History of guesses */
+  guesses: GuessEntry[];
+  /** Maximum number of guesses allowed */
+  maxGuesses: number;
+  /** Tree data structure */
+  treeData: TreeData | null;
+  /** Map of node IDs to nodes for efficient lookup */
+  nodeMap: Map<string, TreeNode>;
+  /** Map of clade names to nodes for LCA lookup */
+  cladeMap: Map<string, TreeNode>;
+  /** Current puzzle date (YYYY-MM-DD format) */
+  puzzleDate: string;
+}
+
+/**
  * Game Store State
  */
 interface GameState {
+  /** Current game mode (daily or free-play) */
+  gameMode: GameMode | null;
   /** Current game status */
   status: GameStatus;
   /** Target animal to guess */
@@ -59,6 +88,10 @@ interface GameState {
   error: GameError | null;
   /** Loading state for tree rendering */
   isRenderingTree: boolean;
+  /** Stored state for daily puzzle mode */
+  dailyState: ModeGameState | null;
+  /** Stored state for free-play mode */
+  freePlayState: ModeGameState | null;
 }
 
 /**
@@ -69,6 +102,7 @@ interface GameState {
  */
 export const useGameStore = defineStore("game", {
   state: (): GameState => ({
+    gameMode: null,
     status: "idle",
     target: null,
     guesses: [],
@@ -80,7 +114,22 @@ export const useGameStore = defineStore("game", {
     isLoading: false,
     error: null,
     isRenderingTree: false,
+    dailyState: null,
+    freePlayState: null,
   }),
+
+  persist: {
+    key: "cladle-game-store",
+    storage: typeof window !== "undefined" ? localStorage : undefined,
+    // Only persist the game mode and mode-specific state snapshots
+    // The root-level state (status, target, guesses, etc.) is restored from
+    // dailyState or freePlayState when the app loads, so we don't need to persist it
+    pick: [
+      "gameMode",
+      "dailyState",
+      "freePlayState",
+    ],
+  },
 
   getters: {
     /**
@@ -160,6 +209,25 @@ export const useGameStore = defineStore("game", {
 
   actions: {
     /**
+     * Rebuild Maps from treeData (called after state is restored from localStorage)
+     */
+    rebuildMapsFromTree(): void {
+      // Clear existing maps
+      this.nodeMap = new Map();
+      this.cladeMap = new Map();
+
+      // Rebuild maps from treeData if it exists
+      if (this.treeData && this.treeData.root) {
+        // Clear parent references first
+        this.clearParentReferences(this.treeData.root);
+        // Rebuild maps and parent references
+        this.buildNodeMap(this.treeData.root);
+        // Clean up tree structure
+        this.cleanupChildrenArrays(this.treeData.root);
+      }
+    },
+
+    /**
      * Normalize clade name for consistent map lookups
      * @param name - Clade name to normalize
      * @returns Normalized name (lowercase, trimmed)
@@ -178,6 +246,137 @@ export const useGameStore = defineStore("game", {
       for (const child of node.children) {
         this.updateDepthRecursive(child, baseDepth + 1);
       }
+    },
+
+    /**
+     * Save current game state to mode-specific storage
+     * @param mode - The game mode to save state for
+     */
+    saveModeState(mode: GameMode): void {
+      // Deep clone tree data (handle circular references by storing minimal data)
+      let savedTreeData: TreeData | null = null;
+      if (this.treeData) {
+        // Store tree data - we'll rebuild maps from tree when restoring
+        savedTreeData = JSON.parse(JSON.stringify(this.treeData, (key, value) => {
+          // Skip parent references to avoid circular references
+          if (key === "parent") {
+            return undefined;
+          }
+          return value;
+        }));
+      }
+
+      // Deep clone target animal
+      const savedTarget = this.target ? JSON.parse(JSON.stringify(this.target)) : null;
+
+      // Deep clone guesses
+      const savedGuesses = this.guesses.map(guess => JSON.parse(JSON.stringify(guess)));
+
+      const state: ModeGameState = {
+        status: this.status,
+        target: savedTarget,
+        guesses: savedGuesses,
+        maxGuesses: this.maxGuesses,
+        treeData: savedTreeData,
+        // Store maps as empty - we'll rebuild them from tree when restoring
+        nodeMap: new Map(),
+        cladeMap: new Map(),
+        puzzleDate: this.puzzleDate,
+      };
+
+      // Deep clone the entire state object to avoid any reference sharing
+      // Note: Maps will be empty, but that's fine - we rebuild them from tree
+      const clonedState = JSON.parse(JSON.stringify(state, (key, value) => {
+        // Skip Maps - they'll be empty anyway and we rebuild from tree
+        if (value instanceof Map) {
+          return {};
+        }
+        return value;
+      }));
+
+      // Reconstruct the state object properly
+      const finalState: ModeGameState = {
+        status: clonedState.status,
+        target: clonedState.target,
+        guesses: clonedState.guesses,
+        maxGuesses: clonedState.maxGuesses,
+        treeData: clonedState.treeData,
+        nodeMap: new Map(),
+        cladeMap: new Map(),
+        puzzleDate: clonedState.puzzleDate,
+      };
+
+      if (mode === "daily") {
+        this.dailyState = finalState;
+      } else {
+        this.freePlayState = finalState;
+      }
+    },
+
+    /**
+     * Restore game state from mode-specific storage
+     * @param mode - The game mode to restore state for
+     */
+    restoreModeState(mode: GameMode): void {
+      const savedState = mode === "daily" ? this.dailyState : this.freePlayState;
+
+      if (savedState) {
+        // Deep clone everything to avoid reference sharing
+        const state = JSON.parse(JSON.stringify(savedState));
+
+        this.status = state.status;
+        this.target = state.target;
+        this.guesses = state.guesses;
+        this.maxGuesses = state.maxGuesses;
+        this.puzzleDate = state.puzzleDate;
+
+        // Restore tree data and rebuild maps with parent references
+        if (state.treeData) {
+          this.treeData = state.treeData;
+          // Rebuild node map and clade map from tree, restoring parent references
+          this.nodeMap = new Map();
+          this.cladeMap = new Map();
+          if (this.treeData && this.treeData.root) {
+            // Clear any existing parent references first
+            this.clearParentReferences(this.treeData.root);
+            // Rebuild maps and parent references based on children arrays
+            this.buildNodeMap(this.treeData.root);
+            // Clean up children arrays to remove nodes where parent doesn't match
+            this.cleanupChildrenArrays(this.treeData.root);
+          }
+        } else {
+          this.treeData = null;
+          this.nodeMap = new Map();
+          this.cladeMap = new Map();
+        }
+      } else {
+        // No saved state, reset to initial
+        this.status = "idle";
+        this.target = null;
+        this.guesses = [];
+        this.maxGuesses = DEFAULT_MAX_GUESSES;
+        this.treeData = null;
+        this.nodeMap = new Map();
+        this.cladeMap = new Map();
+        this.puzzleDate = mode === "daily" ? this.getCurrentDate() : "";
+      }
+    },
+
+    /**
+     * Switch to a different game mode, saving current state and restoring the other mode's state
+     * @param newMode - The game mode to switch to
+     */
+    switchGameMode(newMode: GameMode): void {
+      // Save current state if we're in a mode
+      if (this.gameMode) {
+        this.saveModeState(this.gameMode);
+      }
+
+      // Switch to new mode
+      this.gameMode = newMode;
+
+      // Restore state for new mode
+      this.restoreModeState(newMode);
     },
 
     /**
@@ -202,18 +401,80 @@ export const useGameStore = defineStore("game", {
      * @param target - The target animal to guess
      * @param maxGuesses - Maximum number of guesses (default: DEFAULT_MAX_GUESSES)
      * @param puzzleDate - Current puzzle date (YYYY-MM-DD format, optional)
+     *                    If empty string, indicates free play mode (no daily puzzle date)
+     *                    If not provided (undefined), uses current date for daily puzzle
+     * @param gameMode - The game mode (daily or free-play)
+     * @param forceNew - Force initialization of a new game even if state exists (for reset functionality)
      */
-    initializeGame(target: Animal, maxGuesses: number = DEFAULT_MAX_GUESSES, puzzleDate: string = ""): void {
-      this.setTargetAnimal(target);
-      this.guesses = [];
-      this.status = "playing";
-      this.maxGuesses = maxGuesses;
-      this.nodeMap = new Map();
-      this.cladeMap = new Map();
-      this.puzzleDate = puzzleDate || this.getCurrentDate();
+    initializeGame(
+      target: Animal,
+      maxGuesses: number = DEFAULT_MAX_GUESSES,
+      puzzleDate?: string,
+      gameMode?: GameMode,
+      forceNew: boolean = false,
+    ): void {
+      // Determine game mode from puzzleDate if not provided
+      const mode: GameMode = gameMode || (puzzleDate === "" ? "free-play" : "daily");
 
-      // Initialize tree with root and target
-      this.treeData = this.initializeTree(target);
+      // If switching modes, save current state and restore the other mode's state
+      if (this.gameMode && this.gameMode !== mode) {
+        this.switchGameMode(mode);
+        // After switching modes and restoring state, check if we have valid restored state
+        // If we do, and we're not forcing a new game, don't initialize a new game
+        if (!forceNew && this.target && this.status !== "idle") {
+          // We have valid restored state, don't overwrite it
+          return;
+        }
+      } else if (!this.gameMode) {
+        // First time initializing, set the mode
+        this.gameMode = mode;
+        // Try to restore any saved state for this mode
+        this.restoreModeState(mode);
+        // If we have valid restored state, don't initialize a new game unless forced
+        if (!forceNew && this.target && this.status !== "idle") {
+          // We have valid restored state, don't overwrite it
+          return;
+        }
+      }
+
+      // Determine expected puzzle date for comparison
+      const expectedPuzzleDate = puzzleDate !== undefined ? puzzleDate : (mode === "daily" ? this.getCurrentDate() : "");
+
+      // Check if we should initialize a new game:
+      // 1. forceNew is true (explicit reset)
+      // 2. We don't have a target (no restored state)
+      // 3. For daily mode: puzzle date changed (new day)
+      // 4. For free play: if we're calling with empty string and no target, it's a new game
+      const hasValidState = this.target !== null && this.target !== undefined;
+      const isNewDay = mode === "daily" && this.puzzleDate !== expectedPuzzleDate;
+      const isFreePlayNewGame = mode === "free-play" && puzzleDate === "" && !hasValidState;
+
+      const shouldInitializeNew = forceNew || !hasValidState || isNewDay || isFreePlayNewGame;
+
+      if (shouldInitializeNew) {
+        this.setTargetAnimal(target);
+        this.guesses = [];
+        this.status = "playing";
+        this.maxGuesses = maxGuesses;
+        this.nodeMap = new Map();
+        this.cladeMap = new Map();
+        // Only use current date if puzzleDate is not provided (undefined)
+        // Empty string explicitly means free play mode (no puzzle date)
+        this.puzzleDate = expectedPuzzleDate;
+
+        // Initialize tree with root and target
+        this.treeData = this.initializeTree(target);
+
+        // Rebuild maps from tree
+        if (this.treeData && this.treeData.root) {
+          this.buildNodeMap(this.treeData.root);
+        }
+
+        // Save state after initializing new game
+        if (this.gameMode) {
+          this.saveModeState(this.gameMode);
+        }
+      }
     },
 
     /**
@@ -373,6 +634,14 @@ export const useGameStore = defineStore("game", {
       } else if (this.guessesRemaining <= 0) {
         this.status = "lost";
       }
+
+      // Auto-save state for current mode after each guess
+      // Use setTimeout to ensure state is fully updated before saving
+      if (this.gameMode) {
+        setTimeout(() => {
+          this.saveModeState(this.gameMode!);
+        }, 0);
+      }
     },
 
     /**
@@ -391,6 +660,10 @@ export const useGameStore = defineStore("game", {
       // Rebuild node map first to ensure all existing nodes are accessible
       // This is needed for computeLCAWithRelatedGuesses to find previous guess nodes
       this.buildNodeMap(this.treeData.root);
+
+      // Clean up tree structure to remove any duplicate node references
+      // This ensures the tree is in a clean state before processing the new guess
+      this.cleanupChildrenArrays(this.treeData.root);
 
       // Find or create LCA node for guess-target LCA
       // If LCA is species-level, find the most specific clade-level ancestor instead
@@ -879,26 +1152,54 @@ export const useGameStore = defineStore("game", {
     moveNodeToLCANode(node: TreeNode, lcaNode: TreeNode): void {
       // Check if node is already a child of the LCA
       if (node.parent?.id === lcaNode.id) {
+        // Even if parent reference is correct, ensure it's not duplicated elsewhere
+        this.removeNodeFromAllParents(node, lcaNode);
         return;
       }
 
-      // Remove node from its current parent
-      if (node.parent) {
-        const currentParent = node.parent;
-        const nodeIndex = currentParent.children.findIndex(
-          child => child.id === node.id,
-        );
-        if (nodeIndex !== -1) {
-          currentParent.children.splice(nodeIndex, 1);
-        }
-      }
+      // Remove node from ALL possible parent locations (handles restore corruption)
+      this.removeNodeFromAllParents(node, lcaNode);
 
-      // Add node to LCA node
-      lcaNode.children.push(node);
+      // Add node to LCA node (only if not already there)
+      if (!lcaNode.children.some(child => child.id === node.id)) {
+        lcaNode.children.push(node);
+      }
       node.parent = lcaNode;
 
       // Update depth recursively for the moved node and all its descendants
       this.updateDepthRecursive(node, (lcaNode.depth || 0) + 1);
+    },
+
+    /**
+     * Remove a node from all possible parent locations in the tree
+     * This handles cases where a node might appear in multiple children arrays after restore
+     * @param node - The node to remove
+     * @param exceptParent - Parent to keep the node in (optional)
+     */
+    removeNodeFromAllParents(node: TreeNode, exceptParent?: TreeNode): void {
+      if (!this.treeData || !this.treeData.root) {
+        return;
+      }
+
+      // Recursively search and remove node from all children arrays
+      const removeFromNode = (parentNode: TreeNode): void => {
+        // Remove node from this parent's children array (if it's not the exception)
+        if (parentNode !== exceptParent) {
+          const nodeIndex = parentNode.children.findIndex(
+            child => child.id === node.id,
+          );
+          if (nodeIndex !== -1) {
+            parentNode.children.splice(nodeIndex, 1);
+          }
+        }
+
+        // Recursively check all children
+        for (const child of parentNode.children) {
+          removeFromNode(child);
+        }
+      };
+
+      removeFromNode(this.treeData.root);
     },
 
     /**
@@ -911,11 +1212,53 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
-     * Build node map recursively from root
+     * Clear parent references recursively (used before restoring tree)
      * @param node - Starting node
      */
-    buildNodeMap(node: TreeNode): void {
+    clearParentReferences(node: TreeNode): void {
+      node.parent = undefined;
+      for (const child of node.children) {
+        this.clearParentReferences(child);
+      }
+    },
+
+    /**
+     * Clean up children arrays to remove nodes where parent reference doesn't match
+     * This fixes cases where a node appears in multiple children arrays after restore
+     * @param node - Starting node
+     */
+    cleanupChildrenArrays(node: TreeNode): void {
+      // Filter children to only keep nodes where this node is the parent
+      node.children = node.children.filter(child => child.parent === node);
+
+      // Remove duplicate node IDs from children array
+      const seenIds = new Set<string>();
+      node.children = node.children.filter((child) => {
+        if (seenIds.has(child.id)) {
+          return false; // Duplicate, remove it
+        }
+        seenIds.add(child.id);
+        return true;
+      });
+
+      // Recursively clean up children
+      for (const child of node.children) {
+        this.cleanupChildrenArrays(child);
+      }
+    },
+
+    /**
+     * Build node map recursively from root
+     * @param node - Starting node
+     * @param parent - Parent node (optional, for restoring parent references)
+     */
+    buildNodeMap(node: TreeNode, parent?: TreeNode): void {
       this.nodeMap.set(node.id, node);
+
+      // Restore parent reference if provided
+      if (parent) {
+        node.parent = parent;
+      }
 
       // Also add to clade map if it's a clade (use normalized key)
       if (node.type === "clade" && node.name) {
@@ -924,7 +1267,7 @@ export const useGameStore = defineStore("game", {
       }
 
       for (const child of node.children) {
-        this.buildNodeMap(child);
+        this.buildNodeMap(child, node);
       }
     },
 
@@ -978,7 +1321,7 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
-     * Reset game state
+     * Reset game state for current mode
      */
     resetGame(): void {
       this.status = "idle";
