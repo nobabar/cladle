@@ -52,7 +52,8 @@ describe("mermaidExporter", () => {
         guesses: [],
       };
 
-      const result = treeToMermaid(treeData);
+      // Pass isDevMode: true to see target animal names in tests
+      const result = treeToMermaid(treeData, true);
 
       expect(result).toContain("graph TD");
       expect(result).toContain("Animalia");
@@ -137,7 +138,8 @@ describe("mermaidExporter", () => {
         guesses: [guessNode],
       };
 
-      const result = treeToMermaid(treeData);
+      // Pass isDevMode: true to see target animal names in tests
+      const result = treeToMermaid(treeData, true);
 
       expect(result).toContain("graph TD");
       expect(result).toContain("Animalia");
@@ -239,7 +241,8 @@ describe("mermaidExporter", () => {
         guesses: [],
       };
 
-      const result = treeToMermaid(treeData);
+      // Pass isDevMode: true to see target animal names and (Target) indicator in tests
+      const result = treeToMermaid(treeData, true);
 
       expect(result).toContain("%% Styling:");
       expect(result).toContain("🐾");
