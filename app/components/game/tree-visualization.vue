@@ -67,6 +67,11 @@ const lastRenderedLayoutHash = ref<string | null>(null);
 const isRendering = ref(false);
 
 /**
+ * Check if we're in development mode
+ */
+const isDevMode = computed(() => import.meta.dev);
+
+/**
  * Check if tree data is available
  */
 const hasTreeData = computed(() => props.treeData !== null && props.treeData !== undefined);
@@ -453,9 +458,11 @@ function renderTreeWithRough(): void {
           nodeGroup.setAttribute("aria-selected", focusedNodeId.value === node.id ? "true" : "false");
           nodeGroup.setAttribute("role", "button");
           // Set tabindex: focused node gets "0", first node gets "0" if none focused, others get "-1"
+          // In production, target nodes should not be focusable
           const isFirstNode = Array.from(computedNodes.value.values()).indexOf(node) === 0;
-          const shouldBeFocusable = focusedNodeId.value === node.id
-            || (!focusedNodeId.value && isFirstNode);
+          const shouldBeFocusable = (focusedNodeId.value === node.id
+            || (!focusedNodeId.value && isFirstNode))
+          && (isDevMode.value || !node.isTarget);
           nodeGroup.setAttribute("tabindex", shouldBeFocusable ? "0" : "-1");
 
           // Add an invisible hit area rectangle so the group is clickable
@@ -506,6 +513,11 @@ function renderTreeWithRough(): void {
 
           // Add click handlers
           // Handle click event - this should fire on first click
+          // In production, disable pointer events for target nodes to prevent clicking
+          if (!isDevMode.value && node.isTarget) {
+            nodeGroup.setAttribute("style", "pointer-events: none;");
+            hitArea.setAttribute("cursor", "default");
+          }
           nodeGroup.addEventListener("click", (e) => {
             e.stopPropagation(); // Prevent event bubbling
             handleNodeClick(node);
@@ -605,6 +617,7 @@ watch(
  * Update tabindex for all tree nodes based on focused node
  * Only the focused node should have tabindex="0", others should have "-1"
  * This enables arrow key navigation while preventing tab from cycling through all nodes
+ * In production, target nodes should never be focusable
  */
 function updateNodeTabIndices(): void {
   if (!nodesGroupRef.value) {
@@ -614,7 +627,11 @@ function updateNodeTabIndices(): void {
   const nodeGroups = nodesGroupRef.value.querySelectorAll("[data-node-id]");
   nodeGroups.forEach((group) => {
     const nodeId = group.getAttribute("data-node-id");
-    if (nodeId === focusedNodeId.value) {
+    const isTargetNode = group.classList.contains("tree-node--target");
+    // In production, target nodes should not be focusable
+    if (!isDevMode.value && isTargetNode) {
+      group.setAttribute("tabindex", "-1");
+    } else if (nodeId === focusedNodeId.value) {
       group.setAttribute("tabindex", "0");
     } else {
       group.setAttribute("tabindex", "-1");
@@ -633,12 +650,20 @@ function getNodeAriaLabel(node: TreeNode): string {
     parts.push("Animal");
     if (node.isTarget) {
       parts.push("target");
+      // In production, don't reveal the target animal name in aria-label
+      if (isDevMode.value) {
+        parts.push(node.name);
+      } else {
+        parts.push("unknown");
+      }
+    } else {
+      parts.push(node.name);
     }
     if (node.isGuess) {
       parts.push("guessed");
     }
-    parts.push(node.name);
-    if (node.data?.scientificName) {
+    // Only include scientific name if not target in production
+    if (node.data?.scientificName && (isDevMode.value || !node.isTarget)) {
       parts.push(`scientific name: ${node.data.scientificName}`);
     }
   } else {
@@ -659,6 +684,10 @@ function getNodeAriaLabel(node: TreeNode): string {
  * @param node - The tree node that was clicked
  */
 function handleNodeClick(node: TreeNode): void {
+  // In production, prevent clicking on target nodes to avoid revealing the answer
+  if (!isDevMode.value && node.isTarget) {
+    return;
+  }
   focusedNodeId.value = node.id;
   updateNodeTabIndices();
   // Emit node click event for parent component to handle information display
@@ -674,7 +703,11 @@ function handleKeyDown(event: KeyboardEvent): void {
     return;
   }
 
-  const nodes = Array.from(computedNodes.value.values());
+  // In production, filter out target nodes from navigation
+  const allNodes = Array.from(computedNodes.value.values());
+  const nodes = isDevMode.value
+    ? allNodes
+    : allNodes.filter(n => !n.isTarget);
   const currentIndex = focusedNodeId.value
     ? nodes.findIndex(n => n.id === focusedNodeId.value)
     : -1;
@@ -842,7 +875,7 @@ async function copyTreeAsMermaid(): Promise<void> {
   }
 
   try {
-    const mermaidText = treeToMermaid(props.treeData);
+    const mermaidText = treeToMermaid(props.treeData, isDevMode.value);
     await navigator.clipboard.writeText(mermaidText);
     isCopied.value = true;
     setTimeout(() => {
@@ -864,9 +897,9 @@ async function copyTreeAsMermaid(): Promise<void> {
     tabindex="0"
     @keydown="handleKeyDown"
   >
-    <!-- Copy Button -->
+    <!-- Copy Button (only in dev mode) -->
     <button
-      v-if="hasTreeData"
+      v-if="hasTreeData && isDevMode"
       type="button"
       class="tree-visualization__copy-button"
       :aria-label="isCopied ? 'Copied to clipboard' : 'Copy tree as Mermaid diagram'"
