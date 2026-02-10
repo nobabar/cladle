@@ -574,17 +574,34 @@ export const useGameStore = defineStore("game", {
           }
           // Verify that the existing LCA is actually an ancestor of the new LCA
           if (existingLCA?.path && lcaResult.path) {
-            // Check if existing LCA appears in new LCA's path at the correct depth
-            if (depth >= 0 && depth < lcaResult.path.length) {
+            // Check if existing LCA's path is a proper prefix of the new LCA's path
+            // This ensures the existing LCA is actually a taxonomic ancestor
+            if (depth >= 0 && depth < lcaResult.path.length && depth < existingLCA.path.length) {
+              // Verify that all path elements up to the existing LCA's depth match
+              for (let i = 0; i <= depth; i++) {
+                const existingPathElement = existingLCA.path[i];
+                const newPathElement = lcaResult.path[i];
+                if (
+                  !existingPathElement
+                  || !newPathElement
+                  || this.normalizeCladeName(existingPathElement)
+                  !== this.normalizeCladeName(newPathElement)
+                ) {
+                  return false; // Paths don't match, not an ancestor
+                }
+              }
+              // Also verify that the clade name at the depth matches
               const ancestorAtDepth = lcaResult.path[depth];
-              return !!(
+              if (
                 ancestorAtDepth
                 && this.normalizeCladeName(ancestorAtDepth)
                 === this.normalizeCladeName(existingLCA.clade)
-              );
+              ) {
+                return true; // Verified ancestor relationship
+              }
             }
           }
-          return true; // If we can't verify, include it anyway
+          return false; // If we can't verify, exclude it to prevent incorrect placement
         })
         .sort((a, b) => b.depth - a.depth); // Sort by depth descending (most specific first)
 
