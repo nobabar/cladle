@@ -26,9 +26,10 @@ function escapeMermaidLabel(text: string): string {
 /**
  * Get node label with styling indicators
  * @param node - Tree node
+ * @param isDevMode - Whether we're in development mode
  * @returns Formatted label string
  */
-function getNodeLabel(node: TreeNode): string {
+function getNodeLabel(node: TreeNode, isDevMode: boolean = false): string {
   const parts: string[] = [];
 
   // Add type indicator
@@ -38,11 +39,15 @@ function getNodeLabel(node: TreeNode): string {
     parts.push("🌳");
   }
 
-  // Add name
-  parts.push(node.name);
+  // Add name - in production, don't reveal target animal name
+  if (node.isTarget && !isDevMode) {
+    parts.push("?");
+  } else {
+    parts.push(node.name);
+  }
 
-  // Add special indicators
-  if (node.isTarget) {
+  // Add special indicators - in production, don't reveal target indicator
+  if (node.isTarget && isDevMode) {
     parts.push("(Target)");
   }
   if (node.isGuess) {
@@ -60,14 +65,16 @@ function getNodeLabel(node: TreeNode): string {
  * @param node - Current tree node
  * @param visited - Set of visited node IDs to prevent cycles
  * @param lines - Array to collect Mermaid lines
+ * @param isDevMode - Whether we're in development mode
  */
 function buildMermaidLines(
   node: TreeNode,
   visited: Set<string>,
   lines: string[],
+  isDevMode: boolean = false,
 ): void {
   const nodeId = sanitizeNodeId(node.id);
-  const label = getNodeLabel(node);
+  const label = getNodeLabel(node, isDevMode);
 
   // Skip if already visited (prevent cycles)
   if (visited.has(nodeId)) {
@@ -82,13 +89,13 @@ function buildMermaidLines(
       if (!child) continue; // Skip null/undefined children
 
       const childId = sanitizeNodeId(child.id);
-      const childLabel = getNodeLabel(child);
+      const childLabel = getNodeLabel(child, isDevMode);
 
       // Add connection line
       lines.push(`    ${nodeId}["${label}"] --> ${childId}["${childLabel}"]`);
 
       // Recursively process child
-      buildMermaidLines(child, visited, lines);
+      buildMermaidLines(child, visited, lines, isDevMode);
     }
   }
 }
@@ -96,9 +103,10 @@ function buildMermaidLines(
 /**
  * Convert TreeData to Mermaid flowchart format
  * @param treeData - Tree data structure
+ * @param isDevMode - Whether we're in development mode (defaults to false for production safety)
  * @returns Mermaid diagram string
  */
-export function treeToMermaid(treeData: TreeData | null): string {
+export function treeToMermaid(treeData: TreeData | null, isDevMode: boolean = false): string {
   if (!treeData || !treeData.root) {
     return "graph TD\n    Empty[No tree data available]";
   }
@@ -110,14 +118,16 @@ export function treeToMermaid(treeData: TreeData | null): string {
   lines.push("graph TD");
 
   // Build the tree structure starting from root
-  buildMermaidLines(treeData.root, visited, lines);
+  buildMermaidLines(treeData.root, visited, lines, isDevMode);
 
   // Add styling information as comments
   lines.push("");
   lines.push("    %% Styling:");
   lines.push("    %% 🐾 = Animal node");
   lines.push("    %% 🌳 = Clade node");
-  lines.push("    %% (Target) = Target animal");
+  if (isDevMode) {
+    lines.push("    %% (Target) = Target animal");
+  }
   lines.push("    %% (Guess) = Guessed animal");
   lines.push("    %% (LCA) = Last Common Ancestor");
 
