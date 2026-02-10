@@ -1050,9 +1050,9 @@ onUnmounted(() => {
   height: 32px;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.9) 0%,
-    rgba(255, 255, 255, 0.7) 50%,
-    rgba(255, 255, 255, 0.5) 100%
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0.4) 100%
   );
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 2px 2px 0 0;
@@ -1062,7 +1062,7 @@ onUnmounted(() => {
   justify-content: center;
   box-shadow:
     0 -2px 4px rgba(0, 0, 0, 0.1),
-    inset 0 1px 2px rgba(255, 255, 255, 0.8);
+    inset 0 1px 2px rgba(255, 255, 255, 0.6);
   transition: all 0.2s ease;
   z-index: 100;
 }
@@ -1070,13 +1070,13 @@ onUnmounted(() => {
 .information-panel-postit__sticky-tab:hover {
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(255, 255, 255, 0.8) 50%,
-    rgba(255, 255, 255, 0.6) 100%
+    rgba(255, 255, 255, 0.65) 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0.45) 100%
   );
   box-shadow:
     0 -2px 6px rgba(0, 0, 0, 0.15),
-    inset 0 1px 2px rgba(255, 255, 255, 0.9);
+    inset 0 1px 2px rgba(255, 255, 255, 0.7);
   transform: translateY(-2px);
 }
 
@@ -1093,11 +1093,11 @@ onUnmounted(() => {
 .dark .information-panel-postit__sticky-tab {
   background: linear-gradient(
     180deg,
-    rgba(30, 41, 59, 0.95) 0%,
-    rgba(36, 49, 65, 0.85) 50%,
-    rgba(42, 56, 73, 0.75) 100%
+    rgba(160, 140, 100, 0.5) 0%,
+    rgba(150, 130, 90, 0.45) 50%,
+    rgba(140, 120, 80, 0.4) 100%
   );
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.12);
   box-shadow:
     0 -2px 4px rgba(0, 0, 0, 0.4),
     inset 0 1px 2px rgba(255, 255, 255, 0.1),
@@ -1107,14 +1107,14 @@ onUnmounted(() => {
 .dark .information-panel-postit__sticky-tab:hover {
   background: linear-gradient(
     180deg,
-    rgba(36, 49, 65, 0.98) 0%,
-    rgba(42, 56, 73, 0.9) 50%,
-    rgba(48, 64, 81, 0.8) 100%
+    rgba(170, 150, 110, 0.55) 0%,
+    rgba(160, 140, 100, 0.5) 50%,
+    rgba(150, 130, 90, 0.45) 100%
   );
   box-shadow:
     0 -2px 6px rgba(0, 0, 0, 0.5),
     inset 0 1px 2px rgba(255, 255, 255, 0.15),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.3);
+    inset 0 -1px 1px rgba(0, 0, 0, 0.25);
 }
 
 .information-panel-postit__sticky-tab-texture {
