@@ -505,8 +505,14 @@ function renderTreeWithRough(): void {
           }
 
           // Add click handlers
-          nodeGroup.addEventListener("click", () => handleNodeClick(node));
+          // Handle click event - this should fire on first click
+          nodeGroup.addEventListener("click", (e) => {
+            e.stopPropagation(); // Prevent event bubbling
+            handleNodeClick(node);
+          });
           nodeGroup.addEventListener("focus", () => {
+            // Only update focus state, don't trigger panel opening
+            // Panel opening is handled by click event
             focusedNodeId.value = node.id;
             // Update tabindex for all nodes when one is focused
             nextTick(() => {
@@ -552,7 +558,7 @@ function renderTreeWithRough(): void {
 // Watch for layout changes and redraw tree
 // Only triggers when layout actually changes (not on every reactive update)
 watch(
-  [computedLayout, focusedNodeId],
+  computedLayout,
   () => {
     // Use nextTick to batch updates and avoid redundant renders
     nextTick(() => {
@@ -560,6 +566,26 @@ watch(
     });
   },
   { deep: false }, // Shallow watch is sufficient - we check hash for actual changes
+);
+
+// Watch for focus changes to update tab indices without full re-render
+// This prevents re-renders from interfering with click events
+watch(
+  focusedNodeId,
+  () => {
+    // Update tab indices when focus changes, but don't trigger full re-render
+    nextTick(() => {
+      updateNodeTabIndices();
+      // Update aria-selected attributes without full re-render
+      if (nodesGroupRef.value) {
+        const nodeGroups = nodesGroupRef.value.querySelectorAll("[data-node-id]");
+        nodeGroups.forEach((group) => {
+          const nodeId = group.getAttribute("data-node-id");
+          group.setAttribute("aria-selected", focusedNodeId.value === nodeId ? "true" : "false");
+        });
+      }
+    });
+  },
 );
 
 // Watch for color mode changes to trigger re-render
