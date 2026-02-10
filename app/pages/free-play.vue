@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch, watchEffect } from "vue";
+import { computed, nextTick, onMounted, ref, watch, watchEffect } from "vue";
 import type { Animal } from "~/types/animal";
 import type { TreeNode } from "~/types/tree";
 import type { ValidationError } from "~/utils/animalValidator";
 import { DEFAULT_MAX_GUESSES, useGameStore } from "~/stores/gameStore";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 import { apiErrorToGameError } from "~/utils/errorMessages";
-import { selectTargetAnimalWithDifficulty } from "~/utils/puzzleSelector";
+import { selectRandomTargetAnimal } from "~/utils/puzzleSelector";
 
-// Main game page - foundation for game interface
-// This page will be extended with game components in future stories
+// Free play game page - allows players to reset and get a new random animal anytime
 
 const gameStore = useGameStore();
 const api = useBiologicalAPI();
@@ -153,8 +152,8 @@ watch(
 );
 
 /**
- * Start a new game with a target animal selected from the puzzle selector
- * Uses the current date to deterministically select a target animal
+ * Start a new game with a random target animal (free play mode)
+ * Uses random selection to get a new animal each time
  */
 async function startNewGame() {
   // Clear any previous errors
@@ -164,13 +163,10 @@ async function startNewGame() {
   gameStore.setLoading(true);
 
   try {
-    // Get current date in YYYY-MM-DD format
-    const puzzleDate = gameStore.getCurrentDate();
-
-    // Select target animal based on current date (deterministic selection)
+    // Select random target animal (non-deterministic for free play)
     let targetAnimalId: string;
     try {
-      targetAnimalId = selectTargetAnimalWithDifficulty(puzzleDate);
+      targetAnimalId = selectRandomTargetAnimal();
     } catch (error) {
       // If puzzle selector fails, fallback to default animal
       console.error("Failed to select target animal:", error);
@@ -202,13 +198,15 @@ async function startNewGame() {
           "Panthera tigris",
         ],
       };
-      gameStore.initializeGame(fallbackTarget, DEFAULT_MAX_GUESSES, puzzleDate, "daily");
+      // Free play mode: use empty string for puzzleDate to indicate it's not a daily puzzle
+      gameStore.initializeGame(fallbackTarget, DEFAULT_MAX_GUESSES, "", "free-play");
       gameStore.setLoading(false);
       return;
     }
 
-    // Use the real animal data from the API and initialize with puzzle date and daily mode
-    gameStore.initializeGame(animalResponse.data, DEFAULT_MAX_GUESSES, puzzleDate, "daily");
+    // Use the real animal data from the API
+    // Free play mode: use empty string for puzzleDate to indicate it's not a daily puzzle
+    gameStore.initializeGame(animalResponse.data, DEFAULT_MAX_GUESSES, "", "free-play");
     gameStore.setLoading(false);
   } catch (error) {
     gameStore.setLoading(false);
@@ -224,7 +222,6 @@ async function startNewGame() {
     }
 
     // Fallback to hardcoded data on error
-    const puzzleDate = gameStore.getCurrentDate();
     const fallbackTarget: Animal = {
       id: "41967",
       name: "Tiger",
@@ -239,7 +236,96 @@ async function startNewGame() {
         "Panthera tigris",
       ],
     };
-    gameStore.initializeGame(fallbackTarget, DEFAULT_MAX_GUESSES, puzzleDate, "daily");
+    // Free play mode: use empty string for puzzleDate
+    gameStore.initializeGame(fallbackTarget, DEFAULT_MAX_GUESSES, "", "free-play");
+  }
+}
+
+/**
+ * Reset game and start a new one with a different random animal
+ */
+async function resetGame() {
+  // Clear any previous errors
+  gameStore.clearError();
+
+  // Set loading state
+  gameStore.setLoading(true);
+
+  try {
+    // Select random target animal (non-deterministic for free play)
+    let targetAnimalId: string;
+    try {
+      targetAnimalId = selectRandomTargetAnimal();
+    } catch (error) {
+      // If puzzle selector fails, fallback to default animal
+      console.error("Failed to select target animal:", error);
+      targetAnimalId = "41967"; // Tiger as fallback
+    }
+
+    // Fetch full animal data from API to ensure we have complete, accurate data
+    const animalResponse = await api.fetchAnimalData(targetAnimalId);
+
+    if (animalResponse.error || !animalResponse.data) {
+      // Convert API error to GameError
+      if (animalResponse.error) {
+        const gameError = apiErrorToGameError(animalResponse.error);
+        gameStore.setError(gameError);
+      }
+
+      // Fallback to hardcoded data if API fails
+      const fallbackTarget: Animal = {
+        id: targetAnimalId,
+        name: "Tiger",
+        scientificName: "Panthera tigris",
+        taxonomy: [
+          "Animalia",
+          "Chordata",
+          "Mammalia",
+          "Carnivora",
+          "Felidae",
+          "Panthera",
+          "Panthera tigris",
+        ],
+      };
+      // Force new game by passing forceNew flag
+      gameStore.initializeGame(fallbackTarget, DEFAULT_MAX_GUESSES, "", "free-play", true);
+      gameStore.setLoading(false);
+      return;
+    }
+
+    // Force new game by passing forceNew flag
+    gameStore.initializeGame(animalResponse.data, DEFAULT_MAX_GUESSES, "", "free-play", true);
+    gameStore.setLoading(false);
+  } catch (error) {
+    gameStore.setLoading(false);
+
+    // Convert error to GameError
+    if (error instanceof Error) {
+      gameStore.setError({
+        message: "Failed to start game. Please try again.",
+        code: "GAME_START_ERROR",
+        type: "network",
+        details: error,
+      });
+    }
+
+    // Fallback to hardcoded data on error
+    const fallbackTarget: Animal = {
+      id: "41967",
+      name: "Tiger",
+      scientificName: "Panthera tigris",
+      taxonomy: [
+        "Animalia",
+        "Chordata",
+        "Mammalia",
+        "Carnivora",
+        "Felidae",
+        "Panthera",
+        "Panthera tigris",
+      ],
+    };
+    // Force new game by passing forceNew flag
+    gameStore.initializeGame(fallbackTarget, DEFAULT_MAX_GUESSES, "", "free-play", true);
   }
 }
 
@@ -273,93 +359,48 @@ watchEffect(() => {
 });
 
 /**
- * Check if we need to initialize a new daily puzzle (e.g., date changed)
- */
-function checkAndInitializeDailyPuzzle() {
-  // If we're switching from another mode, restore daily state
-  if (gameStore.gameMode && gameStore.gameMode !== "daily") {
-    gameStore.switchGameMode("daily");
-    // If we have valid state after restore, don't initialize new game
-    if (gameStore.target && gameStore.puzzleDate === gameStore.getCurrentDate()) {
-      return;
-    }
-  }
-
-  // Check if we have valid restored state - if so, don't initialize
-  // Valid state means: we have a target, we're in the right mode, puzzle date matches (for daily), and we're not idle
-  // Also check if we have guesses - if we do, state was definitely restored
-  const hasValidRestoredState = gameStore.target
-    && gameStore.gameMode === "daily"
-    && gameStore.puzzleDate === gameStore.getCurrentDate()
-    && gameStore.status !== "idle"
-    && (gameStore.guesses.length > 0 || gameStore.treeData); // If we have guesses or treeData, state was restored
-
-  if (hasValidRestoredState) {
-    // State was restored from persistence, don't initialize new game
-    return;
-  }
-
-  // Also check if we have any state at all (might be from persistence but not yet in daily mode)
-  // If we have guesses or treeData, we definitely have restored state
-  if (gameStore.target && (gameStore.guesses.length > 0 || gameStore.treeData)) {
-    // We have restored state - set mode if not set and don't initialize
-    if (gameStore.gameMode === null) {
-      // Determine mode from puzzleDate
-      gameStore.gameMode = gameStore.puzzleDate === "" ? "free-play" : "daily";
-    }
-    // If we're in daily mode and puzzle date matches, or free-play mode, don't initialize
-    if (
-      (gameStore.gameMode === "daily" && gameStore.puzzleDate === gameStore.getCurrentDate())
-      || (gameStore.gameMode === "free-play" && gameStore.puzzleDate === "")
-    ) {
-      // Valid restored state, don't initialize
-      return;
-    }
-  }
-
-  // Check if we need to initialize - only if we don't have valid restored state
-  const needsInitialization = !gameStore.target
-    || gameStore.status === "idle"
-    || (gameStore.gameMode === "daily" && gameStore.puzzleDate !== gameStore.getCurrentDate());
-
-  if (needsInitialization) {
-    startNewGame();
-  }
-}
-
-/**
- * Initialize game on mount if not already started or if we're switching to daily mode
+ * Initialize game on mount if not already started or if we're switching to free-play mode
  */
 onMounted(() => {
   // Wait for next tick to ensure persist plugin has restored state
   nextTick(() => {
-    checkAndInitializeDailyPuzzle();
-  });
-
-  // Check for date changes periodically (every minute) and when page becomes visible
-  // This ensures the daily puzzle resets at midnight even if the page is already open
-  const checkDateChange = () => {
-    if (gameStore.gameMode === "daily" && gameStore.puzzleDate !== gameStore.getCurrentDate()) {
-      // Date changed - initialize new daily puzzle
-      checkAndInitializeDailyPuzzle();
+    // If we're switching from another mode, restore free-play state
+    if (gameStore.gameMode && gameStore.gameMode !== "free-play") {
+      gameStore.switchGameMode("free-play");
+      // If we have valid state after restore, don't initialize new game
+      if (gameStore.target && gameStore.status !== "idle") {
+        return;
+      }
     }
-  };
 
-  // Check every minute for date changes
-  const intervalId = setInterval(checkDateChange, 60000);
+    // Check if we have valid restored state - if so, don't initialize
+    // Also check if we have guesses - if we do, state was definitely restored
+    const hasValidRestoredState = gameStore.target
+      && gameStore.gameMode === "free-play"
+      && gameStore.status !== "idle"
+      && (gameStore.guesses.length > 0 || gameStore.treeData); // If we have guesses or treeData, state was restored
 
-  // Check when page becomes visible (user switches back to tab)
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === "visible") {
-      checkDateChange();
+    if (hasValidRestoredState) {
+      // State was restored from persistence, don't initialize new game
+      return;
     }
-  };
-  document.addEventListener("visibilitychange", handleVisibilityChange);
 
-  // Cleanup on unmount
-  onUnmounted(() => {
-    clearInterval(intervalId);
-    document.removeEventListener("visibilitychange", handleVisibilityChange);
+    // Also check if we have any state at all (might be from persistence but not yet in free-play mode)
+    if (gameStore.target && gameStore.gameMode === null) {
+      // State exists but no mode set - set mode to free-play
+      gameStore.gameMode = "free-play";
+      if (gameStore.status !== "idle") {
+        // Valid state, don't initialize
+        return;
+      }
+    }
+
+    // Check if we need to initialize - only if we don't have valid restored state
+    const needsInitialization = !gameStore.target || gameStore.status === "idle";
+
+    if (needsInitialization) {
+      startNewGame();
+    }
   });
 });
 </script>
@@ -376,15 +417,15 @@ onMounted(() => {
         <header class="mb-4 sm:mb-6 md:mb-8 relative">
           <!-- Navigation and Color Mode Toggle -->
           <div class="absolute top-0 right-0 sm:top-2 sm:right-2 flex gap-2">
-            <!-- Free Play Link -->
+            <!-- Daily Puzzle Link -->
             <UButton
-              to="/free-play"
-              icon="i-lucide-infinity"
+              to="/"
+              icon="i-lucide-calendar"
               color="neutral"
               variant="ghost"
               size="sm"
-              aria-label="Go to free play mode"
-              title="Free Play"
+              aria-label="Go to daily puzzle"
+              title="Daily Puzzle"
               class="min-w-[44px] min-h-[44px] touch-target justify-center items-center
                 notebook-button-secondary"
             />
@@ -408,13 +449,13 @@ onMounted(() => {
             class="text-center text-sm sm:text-base text-[var(--color-ink-subtle)]
               dark:text-[var(--color-ink-subtle)]"
           >
-            Daily Puzzle
+            Free Play Mode
           </p>
           <p
             class="text-center text-xs sm:text-sm text-[var(--color-ink-subtle)]
               dark:text-[var(--color-ink-subtle)] mt-1"
           >
-            New puzzle every day
+            Reset anytime to get a new random animal
           </p>
         </header>
 
@@ -434,6 +475,20 @@ onMounted(() => {
             :error="gameStore.error"
             @dismiss="gameStore.clearError"
           />
+        </div>
+
+        <!-- Reset Button -->
+        <div class="max-w-2xl mx-auto mb-3 sm:mb-4 text-center">
+          <UButton
+            :disabled="gameStore.isLoading"
+            icon="i-lucide-refresh-cw"
+            color="primary"
+            variant="solid"
+            size="md"
+            @click="resetGame"
+          >
+            New Random Animal
+          </UButton>
         </div>
 
         <!-- Game Status Display -->
@@ -518,7 +573,7 @@ onMounted(() => {
         <!-- Game Info Display (Progressive Disclosure) -->
         <div
           v-if="gameStore.isPlaying && gameStore.guesses.length > 0"
-          class="max-w-2xl mx-auto mt-4 sm:mt-6 md:mt-8 notebook-guess-history"
+          class="max-w-2xl mx-auto mt-4 sm:mt-6 md:mb-8 notebook-guess-history"
         >
           <h2
             class="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4

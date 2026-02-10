@@ -231,41 +231,34 @@ export function selectTargetAnimalWithDifficulty(date: string): string {
     throw new Error("Curated animals list is empty. Cannot select target animal.");
   }
 
-  // TEMPORARY: Random selection for testing/development
-  // TODO: Restore deterministic date-based selection when ready
-  // Randomly select from all animals
-  const randomIndex = Math.floor(Math.random() * CURATED_ANIMALS.length);
-  return CURATED_ANIMALS[randomIndex]!.id;
-
-  // ORIGINAL CODE (commented out for now):
   // Hash date to get deterministic seed
-  // const seed = hashDate(date);
-  //
-  // // Filter animals by difficulty
-  // const easyAnimals = CURATED_ANIMALS.filter(a => a.difficulty === "easy");
-  // const mediumAnimals = CURATED_ANIMALS.filter(a => a.difficulty === "medium");
-  // const hardAnimals = CURATED_ANIMALS.filter(a => a.difficulty === "hard");
-  //
-  // // Use seed to determine difficulty level (weighted distribution)
-  // // 40% easy, 40% medium, 20% hard
-  // const difficultySeed = seed % 100;
-  // let selectedList: CuratedAnimal[];
-  //
-  // if (difficultySeed < 40) {
-  //   // 0-39: Easy (40%)
-  //   selectedList = easyAnimals.length > 0 ? easyAnimals : CURATED_ANIMALS;
-  // } else if (difficultySeed < 80) {
-  //   // 40-79: Medium (40%)
-  //   selectedList = mediumAnimals.length > 0 ? mediumAnimals : CURATED_ANIMALS;
-  // } else {
-  //   // 80-99: Hard (20%)
-  //   selectedList = hardAnimals.length > 0 ? hardAnimals : CURATED_ANIMALS;
-  // }
-  //
-  // // Select from the filtered list
-  // const index = seed % selectedList.length;
-  //
-  // return selectedList[index]!.id;
+  const seed = hashDate(date);
+
+  // Filter animals by difficulty
+  const easyAnimals = CURATED_ANIMALS.filter(a => a.difficulty === "easy");
+  const mediumAnimals = CURATED_ANIMALS.filter(a => a.difficulty === "medium");
+  const hardAnimals = CURATED_ANIMALS.filter(a => a.difficulty === "hard");
+
+  // Use seed to determine difficulty level (weighted distribution)
+  // 40% easy, 40% medium, 20% hard
+  const difficultySeed = seed % 100;
+  let selectedList: CuratedAnimal[];
+
+  if (difficultySeed < 40) {
+    // 0-39: Easy (40%)
+    selectedList = easyAnimals.length > 0 ? easyAnimals : CURATED_ANIMALS;
+  } else if (difficultySeed < 80) {
+    // 40-79: Medium (40%)
+    selectedList = mediumAnimals.length > 0 ? mediumAnimals : CURATED_ANIMALS;
+  } else {
+    // 80-99: Hard (20%)
+    selectedList = hardAnimals.length > 0 ? hardAnimals : CURATED_ANIMALS;
+  }
+
+  // Select from the filtered list
+  const index = seed % selectedList.length;
+
+  return selectedList[index]!.id;
 }
 
 /**
@@ -293,6 +286,27 @@ export function getAnimalsByDifficulty(difficulty: DifficultyLevel): CuratedAnim
  */
 export function getAnimalsByTaxonomicGroup(taxonomicGroup: string): CuratedAnimal[] {
   return CURATED_ANIMALS.filter(animal => animal.taxonomicGroup === taxonomicGroup);
+}
+
+/**
+ * Select a random target animal from the curated list (for free play mode)
+ *
+ * This function provides non-deterministic selection: each call returns
+ * a different random animal. Used for free play mode where players can
+ * reset and get a new puzzle anytime.
+ *
+ * @returns Animal ID (iNaturalist taxon ID) as string
+ * @throws Error if curated list is empty
+ */
+export function selectRandomTargetAnimal(): string {
+  // Check curated list is not empty
+  if (CURATED_ANIMALS.length === 0) {
+    throw new Error("Curated animals list is empty. Cannot select target animal.");
+  }
+
+  // Randomly select from curated list
+  const randomIndex = Math.floor(Math.random() * CURATED_ANIMALS.length);
+  return CURATED_ANIMALS[randomIndex]!.id;
 }
 
 /**
