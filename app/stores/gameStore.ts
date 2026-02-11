@@ -4,6 +4,7 @@ import type { TreeData, TreeNode } from "~/types/tree";
 import { calculateLCA } from "~/utils/lcaCalculator";
 import type { LCAResult } from "~/utils/lcaCalculator";
 import type { GameError } from "~/utils/errorMessages";
+import { getCurrentDateUTC, isMidnightPassed } from "~/utils/dateUtils";
 
 /**
  * Default maximum number of guesses allowed per game
@@ -525,15 +526,46 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
-     * Get current date in YYYY-MM-DD format
-     * @returns Current date string
+     * Get current date in YYYY-MM-DD format (UTC).
+     * Uses UTC for consistency across time zones (NFR37) for daily puzzle.
+     * @returns Current date string in UTC
      */
     getCurrentDate(): string {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, "0");
-      const day = String(now.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
+      return getCurrentDateUTC();
+    },
+
+    /**
+     * Check if the stored puzzle date is stale (midnight UTC has passed).
+     * Used to trigger reset and load new daily puzzle.
+     * @returns true if puzzle should be reset for a new day
+     */
+    shouldResetForNewDay(): boolean {
+      if (this.gameMode !== "daily" || !this.puzzleDate) {
+        return false;
+      }
+      return isMidnightPassed(this.puzzleDate);
+    },
+
+    /**
+     * Reset game state for a new daily puzzle (midnight passed).
+     * Clears guesses, tree, completion status and clears persisted daily state
+     * so the next initialization loads the new puzzle for the current date.
+     */
+    resetForNewDay(): void {
+      if (this.gameMode !== "daily") {
+        return;
+      }
+      this.status = "idle";
+      this.target = null;
+      this.guesses = [];
+      this.treeData = null;
+      this.nodeMap = new Map();
+      this.cladeMap = new Map();
+      this.puzzleDate = "";
+      this.isLoading = false;
+      this.error = null;
+      this.isRenderingTree = false;
+      this.dailyState = null;
     },
 
     /**
