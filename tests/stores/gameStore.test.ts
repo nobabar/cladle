@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { useGameStore } from "~/stores/gameStore";
 import type { Animal } from "~/types/animal";
@@ -599,6 +599,64 @@ describe("gameStore", () => {
 
       store.resetGame();
       expect(store.puzzleDate).toBe("");
+    });
+  });
+
+  describe("midnight reset (daily puzzle)", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("shouldResetForNewDay returns false when not in daily mode", () => {
+      const store = useGameStore();
+      store.initializeGame(tiger, 6, "2026-02-10");
+      store.gameMode = "free-play";
+      store.puzzleDate = "2026-02-10";
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(Date.UTC(2026, 1, 11, 12, 0, 0)));
+      expect(store.shouldResetForNewDay()).toBe(false);
+    });
+
+    it("shouldResetForNewDay returns false when puzzle date is today UTC", () => {
+      const store = useGameStore();
+      store.gameMode = "daily";
+      store.puzzleDate = "2026-02-11";
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(Date.UTC(2026, 1, 11, 12, 0, 0)));
+      expect(store.shouldResetForNewDay()).toBe(false);
+    });
+
+    it("shouldResetForNewDay returns true when midnight UTC has passed", () => {
+      const store = useGameStore();
+      store.gameMode = "daily";
+      store.puzzleDate = "2026-02-10";
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(Date.UTC(2026, 1, 11, 0, 1, 0)));
+      expect(store.shouldResetForNewDay()).toBe(true);
+    });
+
+    it("resetForNewDay clears daily state and puzzle date", () => {
+      const store = useGameStore();
+      store.initializeGame(tiger, 6, "2026-02-10", "daily");
+      expect(store.gameMode).toBe("daily");
+      expect(store.puzzleDate).toBe("2026-02-10");
+      expect(store.target).not.toBeNull();
+
+      store.resetForNewDay();
+
+      expect(store.status).toBe("idle");
+      expect(store.target).toBeNull();
+      expect(store.guesses).toHaveLength(0);
+      expect(store.puzzleDate).toBe("");
+      expect(store.dailyState).toBeNull();
+    });
+
+    it("resetForNewDay is no-op when not in daily mode", () => {
+      const store = useGameStore();
+      store.initializeGame(tiger, 6, "", "free-play");
+      store.gameMode = "free-play";
+      store.resetForNewDay();
+      expect(store.target).not.toBeNull();
     });
   });
 });

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch, watchEffect } from "vue";
+import { computed, nextTick, onMounted, ref, watch, watchEffect } from "vue";
 import type { Animal } from "~/types/animal";
 import type { TreeNode } from "~/types/tree";
 import type { ValidationError } from "~/utils/animalValidator";
+import { usePuzzleReset } from "~/composables/usePuzzleReset";
 import { DEFAULT_MAX_GUESSES, useGameStore } from "~/stores/gameStore";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 import { apiErrorToGameError } from "~/utils/errorMessages";
@@ -327,6 +328,9 @@ function checkAndInitializeDailyPuzzle() {
   }
 }
 
+// Monitor for midnight (UTC) and reset daily puzzle when date changes (lazy reset)
+usePuzzleReset({ onReset: startNewGame });
+
 /**
  * Initialize game on mount if not already started or if we're switching to daily mode
  */
@@ -334,32 +338,6 @@ onMounted(() => {
   // Wait for next tick to ensure persist plugin has restored state
   nextTick(() => {
     checkAndInitializeDailyPuzzle();
-  });
-
-  // Check for date changes periodically (every minute) and when page becomes visible
-  // This ensures the daily puzzle resets at midnight even if the page is already open
-  const checkDateChange = () => {
-    if (gameStore.gameMode === "daily" && gameStore.puzzleDate !== gameStore.getCurrentDate()) {
-      // Date changed - initialize new daily puzzle
-      checkAndInitializeDailyPuzzle();
-    }
-  };
-
-  // Check every minute for date changes
-  const intervalId = setInterval(checkDateChange, 60000);
-
-  // Check when page becomes visible (user switches back to tab)
-  const handleVisibilityChange = () => {
-    if (document.visibilityState === "visible") {
-      checkDateChange();
-    }
-  };
-  document.addEventListener("visibilitychange", handleVisibilityChange);
-
-  // Cleanup on unmount
-  onUnmounted(() => {
-    clearInterval(intervalId);
-    document.removeEventListener("visibilitychange", handleVisibilityChange);
   });
 });
 </script>
@@ -386,7 +364,7 @@ onMounted(() => {
               aria-label="Go to free play mode"
               title="Free Play"
               class="min-w-[44px] min-h-[44px] touch-target justify-center items-center
-                notebook-button-secondary"
+                notebook-button-secondary cursor-pointer"
             />
             <!-- Color Mode Toggle -->
             <UButton
@@ -397,7 +375,7 @@ onMounted(() => {
               :aria-label="colorModeLabel"
               :title="colorModeLabel"
               class="min-w-[44px] min-h-[44px] touch-target justify-center items-center
-                notebook-button-secondary"
+                notebook-button-secondary cursor-pointer"
               @click="toggleColorMode"
             />
           </div>
