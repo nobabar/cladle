@@ -12,6 +12,15 @@ import type { Animal } from "~/types/animal";
 import type { ApiResponse } from "~/types/api";
 import type { Clade } from "~/types/clade";
 
+function createMockClient(overrides: Partial<BiologicalAPIClient> = {}): BiologicalAPIClient {
+  return {
+    fetchAnimalData: vi.fn(),
+    fetchCladeData: vi.fn(),
+    searchAnimals: vi.fn(),
+    ...overrides,
+  };
+}
+
 describe("useBiologicalAPI", () => {
   describe("interface contract", () => {
     it("should return default implementation when no options provided", () => {
@@ -23,10 +32,7 @@ describe("useBiologicalAPI", () => {
     });
 
     it("should accept custom implementation via options", () => {
-      const mockImplementation: BiologicalAPIClient = {
-        fetchAnimalData: vi.fn(),
-        fetchCladeData: vi.fn(),
-      };
+      const mockImplementation = createMockClient();
 
       const api = useBiologicalAPI({ implementation: mockImplementation });
 
@@ -54,10 +60,9 @@ describe("useBiologicalAPI", () => {
         error: null,
       };
 
-      const mockImplementation: BiologicalAPIClient = {
+      const mockImplementation = createMockClient({
         fetchAnimalData: vi.fn().mockResolvedValue(mockResponse),
-        fetchCladeData: vi.fn(),
-      };
+      });
 
       const api = useBiologicalAPI({ implementation: mockImplementation });
       const result = await api.fetchAnimalData("12345");
@@ -76,10 +81,9 @@ describe("useBiologicalAPI", () => {
         },
       };
 
-      const mockImplementation: BiologicalAPIClient = {
+      const mockImplementation = createMockClient({
         fetchAnimalData: vi.fn().mockResolvedValue(mockErrorResponse),
-        fetchCladeData: vi.fn(),
-      };
+      });
 
       const api = useBiologicalAPI({ implementation: mockImplementation });
       const result = await api.fetchAnimalData("invalid-id");
@@ -101,10 +105,9 @@ describe("useBiologicalAPI", () => {
         },
       };
 
-      const mockImplementation: BiologicalAPIClient = {
+      const mockImplementation = createMockClient({
         fetchAnimalData: vi.fn().mockResolvedValue(mockErrorResponse),
-        fetchCladeData: vi.fn(),
-      };
+      });
 
       const api = useBiologicalAPI({ implementation: mockImplementation });
       const result = await api.fetchAnimalData("12345");
@@ -131,10 +134,9 @@ describe("useBiologicalAPI", () => {
         error: null,
       };
 
-      const mockImplementation: BiologicalAPIClient = {
-        fetchAnimalData: vi.fn(),
+      const mockImplementation = createMockClient({
         fetchCladeData: vi.fn().mockResolvedValue(mockResponse),
-      };
+      });
 
       const api = useBiologicalAPI({ implementation: mockImplementation });
       const result = await api.fetchCladeData("Mammalia");
@@ -153,10 +155,9 @@ describe("useBiologicalAPI", () => {
         },
       };
 
-      const mockImplementation: BiologicalAPIClient = {
-        fetchAnimalData: vi.fn(),
+      const mockImplementation = createMockClient({
         fetchCladeData: vi.fn().mockResolvedValue(mockErrorResponse),
-      };
+      });
 
       const api = useBiologicalAPI({ implementation: mockImplementation });
       const result = await api.fetchCladeData("InvalidClade");
@@ -178,10 +179,9 @@ describe("useBiologicalAPI", () => {
         },
       };
 
-      const mockImplementation: BiologicalAPIClient = {
-        fetchAnimalData: vi.fn(),
+      const mockImplementation = createMockClient({
         fetchCladeData: vi.fn().mockResolvedValue(mockErrorResponse),
-      };
+      });
 
       const api = useBiologicalAPI({ implementation: mockImplementation });
       const result = await api.fetchCladeData("Mammalia");
@@ -214,6 +214,7 @@ describe("useBiologicalAPI", () => {
           },
           error: null,
         }),
+        searchAnimals: vi.fn(),
       };
 
       const api = useBiologicalAPI({ implementation: mockImplementation });
@@ -237,10 +238,9 @@ describe("useBiologicalAPI", () => {
         error: null,
       };
 
-      const mockImplementation: BiologicalAPIClient = {
+      const mockImplementation = createMockClient({
         fetchAnimalData: vi.fn().mockResolvedValue(mockResponse),
-        fetchCladeData: vi.fn(),
-      };
+      });
 
       const api = useBiologicalAPI({ implementation: mockImplementation });
       const result = await api.fetchAnimalData("123");
@@ -264,10 +264,9 @@ describe("useBiologicalAPI", () => {
         error: null,
       };
 
-      const mockImplementation: BiologicalAPIClient = {
-        fetchAnimalData: vi.fn(),
+      const mockImplementation = createMockClient({
         fetchCladeData: vi.fn().mockResolvedValue(mockResponse),
-      };
+      });
 
       const api = useBiologicalAPI({ implementation: mockImplementation });
       const result = await api.fetchCladeData("Chordata");
@@ -289,10 +288,9 @@ describe("useBiologicalAPI", () => {
         },
       };
 
-      const mockImplementation: BiologicalAPIClient = {
+      const mockImplementation = createMockClient({
         fetchAnimalData: vi.fn().mockResolvedValue(mockErrorResponse),
-        fetchCladeData: vi.fn(),
-      };
+      });
 
       const api = useBiologicalAPI({ implementation: mockImplementation });
       const result = await api.fetchAnimalData("123");
@@ -310,10 +308,9 @@ describe("useBiologicalAPI", () => {
         },
       };
 
-      const mockImplementation: BiologicalAPIClient = {
+      const mockImplementation = createMockClient({
         fetchAnimalData: vi.fn().mockResolvedValue(mockErrorResponse),
-        fetchCladeData: vi.fn(),
-      };
+      });
 
       const api = useBiologicalAPI({ implementation: mockImplementation });
       const result = await api.fetchAnimalData("123");
@@ -337,10 +334,9 @@ describe("useBiologicalAPI", () => {
         },
       };
 
-      const mockImplementation: BiologicalAPIClient = {
+      const mockImplementation = createMockClient({
         fetchAnimalData: vi.fn().mockResolvedValue(mockErrorResponse),
-        fetchCladeData: vi.fn(),
-      };
+      });
 
       const api = useBiologicalAPI({ implementation: mockImplementation });
       const result = await api.fetchAnimalData("123");
