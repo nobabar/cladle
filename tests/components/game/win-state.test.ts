@@ -9,7 +9,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import WinState from "~/components/game/win-state.vue";
-import { useGameStore } from "~/stores/gameStore";
+import { getGameStore } from "#test/helpers/gameStore";
 import { createPinia, setActivePinia } from "pinia";
 import type { Animal } from "~/types/animal";
 import type { TreeData, TreeNode } from "~/types/tree";
@@ -108,7 +108,7 @@ describe("winState Component", () => {
 
   describe("component Rendering", () => {
     it("should not render when game has not ended", () => {
-      const store = useGameStore();
+      const store = getGameStore();
       store.status = "playing";
       store.target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
 
@@ -119,7 +119,7 @@ describe("winState Component", () => {
     });
 
     it("should render win state when game is won", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "won";
@@ -134,7 +134,7 @@ describe("winState Component", () => {
     });
 
     it("should render loss state when game is lost", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "lost";
@@ -151,7 +151,7 @@ describe("winState Component", () => {
 
   describe("win State Content", () => {
     it("should display target animal name when won", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Lion", "Panthera leo", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "won";
@@ -165,7 +165,7 @@ describe("winState Component", () => {
     });
 
     it("should display completion feedback message when won", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "won";
@@ -179,7 +179,7 @@ describe("winState Component", () => {
     });
 
     it("should display guess count when won", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "won";
@@ -201,7 +201,7 @@ describe("winState Component", () => {
 
   describe("loss State Content", () => {
     it("should display target animal name when lost", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Elephant", "Loxodonta africana", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "lost";
@@ -215,7 +215,7 @@ describe("winState Component", () => {
     });
 
     it("should display loss feedback message when lost", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "lost";
@@ -229,7 +229,7 @@ describe("winState Component", () => {
     });
 
     it("should display encouraging message when lost", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "lost";
@@ -250,7 +250,7 @@ describe("winState Component", () => {
         value: 768,
       });
 
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "won";
@@ -271,7 +271,7 @@ describe("winState Component", () => {
         value: 1280,
       });
 
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "won";
@@ -284,7 +284,7 @@ describe("winState Component", () => {
     });
 
     it("should update display on window resize", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "won";
@@ -311,7 +311,7 @@ describe("winState Component", () => {
 
   describe("accessibility Features", () => {
     it("should have proper ARIA labels for win state", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "won";
@@ -331,7 +331,7 @@ describe("winState Component", () => {
     });
 
     it("should have proper ARIA labels for loss state", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "lost";
@@ -351,7 +351,7 @@ describe("winState Component", () => {
     });
 
     it("should announce win state to screen readers", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "won";
@@ -368,7 +368,7 @@ describe("winState Component", () => {
     });
 
     it("should announce loss state to screen readers", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "lost";
@@ -385,7 +385,7 @@ describe("winState Component", () => {
 
   describe("tree Visualization Integration", () => {
     it("should display tree visualization in win state", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "won";
@@ -400,7 +400,7 @@ describe("winState Component", () => {
     });
 
     it("should display tree visualization in loss state", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "lost";
@@ -414,7 +414,7 @@ describe("winState Component", () => {
     });
 
     it("should pass showTarget=true to tree visualization", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "won";
@@ -432,7 +432,7 @@ describe("winState Component", () => {
 
   describe("game Store Integration", () => {
     it("should read completion status from store", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "won";
@@ -444,7 +444,7 @@ describe("winState Component", () => {
     });
 
     it("should read target animal from store", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Lion", "Panthera leo", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "won";
@@ -457,7 +457,7 @@ describe("winState Component", () => {
     });
 
     it("should read tree data from store", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "won";
@@ -472,7 +472,7 @@ describe("winState Component", () => {
     });
 
     it("should react to status changes", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.treeData = createSimpleTreeData();
@@ -493,7 +493,7 @@ describe("winState Component", () => {
 
   describe("edge Cases", () => {
     it("should handle missing target animal gracefully", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       store.status = "won";
       store.target = null;
       store.treeData = createSimpleTreeData();
@@ -507,7 +507,7 @@ describe("winState Component", () => {
     });
 
     it("should handle missing tree data gracefully", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "won";
@@ -521,7 +521,7 @@ describe("winState Component", () => {
     });
 
     it("should handle single guess correctly", async () => {
-      const store = useGameStore();
+      const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "won";

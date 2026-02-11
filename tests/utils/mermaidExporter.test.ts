@@ -16,7 +16,7 @@ describe("mermaidExporter", () => {
         id: "1",
         name: "Lion",
         scientificName: "Panthera leo",
-        commonNames: ["Lion"],
+        taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera leo"],
         imageUrl: "https://example.com/lion.jpg",
         wikipediaUrl: "https://en.wikipedia.org/wiki/Lion",
       };
@@ -67,7 +67,7 @@ describe("mermaidExporter", () => {
         id: "1",
         name: "Lion",
         scientificName: "Panthera leo",
-        commonNames: ["Lion"],
+        taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera leo"],
         imageUrl: "https://example.com/lion.jpg",
         wikipediaUrl: "https://en.wikipedia.org/wiki/Lion",
       };
@@ -76,7 +76,7 @@ describe("mermaidExporter", () => {
         id: "2",
         name: "Tiger",
         scientificName: "Panthera tigris",
-        commonNames: ["Tiger"],
+        taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera tigris"],
         imageUrl: "https://example.com/tiger.jpg",
         wikipediaUrl: "https://en.wikipedia.org/wiki/Tiger",
       };
@@ -157,7 +157,7 @@ describe("mermaidExporter", () => {
         id: "1",
         name: "Côte d'Ivoire Antelope",
         scientificName: "Test species",
-        commonNames: [],
+        taxonomy: ["Animalia", "Chordata"],
         imageUrl: "",
         wikipediaUrl: "",
       };
@@ -205,7 +205,7 @@ describe("mermaidExporter", () => {
         id: "1",
         name: "Lion",
         scientificName: "Panthera leo",
-        commonNames: ["Lion"],
+        taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera leo"],
         imageUrl: "",
         wikipediaUrl: "",
       };

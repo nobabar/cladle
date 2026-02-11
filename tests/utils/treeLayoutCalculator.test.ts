@@ -152,7 +152,7 @@ describe("calculateTreeLayout", () => {
       const treeData = createSimpleTree();
       const result = calculateTreeLayout(treeData, 800);
 
-      for (const node of result.nodes.values()) {
+      for (const node of Array.from(result.nodes.values())) {
         expect(node.position).toBeDefined();
         expect(node.position.x).toBeGreaterThanOrEqual(0);
         expect(node.position.y).toBeGreaterThanOrEqual(0);
