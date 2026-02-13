@@ -8,6 +8,11 @@ import { DEFAULT_MAX_GUESSES, useGameStore } from "~/stores/gameStore";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 import { apiErrorToGameError } from "~/utils/errorMessages";
 import { selectTargetAnimalWithDifficulty } from "~/utils/puzzleSelector";
+import {
+  buildHistoryEntry,
+  clearOldHistory,
+  savePuzzleToHistory,
+} from "~/utils/puzzleHistory";
 
 // Main game page - foundation for game interface
 // This page will be extended with game components in future stories
@@ -331,6 +336,42 @@ function checkAndInitializeDailyPuzzle() {
 // Daily puzzle time: midnight reset + countdown to next puzzle (two-tier, SSR-safe)
 const { nextPuzzleIn, isSoon } = useDailyPuzzleTime({ onReset: startNewGame });
 
+/** Save completed daily puzzle to history (and cleanup old entries). Skip when in replay mode. */
+watch(
+  () => gameStore.status,
+  (status) => {
+    if (
+      (status !== "won" && status !== "lost")
+      || gameStore.gameMode !== "daily"
+      || gameStore.isReplayMode
+      || !gameStore.target
+      || !gameStore.puzzleDate
+    ) {
+      return;
+    }
+    try {
+      clearOldHistory(30);
+      const entry = buildHistoryEntry(
+        gameStore.puzzleDate,
+        gameStore.target,
+        status,
+        gameStore.guesses,
+        gameStore.treeData,
+      );
+      savePuzzleToHistory(entry);
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("storage full")) {
+        gameStore.setError({
+          message: e.message,
+          code: "STORAGE_ERROR",
+          type: "ui",
+          details: e,
+        });
+      }
+    }
+  },
+);
+
 /**
  * Initialize game on mount if not already started or if we're switching to daily mode
  */
@@ -366,8 +407,26 @@ onMounted(() => {
               :show-timer="isSoon"
             />
           </div>
+          <!-- Replay mode: back to today's puzzle -->
+          <div
+            v-if="gameStore.isReplayMode"
+            class="absolute top-0 left-0 sm:top-12 sm:left-2"
+          >
+            <UButton
+              variant="ghost"
+              size="sm"
+              icon="i-lucide-arrow-left"
+              aria-label="Back to today's puzzle"
+              class="text-[var(--color-ink-subtle)]"
+              @click="gameStore.exitReplay()"
+            >
+              Back to today
+            </UButton>
+          </div>
           <!-- Navigation and Color Mode Toggle -->
-          <div class="absolute top-0 right-0 sm:top-2 sm:right-2 flex gap-2">
+          <div class="absolute top-0 right-0 sm:top-2 sm:right-2 flex">
+            <!-- Puzzle history (daily mode only) -->
+            <GamePuzzleHistory v-if="!gameStore.isReplayMode && gameStore.gameMode === 'daily'" />
             <!-- Free Play Link -->
             <UButton
               to="/free-play"
@@ -444,7 +503,7 @@ onMounted(() => {
         <!-- Animal Search Component -->
         <div class="max-w-2xl mx-auto mb-4 sm:mb-6 md:mb-8">
           <GameAnimalSearch
-            :disabled="!gameStore.isPlaying"
+            :disabled="!gameStore.isPlaying || gameStore.isReplayMode"
             placeholder="Search for an animal..."
             :guess-history="guessHistory"
             @select="handleAnimalSelect"

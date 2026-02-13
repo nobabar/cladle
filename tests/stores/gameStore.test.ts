@@ -660,4 +660,46 @@ describe("gameStore", () => {
       expect(store.target).not.toBeNull();
     });
   });
+
+  describe("puzzle history replay", () => {
+    it("loadReplayFromHistory sets state from entry and isReplayMode true", () => {
+      const store = getGameStore();
+      const entry = {
+        puzzleDate: "2026-02-14",
+        targetAnimal: tiger,
+        completionStatus: "won" as const,
+        guesses: [],
+        treeData: null,
+        completedAt: Date.now(),
+      };
+      store.loadReplayFromHistory(entry);
+      expect(store.isReplayMode).toBe(true);
+      expect(store.puzzleDate).toBe("2026-02-14");
+      expect(store.target?.id).toBe(tiger.id);
+      expect(store.status).toBe("won");
+      expect(store.guesses).toHaveLength(0);
+    });
+
+    it("exitReplay restores daily state and clears isReplayMode", () => {
+      const store = getGameStore();
+      store.initializeGame(tiger, 6, "2026-02-15", "daily");
+      store.processGuess(lion);
+      store.saveModeState("daily");
+      const entry = {
+        puzzleDate: "2026-02-14",
+        targetAnimal: wolf,
+        completionStatus: "lost" as const,
+        guesses: [],
+        treeData: null,
+        completedAt: Date.now(),
+      };
+      store.loadReplayFromHistory(entry);
+      expect(store.isReplayMode).toBe(true);
+      expect(store.target?.id).toBe(wolf.id);
+      store.exitReplay();
+      expect(store.isReplayMode).toBe(false);
+      expect(store.target?.id).toBe(tiger.id);
+      expect(store.puzzleDate).toBe("2026-02-15");
+    });
+  });
 });
