@@ -87,14 +87,41 @@ const screenReaderAnnouncement = computed(() => {
 });
 
 /**
- * Modal open state (for mobile and tablet < 1024px)
+ * Mobile/tablet modal dismissed by user (close button, overlay, or Escape).
+ * When true, modal is hidden but user can reopen via sticky bar.
  */
-const isModalOpen = computed(() => hasEnded.value && (isMobile.value || isTablet.value));
+const isMobileModalDismissed = ref(false);
+
+/**
+ * Modal visible when game ended on mobile/tablet and not dismissed
+ */
+const isModalOpen = computed(
+  () => hasEnded.value && (isMobile.value || isTablet.value) && !isMobileModalDismissed.value,
+);
+
+/**
+ * Show sticky "View result" bar when modal was dismissed on mobile/tablet
+ */
+const showMobileReopenBar = computed(
+  () => hasEnded.value && (isMobile.value || isTablet.value) && isMobileModalDismissed.value,
+);
 
 /**
  * Panel open state (for desktop >= 1024px)
  */
 const isPanelOpen = computed(() => hasEnded.value && isDesktop.value);
+
+/**
+ * Panel collapsed state (desktop only) - slide panel to a strip to focus on main area
+ */
+const isPanelCollapsed = ref(false);
+
+/**
+ * Toggle panel collapsed/expanded
+ */
+function togglePanelCollapsed() {
+  isPanelCollapsed.value = !isPanelCollapsed.value;
+}
 
 /**
  * Focus trap element ref
@@ -107,15 +134,39 @@ const focusTrapRef = ref<HTMLElement | null>(null);
 let previousFocusElement: HTMLElement | null = null;
 
 /**
- * Handle escape key to close modal/panel
+ * Close mobile modal and restore focus (button, overlay, or Escape)
+ */
+function closeMobileModal() {
+  isMobileModalDismissed.value = true;
+  nextTick(() => {
+    if (previousFocusElement) {
+      previousFocusElement.focus();
+      previousFocusElement = null;
+    }
+  });
+}
+
+/**
+ * Reopen mobile modal (from sticky bar tap)
+ */
+function reopenMobileModal() {
+  isMobileModalDismissed.value = false;
+  nextTick(() => {
+    manageFocus();
+  });
+}
+
+/**
+ * Handle escape key: close modal on mobile/tablet, prevent default
  * @param event - Keyboard event
  */
 function handleEscape(event: KeyboardEvent) {
-  if (event.key === "Escape" && hasEnded.value) {
-    // Escape key handling - modal/panel should stay open during win/loss
-    // This is for future enhancement if we want to allow closing
-    // For now, we prevent default to avoid any unwanted behavior
+  if (event.key !== "Escape") {
+    return;
+  }
+  if (isModalOpen.value) {
     event.preventDefault();
+    closeMobileModal();
   }
 }
 
@@ -160,6 +211,24 @@ watch(hasEnded, (newValue) => {
 });
 
 /**
+ * Reset panel to expanded when it opens (e.g. new game ended)
+ */
+watch(isPanelOpen, (open) => {
+  if (open) {
+    isPanelCollapsed.value = false;
+  }
+});
+
+/**
+ * Reset mobile modal dismissed state when game is no longer ended (e.g. new game)
+ */
+watch(hasEnded, (ended) => {
+  if (!ended) {
+    isMobileModalDismissed.value = false;
+  }
+});
+
+/**
  * Setup on mount
  */
 onMounted(() => {
@@ -189,129 +258,165 @@ onUnmounted(() => {
     {{ screenReaderAnnouncement }}
   </div>
 
-  <!-- Mobile Modal (< 1024px) - Overlay modal for small devices -->
+  <!-- Mobile Modal and reopen bar (< 1024px) -->
   <Teleport to="body">
-    <Transition
-      enter-active-class="transition-opacity duration-300"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition-opacity duration-300"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
-      <div
-        v-if="isModalOpen"
-        class="win-state-modal-overlay"
-        @click.self.prevent
+    <div class="win-state-mobile-root">
+      <Transition
+        enter-active-class="transition-opacity duration-300"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition-opacity duration-300"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
       >
         <div
-          ref="focusTrapRef"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="win-state-title"
-          aria-describedby="win-state-description"
-          class="win-state-modal"
-          @click.stop
+          v-if="isModalOpen"
+          class="win-state-modal-overlay"
+          @click.self="closeMobileModal"
         >
-          <!-- Win State -->
-          <div v-if="isWon" class="win-state__content win-state__content--win">
-            <div class="win-state__header">
-              <h2
-                id="win-state-title"
-                class="win-state__title"
-              >
-                🎉 You Won!
-              </h2>
-              <p
-                id="win-state-description"
-                class="win-state__message"
-              >
-                {{ winMessage }}
-              </p>
-              <p
-                v-if="targetAnimal"
-                class="win-state__target"
-              >
-                Target: <strong>{{ targetAnimal.name }}</strong>
-                <span
-                  v-if="targetAnimal.scientificName"
-                  class="win-state__scientific-name"
+          <div
+            ref="focusTrapRef"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="win-state-title"
+            aria-describedby="win-state-description"
+            class="win-state-modal"
+            @click.stop
+          >
+            <button
+              type="button"
+              class="win-state-modal__close"
+              aria-label="Close"
+              @click="closeMobileModal"
+            >
+              <Icon
+                name="i-lucide-x"
+                class="win-state-modal__close-icon"
+                aria-hidden="true"
+              />
+            </button>
+            <!-- Win State -->
+            <div v-if="isWon" class="win-state__content win-state__content--win">
+              <div class="win-state__header">
+                <h2
+                  id="win-state-title"
+                  class="win-state__title"
                 >
-                  ({{ targetAnimal.scientificName }})
-                </span>
-              </p>
-              <p class="win-state__stats">
-                Completed in {{ guessCount }} {{ guessCount === 1 ? "guess" : "guesses" }}
-                out of {{ maxGuesses }}.
-              </p>
-            </div>
+                  🎉 You Won!
+                </h2>
+                <p
+                  id="win-state-description"
+                  class="win-state__message"
+                >
+                  {{ winMessage }}
+                </p>
+                <p
+                  v-if="targetAnimal"
+                  class="win-state__target"
+                >
+                  Target: <strong>{{ targetAnimal.name }}</strong>
+                  <span
+                    v-if="targetAnimal.scientificName"
+                    class="win-state__scientific-name"
+                  >
+                    ({{ targetAnimal.scientificName }})
+                  </span>
+                </p>
+                <p class="win-state__stats">
+                  Completed in {{ guessCount }} {{ guessCount === 1 ? "guess" : "guesses" }}
+                  out of {{ maxGuesses }}.
+                </p>
+              </div>
 
-            <!-- Full Tree Visualization -->
-            <div class="win-state__tree">
-              <h3 class="win-state__tree-title">
-                Complete Phylogenetic Tree
-              </h3>
-              <div class="win-state__tree-container">
-                <GameTreeVisualization
-                  :tree-data="treeData"
-                  :show-target="true"
-                  :width="800"
-                  :height="400"
-                />
+              <!-- Full Tree Visualization -->
+              <div class="win-state__tree">
+                <h3 class="win-state__tree-title">
+                  Complete Phylogenetic Tree
+                </h3>
+                <div class="win-state__tree-container">
+                  <GameTreeVisualization
+                    :tree-data="treeData"
+                    :show-target="true"
+                    :width="800"
+                    :height="400"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- Loss State -->
-          <div v-else-if="isLost" class="win-state__content win-state__content--loss">
-            <div class="win-state__header">
-              <h2
-                id="win-state-title"
-                class="win-state__title"
-              >
-                Game Over
-              </h2>
-              <p
-                id="win-state-description"
-                class="win-state__message"
-              >
-                {{ lossMessage }}
-              </p>
-              <p
-                v-if="targetAnimal"
-                class="win-state__target"
-              >
-                Target: <strong>{{ targetAnimal.name }}</strong>
-                <span
-                  v-if="targetAnimal.scientificName"
-                  class="win-state__scientific-name"
+            <!-- Loss State -->
+            <div v-else-if="isLost" class="win-state__content win-state__content--loss">
+              <div class="win-state__header">
+                <h2
+                  id="win-state-title"
+                  class="win-state__title"
                 >
-                  ({{ targetAnimal.scientificName }})
-                </span>
-              </p>
-              <p class="win-state__stats">
-                You used all {{ maxGuesses }} guesses. Keep learning and try again!
-              </p>
-            </div>
+                  Game Over
+                </h2>
+                <p
+                  id="win-state-description"
+                  class="win-state__message"
+                >
+                  {{ lossMessage }}
+                </p>
+                <p
+                  v-if="targetAnimal"
+                  class="win-state__target"
+                >
+                  Target: <strong>{{ targetAnimal.name }}</strong>
+                  <span
+                    v-if="targetAnimal.scientificName"
+                    class="win-state__scientific-name"
+                  >
+                    ({{ targetAnimal.scientificName }})
+                  </span>
+                </p>
+                <p class="win-state__stats">
+                  You used all {{ maxGuesses }} guesses. Keep learning and try again!
+                </p>
+              </div>
 
-            <!-- Full Tree Visualization -->
-            <div class="win-state__tree">
-              <h3 class="win-state__tree-title">
-                Complete Phylogenetic Tree
-              </h3>
-              <div class="win-state__tree-container">
-                <GameTreeVisualization
-                  :tree-data="treeData"
-                  :show-target="true"
-                  :width="800"
-                  :height="400"
-                />
+              <!-- Full Tree Visualization -->
+              <div class="win-state__tree">
+                <h3 class="win-state__tree-title">
+                  Complete Phylogenetic Tree
+                </h3>
+                <div class="win-state__tree-container">
+                  <GameTreeVisualization
+                    :tree-data="treeData"
+                    :show-target="true"
+                    :width="800"
+                    :height="400"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+
+      <!-- Sticky bar to reopen result when modal was dismissed -->
+      <Transition
+        enter-active-class="transition-opacity duration-200"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition-opacity duration-200"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <button
+          v-if="showMobileReopenBar"
+          type="button"
+          class="win-state-reopen-bar"
+          aria-label="View game result"
+          @click="reopenMobileModal"
+        >
+          <span class="win-state-reopen-bar__text">
+            {{ isWon ? "You won!" : "Game over" }} - Tap to see result
+          </span>
+        </button>
+      </Transition>
+    </div>
   </Teleport>
 
   <!-- Desktop Side Panel (>= 1024px) -->
@@ -331,103 +436,143 @@ onUnmounted(() => {
       aria-describedby="win-state-description"
       aria-label="Game result panel"
       class="win-state-panel"
+      :class="{ 'win-state-panel--collapsed': isPanelCollapsed }"
       tabindex="-1"
     >
-      <!-- Win State -->
-      <div v-if="isWon" class="win-state__content win-state__content--win">
-        <div class="win-state__header">
+      <!-- Panel body (hidden when collapsed) -->
+      <div class="win-state-panel__body">
+        <!-- Title and collapse button -->
+        <div class="win-state-panel__title-row">
           <h2
             id="win-state-title"
-            class="win-state__title"
+            class="win-state-panel__title"
+            :class="isWon ? 'win-state-panel__title--win' : 'win-state-panel__title--loss'"
           >
-            🎉 You Won!
+            {{ isWon ? "🎉 You Won!" : "Game Over" }}
           </h2>
-          <p
-            id="win-state-description"
-            class="win-state__message"
+          <button
+            type="button"
+            class="win-state-panel__toggle win-state-panel__toggle--top"
+            aria-label="Hide result panel"
+            title="Hide result panel"
+            @click="togglePanelCollapsed"
           >
-            {{ winMessage }}
-          </p>
-          <p
-            v-if="targetAnimal"
-            class="win-state__target"
-          >
-            Target: <strong>{{ targetAnimal.name }}</strong>
-            <span
-              v-if="targetAnimal.scientificName"
-              class="win-state__scientific-name"
+            <Icon
+              name="i-lucide-chevron-right"
+              class="win-state-panel__icon"
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+        <!-- Win State -->
+        <div v-if="isWon" class="win-state__content win-state__content--win">
+          <div class="win-state__header">
+            <p
+              id="win-state-description"
+              class="win-state__message"
             >
-              ({{ targetAnimal.scientificName }})
-            </span>
-          </p>
-          <p class="win-state__stats">
-            Completed in {{ guessCount }} {{ guessCount === 1 ? "guess" : "guesses" }}
-            out of {{ maxGuesses }}.
-          </p>
+              {{ winMessage }}
+            </p>
+            <p
+              v-if="targetAnimal"
+              class="win-state__target"
+            >
+              Target: <strong>{{ targetAnimal.name }}</strong>
+              <span
+                v-if="targetAnimal.scientificName"
+                class="win-state__scientific-name"
+              >
+                ({{ targetAnimal.scientificName }})
+              </span>
+            </p>
+            <p class="win-state__stats">
+              Completed in {{ guessCount }} {{ guessCount === 1 ? "guess" : "guesses" }}
+              out of {{ maxGuesses }}.
+            </p>
+          </div>
+
+          <!-- Full Tree Visualization -->
+          <div class="win-state__tree">
+            <h3 class="win-state__tree-title">
+              Complete Phylogenetic Tree
+            </h3>
+            <div class="win-state__tree-container">
+              <GameTreeVisualization
+                :tree-data="treeData"
+                :show-target="true"
+                :width="380"
+                :height="600"
+              />
+            </div>
+          </div>
         </div>
 
-        <!-- Full Tree Visualization -->
-        <div class="win-state__tree">
-          <h3 class="win-state__tree-title">
-            Complete Phylogenetic Tree
-          </h3>
-          <div class="win-state__tree-container">
-            <GameTreeVisualization
-              :tree-data="treeData"
-              :show-target="true"
-              :width="380"
-              :height="600"
-            />
+        <!-- Loss State -->
+        <div v-else-if="isLost" class="win-state__content win-state__content--loss">
+          <div class="win-state__header">
+            <p
+              id="win-state-description"
+              class="win-state__message"
+            >
+              {{ lossMessage }}
+            </p>
+            <p
+              v-if="targetAnimal"
+              class="win-state__target"
+            >
+              Target: <strong>{{ targetAnimal.name }}</strong>
+              <span
+                v-if="targetAnimal.scientificName"
+                class="win-state__scientific-name"
+              >
+                ({{ targetAnimal.scientificName }})
+              </span>
+            </p>
+            <p class="win-state__stats">
+              You used all {{ maxGuesses }} guesses. Keep learning and try again!
+            </p>
+          </div>
+
+          <!-- Full Tree Visualization -->
+          <div class="win-state__tree">
+            <h3 class="win-state__tree-title">
+              Complete Phylogenetic Tree
+            </h3>
+            <div class="win-state__tree-container">
+              <GameTreeVisualization
+                :tree-data="treeData"
+                :show-target="true"
+                :width="380"
+                :height="600"
+              />
+            </div>
           </div>
         </div>
       </div>
-
-      <!-- Loss State -->
-      <div v-else-if="isLost" class="win-state__content win-state__content--loss">
-        <div class="win-state__header">
-          <h2
-            id="win-state-title"
-            class="win-state__title"
-          >
-            Game Over
-          </h2>
-          <p
-            id="win-state-description"
-            class="win-state__message"
-          >
-            {{ lossMessage }}
-          </p>
-          <p
-            v-if="targetAnimal"
-            class="win-state__target"
-          >
-            Target: <strong>{{ targetAnimal.name }}</strong>
-            <span
-              v-if="targetAnimal.scientificName"
-              class="win-state__scientific-name"
-            >
-              ({{ targetAnimal.scientificName }})
-            </span>
-          </p>
-          <p class="win-state__stats">
-            You used all {{ maxGuesses }} guesses. Keep learning and try again!
-          </p>
-        </div>
-
-        <!-- Full Tree Visualization -->
-        <div class="win-state__tree">
-          <h3 class="win-state__tree-title">
-            Complete Phylogenetic Tree
-          </h3>
-          <div class="win-state__tree-container">
-            <GameTreeVisualization
-              :tree-data="treeData"
-              :show-target="true"
-              :width="380"
-              :height="600"
-            />
-          </div>
-        </div>
+      <!-- Collapsed state: thin strip with expand button at top + vertical status -->
+      <div class="win-state-panel__strip">
+        <button
+          type="button"
+          class="win-state-panel__toggle win-state-panel__toggle--expand"
+          aria-label="Show result panel"
+          title="Show result panel"
+          @click="togglePanelCollapsed"
+        >
+          <Icon
+            name="i-lucide-chevron-left"
+            class="win-state-panel__icon"
+            aria-hidden="true"
+          />
+        </button>
+        <span
+          class="win-state-panel__vertical-status"
+          :class="isWon
+            ? 'win-state-panel__vertical-status--win'
+            : 'win-state-panel__vertical-status--loss'"
+          aria-hidden="true"
+        >
+          {{ isWon ? "You Won!" : "Game Over" }}
+        </span>
       </div>
     </div>
   </Transition>
@@ -447,7 +592,7 @@ onUnmounted(() => {
   border-width: 0;
 }
 
-/* Win State Content */
+/* Win state content (shared by modal and panel) */
 .win-state__content {
   display: flex;
   flex-direction: column;
@@ -455,11 +600,7 @@ onUnmounted(() => {
   min-height: 0;
   flex: 1;
 }
-
-/* Add top margin only for desktop panel, not modal */
-.win-state-panel .win-state__content {
-  margin-top: 2rem;
-}
+.win-state-panel .win-state__content { margin-top: 0; }
 
 .win-state__header {
   display: flex;
@@ -472,23 +613,12 @@ onUnmounted(() => {
   font-weight: 700;
   line-height: 1.2;
   margin: 0;
+  color: var(--win-state-accent);
 }
-
-.win-state__content--win .win-state__title {
-  color: var(--color-success, #059669);
-}
-
-.dark .win-state__content--win .win-state__title {
-  color: #10b981;
-}
-
-.win-state__content--loss .win-state__title {
-  color: var(--color-error, #dc2626);
-}
-
-.dark .win-state__content--loss .win-state__title {
-  color: #f87171;
-}
+.win-state__content--win { --win-state-accent: var(--color-success, #059669); }
+.win-state__content--loss { --win-state-accent: var(--color-error, #dc2626); }
+.dark .win-state__content--win .win-state__title { color: #10b981; }
+.dark .win-state__content--loss .win-state__title { color: #f87171; }
 
 .win-state__message {
   font-size: 1.125rem;
@@ -496,10 +626,7 @@ onUnmounted(() => {
   margin: 0;
   color: var(--color-ink-muted, #374151);
 }
-
-.dark .win-state__message {
-  color: #d1d5db;
-}
+.dark .win-state__message { color: #d1d5db; }
 
 .win-state__target {
   font-size: 1rem;
@@ -507,19 +634,9 @@ onUnmounted(() => {
   margin: 0;
   color: var(--color-ink-subtle, #6b7280);
 }
-
-.dark .win-state__target {
-  color: #9ca3af;
-}
-
-.win-state__target strong {
-  font-weight: 600;
-  color: var(--color-ink, #111827);
-}
-
-.dark .win-state__target strong {
-  color: #f9fafb;
-}
+.dark .win-state__target { color: #9ca3af; }
+.win-state__target strong { font-weight: 600; color: var(--color-ink, #111827); }
+.dark .win-state__target strong { color: #f9fafb; }
 
 .win-state__scientific-name {
   font-style: italic;
@@ -533,10 +650,7 @@ onUnmounted(() => {
   margin: 0;
   color: var(--color-ink-subtle, #6b7280);
 }
-
-.dark .win-state__stats {
-  color: #9ca3af;
-}
+.dark .win-state__stats { color: #9ca3af; }
 
 .win-state__tree {
   display: flex;
@@ -553,10 +667,7 @@ onUnmounted(() => {
   margin: 0;
   color: var(--color-ink, #111827);
 }
-
-.dark .win-state__tree-title {
-  color: #f9fafb;
-}
+.dark .win-state__tree-title { color: #f9fafb; }
 
 .win-state__tree-container {
   width: 100%;
@@ -567,10 +678,7 @@ onUnmounted(() => {
   box-shadow: none;
   min-height: 200px;
 }
-
-.dark .win-state__tree-container {
-  background: transparent;
-}
+.dark .win-state__tree-container { background: transparent; }
 
 /* Desktop Side Panel - notebook/anatomical palette */
 /* Positioned relative to .notebook-sheet (parent) */
@@ -588,10 +696,163 @@ onUnmounted(() => {
   border-left: 1px solid var(--color-border-subtle, #E2D6C3);
   box-shadow: -2px 0 4px -1px rgba(0, 0, 0, 0.08);
   z-index: 50;
-  padding: 1.5rem;
   box-sizing: border-box;
-  /* Remove internal scroll - content extends naturally and scrolls with page */
   overflow: visible;
+  display: flex;
+  flex-direction: row;
+  transition: width 0.25s ease-out;
+}
+
+/* Same dotted grid as notebook sheet */
+.win-state-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(circle, var(--color-muted, #9CA3AF) 1px, transparent 1px);
+  background-size: 16px 16px;
+  background-position: 0 0;
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.win-state-panel--collapsed {
+  width: 48px;
+  min-width: 48px;
+  overflow: hidden;
+}
+
+/* Title and collapse button on one line when expanded */
+.win-state-panel__title-row {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 1.25rem;
+}
+
+.win-state-panel__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 2;
+  margin: 0;
+  color: var(--win-state-accent);
+}
+.win-state-panel__title--win { --win-state-accent: var(--color-success, #059669); }
+.win-state-panel__title--loss { --win-state-accent: var(--color-error, #dc2626); }
+.dark .win-state-panel__title--win { color: #10b981; }
+.dark .win-state-panel__title--loss { color: #f87171; }
+
+/* Toggle buttons (collapse › and expand ‹) */
+.win-state-panel__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: background-color 0.15s, color 0.15s;
+}
+.win-state-panel__toggle:hover {
+  background: var(--color-border-subtle, #E2D6C3);
+  color: var(--color-ink, #111827);
+}
+.win-state-panel__toggle--top {
+  color: var(--color-ink-muted, #374151);
+}
+.win-state-panel__toggle--top .win-state-panel__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Collapsed strip: hidden when expanded, visible when collapsed */
+.win-state-panel__strip {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  border-left: none;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 2rem;
+  gap: 1rem;
+  background: var(--color-paper, #FDFBF5);
+}
+
+/* When collapsed, keep strip visible with a clear edge so it’s not “blank” */
+.win-state-panel--collapsed .win-state-panel__strip {
+  flex: 0 0 48px;
+  width: 48px;
+  min-width: 48px;
+  display: flex;
+  overflow: visible;
+  border-left: 1px solid var(--color-border-subtle, #E2D6C3);
+  box-shadow: -2px 0 4px -1px rgba(0, 0, 0, 0.08);
+}
+
+.win-state-panel__toggle--expand {
+  color: var(--color-ink, #111827);
+}
+.win-state-panel__toggle--expand .win-state-panel__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+.dark .win-state-panel__toggle--expand { color: #f9fafb; }
+
+/* When collapsed, make expand chevron clearly visible so strip isn’t “blank” */
+.win-state-panel__vertical-status {
+  writing-mode: vertical-lr;
+  text-orientation: mixed;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  padding: 0.5rem 0;
+  color: var(--win-state-accent);
+}
+.win-state-panel__vertical-status--win { --win-state-accent: var(--color-success, #059669); }
+.win-state-panel__vertical-status--loss { --win-state-accent: var(--color-error, #dc2626); }
+.dark .win-state-panel__vertical-status--win { color: #10b981; }
+.dark .win-state-panel__vertical-status--loss { color: #f87171; }
+
+.win-state-panel__icon {
+  flex-shrink: 0;
+  color: currentColor;
+}
+
+/* Panel body (content area) */
+.win-state-panel__body {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 1.5rem;
+  overflow: visible;
+  transition: flex 0.25s ease-out, opacity 0.2s ease-out;
+  display: flex;
+  flex-direction: column;
+}
+
+.win-state-panel--collapsed .win-state-panel__body {
+  flex: 0 0 0;
+  min-width: 0;
+  width: 0;
+  padding: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Slide animation for side panel */
@@ -621,6 +882,11 @@ onUnmounted(() => {
 
 .dark .win-state-panel {
   background: var(--color-paper, #1e293b);
+  border-left-color: var(--color-border-subtle, #1f2937);
+  box-shadow: -2px 0 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+.dark .win-state-panel--collapsed .win-state-panel__strip {
   border-left-color: var(--color-border-subtle, #1f2937);
   box-shadow: -2px 0 4px -1px rgba(0, 0, 0, 0.2);
 }
@@ -668,6 +934,12 @@ onUnmounted(() => {
     width: 450px;
   }
 
+  /* Collapsed must win so the panel is a thin strip, not a wide blank overlay */
+  .win-state-panel.win-state-panel--collapsed {
+    width: 48px;
+    min-width: 48px;
+  }
+
   .win-state__tree-container {
     max-height: none;
     min-height: 400px;
@@ -678,6 +950,55 @@ onUnmounted(() => {
   .win-state__content {
     min-height: 0;
   }
+}
+
+/* Mobile root wrapper (Teleport container for modal + reopen bar) */
+.win-state-mobile-root {
+  display: contents;
+}
+
+/* Sticky bar to reopen result when modal was dismissed (mobile/tablet) */
+.win-state-reopen-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border: none;
+  border-top: 1px solid var(--color-border-subtle, #E2D6C3);
+  background: var(--color-paper, #FDFBF5);
+  color: var(--color-ink, #111827);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.win-state-reopen-bar:hover {
+  background: var(--color-border-subtle, #E2D6C3);
+}
+
+.win-state-reopen-bar__text {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dark .win-state-reopen-bar {
+  background: var(--color-paper, #1e293b);
+  border-top-color: var(--color-border-subtle, #1f2937);
+  color: #f9fafb;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.dark .win-state-reopen-bar:hover {
+  background: #374151;
 }
 
 /* Mobile Modal Overlay (< 1024px) */
@@ -701,12 +1022,49 @@ onUnmounted(() => {
   border-radius: 0.5rem;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   width: 100%;
-  max-width: 42rem; /* max-w-2xl */
+  max-width: 42rem;
   max-height: 90vh;
   overflow-y: auto;
   padding: 1rem;
   position: relative;
   margin: auto;
+}
+
+.win-state-modal__close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-ink-muted, #374151);
+  cursor: pointer;
+  border-radius: 0.25rem;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.win-state-modal__close:hover {
+  background: var(--color-border-subtle, #E2D6C3);
+  color: var(--color-ink, #111827);
+}
+
+.win-state-modal__close-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.dark .win-state-modal__close {
+  color: #9ca3af;
+}
+
+.dark .win-state-modal__close:hover {
+  background: #374151;
+  color: #f9fafb;
 }
 
 .dark .win-state-modal {
