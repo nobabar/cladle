@@ -25,6 +25,13 @@ const GameTreeVisualizationStub = {
   props: ["treeData", "showTarget", "width", "height"],
 };
 
+// Stub Icon component (from @nuxt/icon) - not auto-imported in test env
+const IconStub = {
+  name: "Icon",
+  template: "<span class=\"icon-stub\"></span>",
+  props: ["name"],
+};
+
 // Helper function to mount with stubs
 function mountWithStubs(component: any, options: any = {}) {
   return mount(component, {
@@ -35,6 +42,7 @@ function mountWithStubs(component: any, options: any = {}) {
         // Render teleported content in-place for predictable DOM assertions
         Teleport: true,
         GameTreeVisualization: GameTreeVisualizationStub,
+        Icon: IconStub,
         ...options.global?.stubs,
       },
     },
