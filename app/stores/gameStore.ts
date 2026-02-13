@@ -5,6 +5,7 @@ import { calculateLCA } from "~/utils/lcaCalculator";
 import type { LCAResult } from "~/utils/lcaCalculator";
 import type { GameError } from "~/utils/errorMessages";
 import { getCurrentDateUTC, isMidnightPassed } from "~/utils/dateUtils";
+import type { PuzzleHistoryEntry } from "~/types/puzzleHistory";
 
 /**
  * Default maximum number of guesses allowed per game
@@ -93,6 +94,8 @@ interface GameState {
   dailyState: ModeGameState | null;
   /** Stored state for free-play mode */
   freePlayState: ModeGameState | null;
+  /** True when viewing a past puzzle from history (read-only replay) */
+  isReplayMode: boolean;
 }
 
 /**
@@ -117,6 +120,7 @@ export const useGameStore = defineStore("game", {
     isRenderingTree: false,
     dailyState: null,
     freePlayState: null,
+    isReplayMode: false,
   }),
 
   persist: {
@@ -361,6 +365,44 @@ export const useGameStore = defineStore("game", {
         this.cladeMap = new Map();
         this.puzzleDate = mode === "daily" ? this.getCurrentDate() : "";
       }
+    },
+
+    /**
+     * Load a past puzzle from history for replay (read-only view).
+     * Does not overwrite dailyState; use exitReplay() to return to today's puzzle.
+     * @param entry - History entry from puzzle history storage
+     */
+    loadReplayFromHistory(entry: PuzzleHistoryEntry): void {
+      this.isReplayMode = true;
+      this.gameMode = "daily";
+      this.status = entry.completionStatus as GameStatus;
+      this.target = entry.targetAnimal;
+      this.guesses = entry.guesses as GuessEntry[];
+      this.maxGuesses = DEFAULT_MAX_GUESSES;
+      this.puzzleDate = entry.puzzleDate;
+      if (entry.treeData) {
+        this.treeData = entry.treeData as unknown as TreeData;
+        this.nodeMap = new Map();
+        this.cladeMap = new Map();
+        if (this.treeData.root) {
+          this.clearParentReferences(this.treeData.root);
+          this.buildNodeMap(this.treeData.root);
+          this.cleanupChildrenArrays(this.treeData.root);
+        }
+      } else {
+        this.treeData = null;
+        this.nodeMap = new Map();
+        this.cladeMap = new Map();
+      }
+    },
+
+    /**
+     * Exit replay mode and restore the current daily puzzle state.
+     */
+    exitReplay(): void {
+      if (!this.isReplayMode) return;
+      this.isReplayMode = false;
+      this.restoreModeState("daily");
     },
 
     /**
