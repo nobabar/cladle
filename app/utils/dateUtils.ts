@@ -89,3 +89,87 @@ export function getMidnightUTC(date: string): Date {
   }
   return new Date(Date.UTC(y, m - 1, d));
 }
+
+/** Display format for puzzle date */
+export type PuzzleDateFormat = "full" | "short" | "relative";
+
+/**
+ * Format a puzzle date (YYYY-MM-DD UTC) for user display.
+ * Converts to user's local date for readability. Use for labels and "today's puzzle".
+ *
+ * @param date - Puzzle date in YYYY-MM-DD format (UTC calendar day)
+ * @param format - 'full' (January 11, 2026), 'short' (Jan 11, 2026), or 'relative' (Today's Puzzle when current UTC day)
+ * @returns Formatted string, or fallback if date is missing/invalid
+ */
+export function formatPuzzleDate(
+  date: string,
+  format: PuzzleDateFormat = "full",
+): string {
+  if (!date || typeof date !== "string") {
+    return "—";
+  }
+  if (!isValidDateFormat(date)) {
+    return "—";
+  }
+  let dateObj: Date;
+  try {
+    dateObj = getMidnightUTC(date);
+  } catch {
+    return "—";
+  }
+  if (format === "relative" && date === getCurrentDateUTC()) {
+    return "Today's Puzzle";
+  }
+  const opts: Intl.DateTimeFormatOptions
+    = format === "short"
+      ? { year: "numeric", month: "short", day: "numeric" }
+      : { year: "numeric", month: "long", day: "numeric" };
+  return new Intl.DateTimeFormat(undefined, opts).format(dateObj);
+}
+
+/**
+ * Get the next midnight UTC (start of next calendar day UTC).
+ * Used for "next puzzle in" countdown.
+ *
+ * @returns Date object for 00:00:00.000 UTC of the next day
+ */
+export function getNextMidnightUTC(): Date {
+  const now = new Date();
+  const year = now.getUTCFullYear();
+  const month = now.getUTCMonth();
+  const day = now.getUTCDate();
+  return new Date(Date.UTC(year, month, day + 1, 0, 0, 0, 0));
+}
+
+/**
+ * Seconds until next midnight UTC (next puzzle). Zero or negative if already past.
+ *
+ * @param now - Current time (defaults to new Date(), overridable for tests)
+ * @returns Seconds until 00:00:00 UTC next day
+ */
+export function getSecondsUntilNextPuzzle(now: Date = new Date()): number {
+  const next = getNextMidnightUTC();
+  const ms = next.getTime() - now.getTime();
+  return Math.max(0, Math.floor(ms / 1000));
+}
+
+/**
+ * Format remaining time until next puzzle (next midnight UTC) as human-readable string.
+ *
+ * @param now - Current time (defaults to new Date(), overridable for tests)
+ * @returns e.g. "5h 23m", "45m", "2m 10s", or "Next puzzle soon" when < 1 minute
+ */
+export function formatTimeUntilNextPuzzle(now: Date = new Date()): string {
+  const totalSeconds = getSecondsUntilNextPuzzle(now);
+  if (totalSeconds <= 0) return "Next puzzle soon";
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+  return `${seconds}s`;
+}
