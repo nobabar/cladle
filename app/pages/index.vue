@@ -3,7 +3,7 @@ import { computed, nextTick, onMounted, ref, watch, watchEffect } from "vue";
 import type { Animal } from "~/types/animal";
 import type { TreeNode } from "~/types/tree";
 import type { ValidationError } from "~/utils/animalValidator";
-import { usePuzzleReset } from "~/composables/usePuzzleReset";
+import { useDailyPuzzleTime } from "~/composables/useDailyPuzzleTime";
 import { DEFAULT_MAX_GUESSES, useGameStore } from "~/stores/gameStore";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 import { apiErrorToGameError } from "~/utils/errorMessages";
@@ -328,8 +328,8 @@ function checkAndInitializeDailyPuzzle() {
   }
 }
 
-// Monitor for midnight (UTC) and reset daily puzzle when date changes (lazy reset)
-usePuzzleReset({ onReset: startNewGame });
+// Daily puzzle time: midnight reset + countdown to next puzzle (two-tier, SSR-safe)
+const { nextPuzzleIn, isSoon } = useDailyPuzzleTime({ onReset: startNewGame });
 
 /**
  * Initialize game on mount if not already started or if we're switching to daily mode
@@ -352,6 +352,20 @@ onMounted(() => {
       <div class="container mx-auto">
         <!-- Header -->
         <header class="mb-4 sm:mb-6 md:mb-8 relative">
+          <!-- Notebook-style date in top-left corner (always show calendar date) -->
+          <div
+            v-if="gameStore.puzzleDate"
+            class="absolute top-0 right-0 sm:top-5 sm:left-2 flex flex-col gap-2"
+          >
+            <GamePuzzleDateDisplay
+              :puzzle-date="gameStore.puzzleDate"
+              format="short"
+            />
+            <GameNextPuzzleTimer
+              :next-puzzle-in="nextPuzzleIn"
+              :show-timer="isSoon"
+            />
+          </div>
           <!-- Navigation and Color Mode Toggle -->
           <div class="absolute top-0 right-0 sm:top-2 sm:right-2 flex gap-2">
             <!-- Free Play Link -->
