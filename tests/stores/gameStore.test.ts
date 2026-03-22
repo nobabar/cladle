@@ -650,6 +650,77 @@ describe("gameStore", () => {
     });
   });
 
+  describe("restoreModeState (persisted snapshots)", () => {
+    it("resets to safe defaults when daily snapshot is missing", () => {
+      const store = getGameStore();
+      store.gameMode = "daily";
+      store.dailyState = null;
+      store.restoreModeState("daily");
+      expect(store.status).toBe("idle");
+      expect(store.target).toBeNull();
+      expect(store.guesses).toHaveLength(0);
+      expect(store.treeData).toBeNull();
+      expect(store.nodeMap.size).toBe(0);
+      expect(store.puzzleDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    it("resets to safe defaults when free-play snapshot is missing", () => {
+      const store = getGameStore();
+      store.gameMode = "free-play";
+      store.freePlayState = null;
+      store.restoreModeState("free-play");
+      expect(store.status).toBe("idle");
+      expect(store.target).toBeNull();
+      expect(store.puzzleDate).toBe("");
+    });
+
+    it("restores live state from dailyState and rebuilds nodeMap after simulated cold load", () => {
+      const store = getGameStore();
+      store.initializeGame(tiger, 20, "2026-03-20", "daily");
+      store.processGuess(lion);
+      expect(store.guesses.length).toBeGreaterThan(0);
+      store.saveModeState("daily");
+      expect(store.dailyState).not.toBeNull();
+
+      store.$patch({
+        status: "idle",
+        target: null,
+        guesses: [],
+        treeData: null,
+        nodeMap: new Map(),
+        cladeMap: new Map(),
+      });
+
+      store.restoreModeState("daily");
+
+      expect(store.status).toBe("playing");
+      expect(store.target?.id).toBe(tiger.id);
+      expect(store.puzzleDate).toBe("2026-03-20");
+      expect(store.guesses.length).toBeGreaterThan(0);
+      expect(store.treeData).not.toBeNull();
+      expect(store.nodeMap.size).toBeGreaterThan(0);
+    });
+
+    it("restores from freePlayState when mode is free-play", () => {
+      const store = getGameStore();
+      store.initializeGame(wolf, 12, "", "free-play");
+      store.processGuess(tiger);
+      store.saveModeState("free-play");
+      store.$patch({
+        status: "idle",
+        target: null,
+        guesses: [],
+        treeData: null,
+        nodeMap: new Map(),
+        cladeMap: new Map(),
+      });
+      store.restoreModeState("free-play");
+      expect(store.target?.id).toBe(wolf.id);
+      expect(store.status).toBe("playing");
+      expect(store.guesses.length).toBeGreaterThan(0);
+    });
+  });
+
   describe("puzzle history replay", () => {
     it("loadReplayFromHistory sets state from entry and isReplayMode true", () => {
       const store = getGameStore();
