@@ -13,7 +13,7 @@
  * - Case-insensitive duplicate detection
  *
  * @see components/game/animal-search.vue - Integration point
- * @see stores/gameStore.ts - Guess history source (Story 3.6)
+ * @see stores/gameStore.ts - Guess history source
  */
 
 import type { Animal } from "~/types/animal";

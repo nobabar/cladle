@@ -7,51 +7,15 @@
  */
 
 import type { TreeData } from "~/types/tree";
-import type {
-  PuzzleHistoryEntry,
-  StoredGuessEntry,
-  StoredTreeData,
-} from "~/types/puzzleHistory";
+import type { PuzzleHistoryEntry } from "~/types/puzzleHistory";
 import type { CompletionStatus, GuessEntry } from "~/stores/gameStore";
+import {
+  serializeGuessesForStorage,
+  serializeTreeDataForStorage,
+} from "~/utils/wireFormatSerialization";
 
 const STORAGE_KEY = "cladle-puzzle-history";
 const DEFAULT_DAYS_TO_KEEP = 30;
-
-/**
- * Strip parent references and convert TreeData to storable form.
- * @param treeData - Tree data to serialize
- * @returns Serialized tree data
- */
-function serializeTreeData(treeData: TreeData | null): StoredTreeData | null {
-  if (!treeData) return null;
-
-  const replacer = (_key: string, value: unknown): unknown => {
-    if (_key === "parent") return undefined;
-    if (value instanceof Map) return undefined;
-    return value;
-  };
-
-  const serialized = JSON.parse(JSON.stringify(treeData, replacer)) as StoredTreeData;
-  return serialized;
-}
-
-/**
- * Convert game store guesses to stored format.
- * @param guesses - Guesses to serialize
- * @returns Serialized guesses
- */
-function serializeGuesses(guesses: GuessEntry[]): StoredGuessEntry[] {
-  return guesses.map(g => ({
-    animal: g.animal,
-    lca: {
-      clade: g.lca.clade,
-      rank: g.lca.rank,
-      depth: g.lca.depth,
-      path: g.lca.path ?? [],
-    },
-    timestamp: g.timestamp,
-  }));
-}
 
 /**
  * Build a history entry from current game state (call when puzzle is completed).
@@ -77,8 +41,8 @@ export function buildHistoryEntry(
     puzzleDate,
     targetAnimal: targetAnimal as PuzzleHistoryEntry["targetAnimal"],
     completionStatus,
-    guesses: serializeGuesses(guesses),
-    treeData: serializeTreeData(treeData),
+    guesses: serializeGuessesForStorage(guesses),
+    treeData: serializeTreeDataForStorage(treeData),
     completedAt: Date.now(),
   };
 }

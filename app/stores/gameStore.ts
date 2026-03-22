@@ -18,7 +18,7 @@ export const DEFAULT_MAX_GUESSES = 20;
 export type GameStatus = "idle" | "playing" | "won" | "lost";
 
 /**
- * Completion Status (for story requirements)
+ * Completion Status
  */
 export type CompletionStatus = "playing" | "won" | "lost";
 
@@ -440,7 +440,7 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
-     * Initialize a new game with a target animal (story requirement: initializeGame)
+     * Initialize a new game with a target animal
      * @param target - The target animal to guess
      * @param maxGuesses - Maximum number of guesses (default: DEFAULT_MAX_GUESSES)
      * @param puzzleDate - Current puzzle date (YYYY-MM-DD format, optional)
@@ -521,7 +521,7 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
-     * Set target animal for puzzle (story requirement: setTargetAnimal)
+     * Set target animal for puzzle
      * @param animal - The target animal to guess
      */
     setTargetAnimal(animal: Animal): void {
@@ -529,7 +529,7 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
-     * Add a guess to the history (story requirement: addGuess)
+     * Add a guess to the history
      * This is a wrapper around processGuess for naming convention compliance
      * @param guess - The guessed animal
      */
@@ -538,7 +538,7 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
-     * Set completion status (story requirement: setCompletionStatus)
+     * Set completion status
      * @param status - The completion status (playing | won | lost)
      */
     setCompletionStatus(status: CompletionStatus): void {
@@ -546,7 +546,7 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
-     * Update tree state (story requirement: updateTreeState)
+     * Update tree state
      * @param treeData - The tree data structure
      */
     updateTreeState(treeData: TreeData): void {
@@ -555,16 +555,6 @@ export const useGameStore = defineStore("game", {
       this.nodeMap = new Map();
       this.cladeMap = new Map();
       this.buildNodeMap(treeData.root);
-    },
-
-    /**
-     * Decrement guesses remaining (story requirement: decrementGuessesRemaining)
-     * Note: This is automatically handled by processGuess, but provided for explicit control
-     */
-    decrementGuessesRemaining(): void {
-      // Guesses remaining is computed, so this is a no-op
-      // The actual decrement happens when a guess is added
-      // This method exists for API compliance with story requirements
     },
 
     /**

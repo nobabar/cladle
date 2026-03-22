@@ -445,7 +445,7 @@ describe("gameStore", () => {
     });
   });
 
-  describe("story requirements - action naming conventions", () => {
+  describe("action naming conventions", () => {
     it("should initialize game with initializeGame method", () => {
       const store = getGameStore();
       const puzzleDate = "2026-01-11";
@@ -507,20 +507,9 @@ describe("gameStore", () => {
       expect(store.treeData).toStrictEqual(newTree);
       expect(store.nodeMap.size).toBeGreaterThan(0);
     });
-
-    it("should decrement guesses remaining (no-op, but method exists)", () => {
-      const store = getGameStore();
-      store.startGame(tiger, 6);
-      const initialRemaining = store.guessesRemaining;
-
-      store.decrementGuessesRemaining();
-
-      // Method exists but doesn't change state (guesses remaining is computed)
-      expect(store.guessesRemaining).toBe(initialRemaining);
-    });
   });
 
-  describe("story requirements - additional getters", () => {
+  describe("additional getters", () => {
     it("should check if animal has been guessed with hasGuessed", () => {
       const store = getGameStore();
       store.startGame(tiger, 6);
