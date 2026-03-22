@@ -77,4 +77,21 @@ describe("piniaGameStorePersistence", () => {
     expect(out.dailyState).toBeNull();
     expect(out.freePlayState).toBeNull();
   });
+
+  it("deserialize unknown schema version yields empty slice (safe fallback)", () => {
+    const raw = JSON.stringify({
+      version: 99,
+      gameMode: "daily",
+      dailyState: null,
+      freePlayState: null,
+    });
+    const out = gameStorePersistSerializer.deserialize(raw) as {
+      gameMode: null;
+      dailyState: null;
+      freePlayState: null;
+    };
+    expect(out.gameMode).toBeNull();
+    expect(out.dailyState).toBeNull();
+    expect(out.freePlayState).toBeNull();
+  });
 });
