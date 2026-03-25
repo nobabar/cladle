@@ -49,6 +49,12 @@ export const ERROR_MESSAGES: ErrorMessageMap = {
   VALIDATION_ERROR: "Data format issue. This has been logged for investigation.",
   API_UNAVAILABLE: "Service temporarily unavailable. Cached data will be used when available.",
   CACHE_ERROR: "Local storage issue. Game may have limited functionality.",
+  STORAGE_QUOTA_EXCEEDED:
+    "Device storage is full. You can keep playing, but progress may not be saved. Please free up space if you want progress saved.",
+  STORAGE_WRITE_FAILED:
+    "Could not save progress on this device. You can keep playing in this session. Please check storage or permissions if this continues.",
+  STORAGE_READ_FAILED:
+    "Could not load saved progress. Please continue — a fresh start will be used for this session.",
   UNKNOWN_ERROR: "An unexpected error occurred. Please try again.",
   TIMEOUT: "Request timed out. Please try again.",
   NOT_FOUND: "Resource not found. Please check your input.",

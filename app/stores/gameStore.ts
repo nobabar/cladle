@@ -7,6 +7,7 @@ import type { GameError } from "~/utils/errorMessages";
 import { getCurrentDateUTC, isMidnightPassed } from "~/utils/dateUtils";
 import type { PuzzleHistoryEntry } from "~/types/puzzleHistory";
 import { gameStorePersistSerializer } from "~/utils/piniaGameStorePersistence";
+import { createSafeLocalStorageForPinia } from "~/utils/storageSafe";
 
 /**
  * Default maximum number of guesses allowed per game
@@ -126,7 +127,7 @@ export const useGameStore = defineStore("game", {
 
   persist: {
     key: "cladle-game-store",
-    // Storage default: `localStorage` via `runtimeConfig.public.piniaPluginPersistedstate` (nuxt.config)
+    storage: createSafeLocalStorageForPinia(),
     serializer: gameStorePersistSerializer,
     // Only persist the game mode and mode-specific state snapshots
     // The root-level state (status, target, guesses, etc.) is restored from

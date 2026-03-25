@@ -167,6 +167,9 @@ describe("eRROR_MESSAGES constant", () => {
       "VALIDATION_ERROR",
       "API_UNAVAILABLE",
       "CACHE_ERROR",
+      "STORAGE_QUOTA_EXCEEDED",
+      "STORAGE_WRITE_FAILED",
+      "STORAGE_READ_FAILED",
       "UNKNOWN_ERROR",
       "TIMEOUT",
       "NOT_FOUND",
@@ -175,9 +178,10 @@ describe("eRROR_MESSAGES constant", () => {
     ];
 
     for (const code of requiredMessages) {
-      expect(ERROR_MESSAGES[code]).toBeDefined();
-      expect(typeof ERROR_MESSAGES[code]).toBe("string");
-      expect(ERROR_MESSAGES[code].length).toBeGreaterThan(0);
+      const message = ERROR_MESSAGES[code];
+      expect(message).toBeDefined();
+      expect(typeof message).toBe("string");
+      expect(message!.length).toBeGreaterThan(0);
     }
   });
 
