@@ -13,6 +13,7 @@ import {
   serializeGuessesForStorage,
   serializeTreeDataForStorage,
 } from "~/utils/wireFormatSerialization";
+import { safeGetItem, safeSetItem } from "~/utils/storageSafe";
 
 const STORAGE_KEY = "cladle-puzzle-history";
 const DEFAULT_DAYS_TO_KEEP = 30;
@@ -60,10 +61,11 @@ export function loadPuzzleHistory(): PuzzleHistoryEntry[] {
   const storage = getStorage();
   if (!storage) return [];
 
+  const rawResult = safeGetItem(storage, STORAGE_KEY);
+  if (!rawResult.ok || !rawResult.value) return [];
+
   try {
-    const raw = storage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
+    const parsed = JSON.parse(rawResult.value) as unknown;
     if (!Array.isArray(parsed)) return [];
     return parsed as PuzzleHistoryEntry[];
   } catch {
@@ -90,18 +92,18 @@ export function savePuzzleToHistory(entry: PuzzleHistoryEntry): void {
   const storage = getStorage();
   if (!storage) return;
 
-  try {
-    const history = loadPuzzleHistory();
-    const withoutDate = history.filter(e => e.puzzleDate !== entry.puzzleDate);
-    withoutDate.push(entry);
-    // Sort by date descending (newest first)
-    withoutDate.sort((a, b) => (b.puzzleDate > a.puzzleDate ? 1 : -1));
-    storage.setItem(STORAGE_KEY, JSON.stringify(withoutDate));
-  } catch (e) {
-    if (e instanceof Error && (e.name === "QuotaExceededError" || e.message?.includes("QuotaExceeded"))) {
+  const history = loadPuzzleHistory();
+  const withoutDate = history.filter(e => e.puzzleDate !== entry.puzzleDate);
+  withoutDate.push(entry);
+  // Sort by date descending (newest first)
+  withoutDate.sort((a, b) => (b.puzzleDate > a.puzzleDate ? 1 : -1));
+
+  const write = safeSetItem(storage, STORAGE_KEY, JSON.stringify(withoutDate));
+  if (!write.ok) {
+    if (write.errorCode === "STORAGE_QUOTA_EXCEEDED") {
       throw new Error("Puzzle history storage full. Some old entries were not saved.");
     }
-    throw e;
+    throw new Error("Could not save puzzle history.");
   }
 }
 
@@ -129,9 +131,5 @@ export function clearOldHistory(daysToKeep: number = DEFAULT_DAYS_TO_KEEP): void
   const kept = history.filter(e => e.puzzleDate >= cutoffStr);
   if (kept.length === history.length) return;
 
-  try {
-    storage.setItem(STORAGE_KEY, JSON.stringify(kept));
-  } catch {
-    // If quota still an issue after cleanup, leave as-is
-  }
+  safeSetItem(storage, STORAGE_KEY, JSON.stringify(kept));
 }
