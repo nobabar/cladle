@@ -13,6 +13,7 @@ import { getGameStore } from "#test/helpers/gameStore";
 import { createPinia, setActivePinia } from "pinia";
 import type { Animal } from "~/types/animal";
 import type { TreeData, TreeNode } from "~/types/tree";
+import { calculateLCA } from "~/utils/lcaCalculator";
 
 // Stub GameTreeVisualization component
 const GameTreeVisualizationStub = {
@@ -103,6 +104,38 @@ function createSimpleTreeData(): TreeData {
   };
 }
 
+/**
+ * Adds one guess so share text / metrics can be computed (matches completed-game shape).
+ *
+ * @param store - Pinia game store under test
+ * @param target - Current puzzle target animal
+ */
+function addGuessForShareableCompletion(
+  store: ReturnType<typeof getGameStore>,
+  target: Animal,
+): void {
+  const guessAnimal = createMockAnimal(
+    "Wolf",
+    "Canis lupus",
+    [
+      "Animalia",
+      "Chordata",
+      "Mammalia",
+      "Carnivora",
+      "Canidae",
+      "Canis",
+      "Canis lupus",
+    ],
+  );
+  store.guesses = [
+    {
+      animal: guessAnimal,
+      lca: calculateLCA(guessAnimal, target),
+      timestamp: 1,
+    },
+  ];
+}
+
 describe("winState Component", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
@@ -157,6 +190,102 @@ describe("winState Component", () => {
     });
   });
 
+  describe("completion share integration (FR68)", () => {
+    const shareableTarget = () =>
+      createMockAnimal("Tiger", "Panthera tigris", [
+        "Animalia",
+        "Chordata",
+        "Mammalia",
+        "Carnivora",
+        "Felidae",
+        "Panthera",
+        "Panthera tigris",
+      ]);
+
+    it("does not surface share affordance while playing", async () => {
+      const store = getGameStore();
+      store.target = shareableTarget();
+      store.status = "playing";
+      store.treeData = createSimpleTreeData();
+
+      const wrapper = mountWithStubs(WinState);
+      await nextTick();
+
+      expect(
+        wrapper.find("[data-testid=\"win-state-share-ready\"]").exists(),
+      ).toBe(false);
+      expect(
+        wrapper.find("[data-testid=\"win-state-learning-footnote\"]").exists(),
+      ).toBe(false);
+    });
+
+    it("shows share affordance when game ended on desktop", async () => {
+      Object.defineProperty(window, "innerWidth", { value: 1280, configurable: true });
+      const store = getGameStore();
+      const target = shareableTarget();
+      store.startGame(target, 6);
+      store.status = "won";
+      store.treeData = createSimpleTreeData();
+      addGuessForShareableCompletion(store, target);
+
+      const wrapper = mountWithStubs(WinState);
+      await nextTick();
+
+      expect(
+        wrapper.find("[data-testid=\"win-state-share-ready\"]").exists(),
+      ).toBe(true);
+      expect(
+        wrapper.find("[data-testid=\"win-state-furthest-evolutionary-distance\"]").exists(),
+      ).toBe(true);
+      expect(
+        wrapper.find("[data-testid=\"win-state-learning-footnote\"]").exists(),
+      ).toBe(true);
+    });
+
+    it("shows share affordance when game ended on mobile modal", async () => {
+      Object.defineProperty(window, "innerWidth", { value: 600, configurable: true });
+      const store = getGameStore();
+      const target = shareableTarget();
+      store.startGame(target, 6);
+      store.status = "won";
+      store.treeData = createSimpleTreeData();
+      addGuessForShareableCompletion(store, target);
+
+      const wrapper = mountWithStubs(WinState);
+      await nextTick();
+
+      expect(
+        wrapper.find("[data-testid=\"win-state-share-ready\"]").exists(),
+      ).toBe(true);
+      expect(
+        wrapper.find("[data-testid=\"win-state-furthest-evolutionary-distance\"]").exists(),
+      ).toBe(true);
+      expect(
+        wrapper.find("[data-testid=\"win-state-learning-footnote\"]").exists(),
+      ).toBe(true);
+    });
+
+    it("shows furthest evolutionary distance on loss", async () => {
+      Object.defineProperty(window, "innerWidth", { value: 1280, configurable: true });
+      const store = getGameStore();
+      const target = shareableTarget();
+      store.startGame(target, 6);
+      store.status = "lost";
+      store.treeData = createSimpleTreeData();
+      addGuessForShareableCompletion(store, target);
+
+      const wrapper = mountWithStubs(WinState);
+      await nextTick();
+
+      expect(
+        wrapper.find("[data-testid=\"win-state-share-ready\"]").exists(),
+      ).toBe(true);
+      expect(
+        wrapper.find("[data-testid=\"win-state-furthest-evolutionary-distance\"]").exists(),
+      ).toBe(true);
+    });
+  });
+
   describe("win State Content", () => {
     it("should display target animal name when won", async () => {
       const store = getGameStore();
@@ -183,7 +312,7 @@ describe("winState Component", () => {
       await nextTick();
 
       expect(wrapper.text()).toContain("Congratulations");
-      expect(wrapper.text()).toContain("You found Tiger");
+      expect(wrapper.text()).toContain("You found the Tiger");
     });
 
     it("should display guess count when won", async () => {
@@ -334,8 +463,13 @@ describe("winState Component", () => {
       const element = dialog.exists() ? dialog : complementary;
 
       expect(element.exists()).toBe(true);
-      expect(element.attributes("aria-labelledby")).toBe("win-state-title");
-      expect(element.attributes("aria-describedby")).toBe("win-state-description");
+      if (dialog.exists()) {
+        expect(element.attributes("aria-labelledby")).toBe("win-state-modal-title");
+        expect(element.attributes("aria-describedby")).toBe("win-state-modal-description");
+      } else {
+        expect(element.attributes("aria-labelledby")).toBe("win-state-panel-title");
+        expect(element.attributes("aria-describedby")).toBe("win-state-panel-description");
+      }
     });
 
     it("should have proper ARIA labels for loss state", async () => {
@@ -354,8 +488,13 @@ describe("winState Component", () => {
       const element = dialog.exists() ? dialog : complementary;
 
       expect(element.exists()).toBe(true);
-      expect(element.attributes("aria-labelledby")).toBe("win-state-title");
-      expect(element.attributes("aria-describedby")).toBe("win-state-description");
+      if (dialog.exists()) {
+        expect(element.attributes("aria-labelledby")).toBe("win-state-modal-title");
+        expect(element.attributes("aria-describedby")).toBe("win-state-modal-description");
+      } else {
+        expect(element.attributes("aria-labelledby")).toBe("win-state-panel-title");
+        expect(element.attributes("aria-describedby")).toBe("win-state-panel-description");
+      }
     });
 
     it("should announce win state to screen readers", async () => {
