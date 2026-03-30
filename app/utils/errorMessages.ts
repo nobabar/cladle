@@ -49,6 +49,7 @@ export const ERROR_MESSAGES: ErrorMessageMap = {
   VALIDATION_ERROR: "Data format issue. This has been logged for investigation.",
   API_UNAVAILABLE: "Service temporarily unavailable. Cached data will be used when available.",
   CACHE_ERROR: "Local storage issue. Game may have limited functionality.",
+  SHARE_CLIPBOARD_FAILED: "Couldn't copy results. Please check your browser permissions and try again.",
   STORAGE_QUOTA_EXCEEDED:
     "Device storage is full. You can keep playing, but progress may not be saved. Please free up space if you want progress saved.",
   STORAGE_WRITE_FAILED:

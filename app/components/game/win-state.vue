@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import GameWinStateResultContent from "~/components/game/win-state-result-content.vue";
 import { useGameStore } from "~/stores/gameStore";
 import { useResponsive } from "~/composables/useResponsive";
+import { useSharing } from "~/composables/useSharing";
+import { calculatePhylogeneticMetrics } from "~/utils/sharingFormatter";
 
 /**
  * Win/Loss State Component
@@ -54,13 +57,31 @@ const guessCount = computed(() => gameStore.guesses.length);
 const maxGuesses = computed(() => gameStore.maxGuesses);
 
 /**
+ * General (non-spoiler) phylogenetic metrics for win/loss state display.
+ * Reuses the same FR45 implementation as sharing.
+ */
+const phyloMetrics = computed(() =>
+  calculatePhylogeneticMetrics(
+    treeData.value,
+    gameStore.guesses,
+    gameStore.target,
+    gameStore.status,
+  ),
+);
+
+/**
+ * Copy-to-clipboard share state and handler (FR44/FR47/FR68).
+ */
+const { copyShareText, isShareReady, lastCopyStatus, copyError } = useSharing();
+
+/**
  * Win state message
  */
 const winMessage = computed(() => {
   if (!targetAnimal.value) {
     return "Congratulations! You found the target animal!";
   }
-  return `Congratulations! You found ${targetAnimal.value.name}!`;
+  return `Congratulations! You found the ${targetAnimal.value.name}!`;
 });
 
 /**
@@ -71,6 +92,17 @@ const lossMessage = computed(() => {
     return "Game Over! Better luck next time.";
   }
   return `Game Over! The target was ${targetAnimal.value.name}.`;
+});
+
+const resultTitle = computed(() => (isWon.value ? "🎉 You Won!" : "Game Over"));
+
+const resultMessage = computed(() => (isWon.value ? winMessage.value : lossMessage.value));
+
+const resultStats = computed(() => {
+  if (isWon.value) {
+    return `Completed in ${guessCount.value} ${guessCount.value === 1 ? "guess" : "guesses"} out of ${maxGuesses.value}.`;
+  }
+  return `You used all ${maxGuesses.value} guesses. Keep learning and try again!`;
 });
 
 /**
@@ -258,6 +290,17 @@ onUnmounted(() => {
     {{ screenReaderAnnouncement }}
   </div>
 
+  <div
+    v-if="lastCopyStatus !== 'idle'"
+    class="sr-only"
+    aria-live="polite"
+    aria-atomic="true"
+  >
+    {{
+      lastCopyStatus === "success" ? "Copied!" : copyError || "Copy failed"
+    }}
+  </div>
+
   <!-- Mobile Modal and reopen bar (< 1024px) -->
   <Teleport to="body">
     <div class="win-state-mobile-root">
@@ -278,8 +321,8 @@ onUnmounted(() => {
             ref="focusTrapRef"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="win-state-title"
-            aria-describedby="win-state-description"
+            aria-labelledby="win-state-modal-title"
+            aria-describedby="win-state-modal-description"
             class="win-state-modal"
             @click.stop
           >
@@ -295,102 +338,24 @@ onUnmounted(() => {
                 aria-hidden="true"
               />
             </button>
-            <!-- Win State -->
-            <div v-if="isWon" class="win-state__content win-state__content--win">
-              <div class="win-state__header">
-                <h2
-                  id="win-state-title"
-                  class="win-state__title"
-                >
-                  🎉 You Won!
-                </h2>
-                <p
-                  id="win-state-description"
-                  class="win-state__message"
-                >
-                  {{ winMessage }}
-                </p>
-                <p
-                  v-if="targetAnimal"
-                  class="win-state__target"
-                >
-                  Target: <strong>{{ targetAnimal.name }}</strong>
-                  <span
-                    v-if="targetAnimal.scientificName"
-                    class="win-state__scientific-name"
-                  >
-                    ({{ targetAnimal.scientificName }})
-                  </span>
-                </p>
-                <p class="win-state__stats">
-                  Completed in {{ guessCount }} {{ guessCount === 1 ? "guess" : "guesses" }}
-                  out of {{ maxGuesses }}.
-                </p>
-              </div>
-
-              <!-- Full Tree Visualization -->
-              <div class="win-state__tree">
-                <h3 class="win-state__tree-title">
-                  Complete Phylogenetic Tree
-                </h3>
-                <div class="win-state__tree-container">
-                  <GameTreeVisualization
-                    :tree-data="treeData"
-                    :show-target="true"
-                    :width="800"
-                    :height="400"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- Loss State -->
-            <div v-else-if="isLost" class="win-state__content win-state__content--loss">
-              <div class="win-state__header">
-                <h2
-                  id="win-state-title"
-                  class="win-state__title"
-                >
-                  Game Over
-                </h2>
-                <p
-                  id="win-state-description"
-                  class="win-state__message"
-                >
-                  {{ lossMessage }}
-                </p>
-                <p
-                  v-if="targetAnimal"
-                  class="win-state__target"
-                >
-                  Target: <strong>{{ targetAnimal.name }}</strong>
-                  <span
-                    v-if="targetAnimal.scientificName"
-                    class="win-state__scientific-name"
-                  >
-                    ({{ targetAnimal.scientificName }})
-                  </span>
-                </p>
-                <p class="win-state__stats">
-                  You used all {{ maxGuesses }} guesses. Keep learning and try again!
-                </p>
-              </div>
-
-              <!-- Full Tree Visualization -->
-              <div class="win-state__tree">
-                <h3 class="win-state__tree-title">
-                  Complete Phylogenetic Tree
-                </h3>
-                <div class="win-state__tree-container">
-                  <GameTreeVisualization
-                    :tree-data="treeData"
-                    :show-target="true"
-                    :width="800"
-                    :height="400"
-                  />
-                </div>
-              </div>
-            </div>
+            <GameWinStateResultContent
+              v-if="isWon || isLost"
+              :is-won="isWon"
+              :show-title="true"
+              title-id="win-state-modal-title"
+              :title="resultTitle"
+              description-id="win-state-modal-description"
+              :message="resultMessage"
+              :stats-text="resultStats"
+              :target-animal="targetAnimal"
+              :phylo-metrics="phyloMetrics"
+              :is-share-ready="isShareReady"
+              :last-copy-status="lastCopyStatus"
+              :tree-data="treeData"
+              :tree-width="800"
+              :tree-height="400"
+              @copy="copyShareText"
+            />
           </div>
         </div>
       </Transition>
@@ -432,8 +397,8 @@ onUnmounted(() => {
       v-if="isPanelOpen"
       ref="focusTrapRef"
       role="complementary"
-      aria-labelledby="win-state-title"
-      aria-describedby="win-state-description"
+      aria-labelledby="win-state-panel-title"
+      aria-describedby="win-state-panel-description"
       aria-label="Game result panel"
       class="win-state-panel"
       :class="{ 'win-state-panel--collapsed': isPanelCollapsed }"
@@ -444,7 +409,7 @@ onUnmounted(() => {
         <!-- Title and collapse button -->
         <div class="win-state-panel__title-row">
           <h2
-            id="win-state-title"
+            id="win-state-panel-title"
             class="win-state-panel__title"
             :class="isWon ? 'win-state-panel__title--win' : 'win-state-panel__title--loss'"
           >
@@ -464,90 +429,21 @@ onUnmounted(() => {
             />
           </button>
         </div>
-        <!-- Win State -->
-        <div v-if="isWon" class="win-state__content win-state__content--win">
-          <div class="win-state__header">
-            <p
-              id="win-state-description"
-              class="win-state__message"
-            >
-              {{ winMessage }}
-            </p>
-            <p
-              v-if="targetAnimal"
-              class="win-state__target"
-            >
-              Target: <strong>{{ targetAnimal.name }}</strong>
-              <span
-                v-if="targetAnimal.scientificName"
-                class="win-state__scientific-name"
-              >
-                ({{ targetAnimal.scientificName }})
-              </span>
-            </p>
-            <p class="win-state__stats">
-              Completed in {{ guessCount }} {{ guessCount === 1 ? "guess" : "guesses" }}
-              out of {{ maxGuesses }}.
-            </p>
-          </div>
-
-          <!-- Full Tree Visualization -->
-          <div class="win-state__tree">
-            <h3 class="win-state__tree-title">
-              Complete Phylogenetic Tree
-            </h3>
-            <div class="win-state__tree-container">
-              <GameTreeVisualization
-                :tree-data="treeData"
-                :show-target="true"
-                :width="380"
-                :height="600"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- Loss State -->
-        <div v-else-if="isLost" class="win-state__content win-state__content--loss">
-          <div class="win-state__header">
-            <p
-              id="win-state-description"
-              class="win-state__message"
-            >
-              {{ lossMessage }}
-            </p>
-            <p
-              v-if="targetAnimal"
-              class="win-state__target"
-            >
-              Target: <strong>{{ targetAnimal.name }}</strong>
-              <span
-                v-if="targetAnimal.scientificName"
-                class="win-state__scientific-name"
-              >
-                ({{ targetAnimal.scientificName }})
-              </span>
-            </p>
-            <p class="win-state__stats">
-              You used all {{ maxGuesses }} guesses. Keep learning and try again!
-            </p>
-          </div>
-
-          <!-- Full Tree Visualization -->
-          <div class="win-state__tree">
-            <h3 class="win-state__tree-title">
-              Complete Phylogenetic Tree
-            </h3>
-            <div class="win-state__tree-container">
-              <GameTreeVisualization
-                :tree-data="treeData"
-                :show-target="true"
-                :width="380"
-                :height="600"
-              />
-            </div>
-          </div>
-        </div>
+        <GameWinStateResultContent
+          v-if="isWon || isLost"
+          :is-won="isWon"
+          description-id="win-state-panel-description"
+          :message="resultMessage"
+          :stats-text="resultStats"
+          :target-animal="targetAnimal"
+          :phylo-metrics="phyloMetrics"
+          :is-share-ready="isShareReady"
+          :last-copy-status="lastCopyStatus"
+          :tree-data="treeData"
+          :tree-width="380"
+          :tree-height="600"
+          @copy="copyShareText"
+        />
       </div>
       <!-- Collapsed state: thin strip with expand button at top + vertical status -->
       <div class="win-state-panel__strip">
@@ -628,22 +524,6 @@ onUnmounted(() => {
 }
 .dark .win-state__message { color: #d1d5db; }
 
-.win-state__target {
-  font-size: 1rem;
-  line-height: 1.5;
-  margin: 0;
-  color: var(--color-ink-subtle, #6b7280);
-}
-.dark .win-state__target { color: #9ca3af; }
-.win-state__target strong { font-weight: 600; color: var(--color-ink, #111827); }
-.dark .win-state__target strong { color: #f9fafb; }
-
-.win-state__scientific-name {
-  font-style: italic;
-  font-size: 0.875rem;
-  margin-left: 0.25rem;
-}
-
 .win-state__stats {
   font-size: 0.875rem;
   line-height: 1.5;
@@ -651,6 +531,65 @@ onUnmounted(() => {
   color: var(--color-ink-subtle, #6b7280);
 }
 .dark .win-state__stats { color: #9ca3af; }
+
+.win-state__target-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.win-state__target-image {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.5rem;
+  object-fit: cover;
+  border: 1px solid var(--color-border-subtle, #e2d6c3);
+  background: var(--color-paper, #fdfbf5);
+  flex: 0 0 auto;
+}
+
+.win-state__target-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+}
+
+.win-state__target-line {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  color: var(--color-ink-muted, #374151);
+}
+
+.win-state__scientific-name {
+  font-style: italic;
+  color: var(--color-ink-subtle, #6b7280);
+  margin-left: 0.25rem;
+}
+
+.dark .win-state__target-line { color: #d1d5db; }
+.dark .win-state__scientific-name { color: #9ca3af; }
+
+.win-state__target-link {
+  color: var(--color-ink, #111827);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.win-state__target-link-separator {
+  color: var(--color-ink-subtle, #6b7280);
+}
+
+.dark .win-state__target-link { color: #f9fafb; }
+.dark .win-state__target-link-separator { color: #9ca3af; }
+.dark .win-state__target-image {
+  background: var(--color-ink, #1f2937);
+  border-color: #374151;
+}
 
 .win-state__tree {
   display: flex;
@@ -716,7 +655,7 @@ onUnmounted(() => {
   background-position: 0 0;
   opacity: 0.5;
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
 }
 
 .win-state-panel--collapsed {
@@ -1090,5 +1029,13 @@ onUnmounted(() => {
 .win-state-modal:focus {
   outline: 2px solid var(--color-focus-ring, #6b7f8e);
   outline-offset: 2px;
+}
+
+.win-state__learning-footnote {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  font-style: italic;
+  color: var(--color-ink-subtle, #6b7280);
 }
 </style>
