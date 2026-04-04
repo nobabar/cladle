@@ -14,26 +14,18 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 export function useResponsive() {
   const windowWidth = ref(typeof window !== "undefined" ? window.innerWidth : 1024);
 
-  /**
-   * Update window width on resize
-   */
   function updateWidth() {
     if (typeof window !== "undefined") {
       windowWidth.value = window.innerWidth;
     }
   }
 
-  /**
-   * Debounced resize handler for performance
-   */
   let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
   function handleResize() {
     if (resizeTimeout) {
       clearTimeout(resizeTimeout);
     }
-    resizeTimeout = setTimeout(() => {
-      updateWidth();
-    }, 150);
+    resizeTimeout = setTimeout(updateWidth, 150);
   }
 
   onMounted(() => {
@@ -52,24 +44,9 @@ export function useResponsive() {
     }
   });
 
-  /**
-   * Check if current viewport is mobile (< 768px)
-   */
   const isMobile = computed(() => windowWidth.value < 768);
-
-  /**
-   * Check if current viewport is tablet (768px - 1023px)
-   */
   const isTablet = computed(() => windowWidth.value >= 768 && windowWidth.value < 1024);
-
-  /**
-   * Check if current viewport is desktop (>= 1024px)
-   */
   const isDesktop = computed(() => windowWidth.value >= 1024);
-
-  /**
-   * Check if current viewport is mobile or tablet (< 1024px)
-   */
   const isMobileOrTablet = computed(() => windowWidth.value < 1024);
 
   return {

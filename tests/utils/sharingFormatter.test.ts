@@ -158,7 +158,7 @@ describe("calculatePhylogeneticMetrics", () => {
     expect(result!.furthestEvolutionaryDistance).toBe(7);
   });
 
-  it("when every guess has lca.depth < 0 but treeData provides depths, tree depth still uses tree", () => {
+  it("when every guess has lca.depth < 0 but treeData has depths, tree depth still uses tree", () => {
     const guesses = [
       {
         animal: wolf,

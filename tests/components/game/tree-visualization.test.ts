@@ -290,12 +290,12 @@ describe("treeVisualization", () => {
         expect(x).toBeTruthy();
         expect(y).toBeTruthy();
         // Verify they are valid numbers
-        expect(Number.parseFloat(x)).not.toBeNaN();
-        expect(Number.parseFloat(y)).not.toBeNaN();
+        expect(Number.parseFloat(x!)).not.toBeNaN();
+        expect(Number.parseFloat(y!)).not.toBeNaN();
       });
     });
 
-    it("handles empty tree gracefully", async () => {
+    it("handles empty tree without throwing", async () => {
       const emptyTreeData: TreeData = {
         root: createMockTreeNode("root", "Root", "clade"),
         target: createMockTreeNode("target", "Target", "animal"),
@@ -355,7 +355,7 @@ describe("treeVisualization", () => {
       expect(container.attributes("aria-label")).toBeTruthy();
     });
 
-    it("provides ARIA labels for nodes", async () => {
+    it("sets ARIA labels on nodes", async () => {
       const treeData = createSimpleTreeData();
       const wrapper = mountWithStubs(TreeVisualization, {
         props: {
@@ -683,7 +683,7 @@ describe("treeVisualization", () => {
       }
     });
 
-    it("ensures touch targets meet minimum 44x44px requirement", async () => {
+    it("uses at least 44x44px touch targets on small viewports", async () => {
       const treeData = createSimpleTreeData();
       const wrapper = mountWithStubs(TreeVisualization, {
         props: {
@@ -806,7 +806,7 @@ describe("treeVisualization", () => {
       await nextTick();
       const endTime = performance.now();
 
-      // Should render within reasonable time (< 5 seconds as per NFR1)
+      // Should render within reasonable time (< 5 seconds)
       expect(endTime - startTime).toBeLessThan(5000);
       expect(wrapper.exists()).toBe(true);
     });

@@ -1,37 +1,20 @@
 import { hierarchy, tree } from "d3-hierarchy";
 import type { TreeData, TreeLayoutConfig, TreeNode } from "~/types/tree";
 
-/**
- * Edge interface for tree connections
- */
 export interface Edge {
-  /** Source node */
   from: TreeNode;
-  /** Target node */
   to: TreeNode;
-  /** SVG path string for the edge */
   path?: string;
 }
 
-/**
- * Positioned node with calculated coordinates
- */
 export interface PositionedNode extends TreeNode {
-  /** Calculated position (required) */
   position: { x: number; y: number };
-  /** Depth in tree (required) */
   depth: number;
 }
 
-/**
- * Layout calculation result
- */
 export interface LayoutResult {
-  /** Map of node IDs to positioned nodes */
   nodes: Map<string, PositionedNode>;
-  /** Array of edges connecting nodes */
   edges: Edge[];
-  /** Calculated tree dimensions */
   dimensions: {
     width: number;
     height: number;
@@ -42,9 +25,6 @@ export interface LayoutResult {
   };
 }
 
-/**
- * Default layout configuration
- */
 const DEFAULT_CONFIG: TreeLayoutConfig = {
   horizontalSpacing: 150,
   verticalSpacing: 120,
@@ -117,7 +97,6 @@ export function calculateTreeLayout(
     maxY = Math.max(maxY, nodeBottom);
   }
 
-  // Build edges
   function buildEdges(node: TreeNode): void {
     const parentNode = nodeMap.get(node.id);
     if (!parentNode) return;
@@ -133,7 +112,6 @@ export function calculateTreeLayout(
 
   buildEdges(treeData.root);
 
-  // Handle empty tree
   if (nodeMap.size === 0) {
     return {
       nodes: new Map(),

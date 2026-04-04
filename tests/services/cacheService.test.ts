@@ -225,7 +225,7 @@ describe("cacheService", () => {
       expect(result).toEqual(testData);
     });
 
-    it("set() should handle quota exceeded errors gracefully", async () => {
+    it("set() should not throw when quota is exceeded", async () => {
       // Arrange
       const service = new CacheService();
       await service.init();
@@ -242,7 +242,7 @@ describe("cacheService", () => {
       // For testing, we verify the error handling path exists
       await service.set("animals", "test-key", { id: "test" });
 
-      // Assert - Should not throw, fails gracefully
+      // Assert - should not throw; cache write is skipped when quota is exceeded
       expect(consoleErrorSpy).not.toHaveBeenCalledWith(
         expect.stringContaining("quota exceeded"),
       );

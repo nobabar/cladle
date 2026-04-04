@@ -2,7 +2,7 @@
  * Date utility module for daily puzzle system.
  *
  * All puzzle dates are stored and compared in UTC (YYYY-MM-DD) for consistency
- * across time zones (NFR37). Use these functions for midnight reset detection
+ * across time zones. Use these functions for midnight reset detection
  * and date comparison; convert to local time only for display.
  *
  * Timezone handling strategy:

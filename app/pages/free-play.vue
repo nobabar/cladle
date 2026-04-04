@@ -2,49 +2,27 @@
 import { computed, nextTick, onMounted, ref, watch, watchEffect } from "vue";
 import type { Animal } from "~/types/animal";
 import type { TreeNode } from "~/types/tree";
-import type { ValidationError } from "~/utils/animalValidator";
 import { DEFAULT_MAX_GUESSES, useGameStore } from "~/stores/gameStore";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 import { apiErrorToGameError } from "~/utils/errorMessages";
 import { selectRandomTargetAnimal } from "~/utils/puzzleSelector";
 
-// Free play game page - allows players to reset and get a new random animal anytime
-
 const gameStore = useGameStore();
 const api = useBiologicalAPI();
 
-/**
- * Color mode toggle
- */
 const colorMode = useColorMode();
 
-/**
- * Toggle between light and dark mode
- */
 function toggleColorMode() {
   colorMode.preference = colorMode.value === "dark" ? "light" : "dark";
 }
 
-/**
- * Get current color mode icon
- */
 const colorModeIcon = computed(() => colorMode.value === "dark" ? "i-lucide-sun" : "i-lucide-moon");
 
-/**
- * Get color mode label for accessibility
- */
 const colorModeLabel = computed(() => colorMode.value === "dark"
   ? "Switch to light mode"
   : "Switch to dark mode");
 
-/**
- * Get tree data from game store
- */
 const treeData = computed(() => gameStore.treeData);
-
-/**
- * Get guess history from game store for duplicate prevention
- */
 const guessHistory = computed(() => gameStore.guesses.map(g => g.animal));
 
 /**
@@ -81,29 +59,6 @@ function handleAnimalSelect(animal: Animal) {
   }
 }
 
-/**
- * Handle validation errors
- * Validation errors are shown inline in the search component, not as store-level errors
- * @param _error - The validation error that occurred (unused, handled inline)
- */
-function handleValidationError(_error: ValidationError) {
-  // Validation errors are handled inline in the search component
-  // Only critical errors (network, data) should be set in the store
-  // This prevents duplicate error messages
-}
-
-/**
- * Handle input events
- * @param _value - The input value (currently unused)
- */
-function handleInput(_value: string) {
-  // Input event handler - can be used for additional logic if needed
-  // The component now handles API calls internally
-}
-
-/**
- * Information panel state
- */
 const isInformationPanelOpen = ref(false);
 const selectedNode = ref<TreeNode | null>(null);
 
@@ -126,9 +81,6 @@ function handleNodeClick(node: TreeNode) {
   isInformationPanelOpen.value = true;
 }
 
-/**
- * Handle information panel close
- */
 function handleInformationPanelClose() {
   isInformationPanelOpen.value = false;
   selectedNode.value = null;
@@ -173,7 +125,7 @@ async function startNewGame() {
       targetAnimalId = "41967"; // Tiger as fallback
     }
 
-    // Fetch full animal data from API to ensure we have complete, accurate data
+    // Fetch full animal data from API to ensure we have complete data
     const animalResponse = await api.fetchAnimalData(targetAnimalId);
 
     if (animalResponse.error || !animalResponse.data) {
@@ -262,7 +214,7 @@ async function resetGame() {
       targetAnimalId = "41967"; // Tiger as fallback
     }
 
-    // Fetch full animal data from API to ensure we have complete, accurate data
+    // Fetch full animal data from API to ensure we have complete data
     const animalResponse = await api.fetchAnimalData(targetAnimalId);
 
     if (animalResponse.error || !animalResponse.data) {
@@ -511,8 +463,6 @@ onMounted(() => {
             placeholder="Search for an animal..."
             :guess-history="guessHistory"
             @select="handleAnimalSelect"
-            @input="handleInput"
-            @validation-error="handleValidationError"
           />
           <!-- First-time user hint (progressive disclosure) -->
           <p

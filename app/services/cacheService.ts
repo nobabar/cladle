@@ -1,20 +1,6 @@
 /**
- * Cache Service - IndexedDB Implementation
- *
- * Hybrid caching strategy for Cladle:
- * - HTTP cache: Handled automatically by browser (fetch API)
- * - IndexedDB: Stores processed animal/clade data and LCA results
- *
- * Features:
- * - TTL (Time To Live) based expiration
- * - Type-safe operations with TypeScript
- * - Support for offline capability
- * - Automatic cleanup of expired entries
- *
- * Store structure:
- * - animals: Animal data cache
- * - clades: Clade data cache
- * - lca: LCA calculation results cache
+ * IndexedDB cache for processed animals, clades, and LCA results (TTL per entry).
+ * Fetch responses may still use the browser HTTP cache; this layer is for structured app data and offline reuse.
  */
 
 import type { DBSchema, IDBPDatabase } from "idb";
@@ -22,15 +8,9 @@ import { openDB } from "idb";
 import type { Animal } from "~/types/animal";
 import type { Clade } from "~/types/clade";
 
-/**
- * Database configuration
- */
 const DB_NAME = "cladle-cache";
 const DB_VERSION = 1;
 
-/**
- * Default TTL values (in milliseconds)
- */
 const DEFAULT_TTL = 86400000; // 24 hours
 export const TTL_VALUES = {
   ANIMAL: 86400000, // 24 hours
@@ -87,17 +67,9 @@ interface CladleCacheDB extends DBSchema {
   };
 }
 
-/**
- * Type alias for cache store names
- */
 export type CacheStore = "animals" | "clades" | "lca";
 
-/**
- * CacheService Class
- *
- * Provides IndexedDB-based caching with TTL support.
- * Handles cache initialization, CRUD operations, and expiration management.
- */
+/** IndexedDB wrapper; `get` drops expired rows on read. */
 export class CacheService {
   private db: IDBPDatabase<CladleCacheDB> | null = null;
 
@@ -109,7 +81,6 @@ export class CacheService {
    * @throws Error if IndexedDB is not available or initialization fails
    */
   async init(): Promise<void> {
-    // Skip if already initialized
     if (this.db) {
       return;
     }
@@ -131,8 +102,6 @@ export class CacheService {
       });
     } catch (error: any) {
       console.error("Failed to initialize IndexedDB cache:", error);
-      // Graceful degradation: Cache will be unavailable but app can continue
-      // Individual cache operations will return null when db is not initialized
       this.db = null;
       throw new Error(`Cache initialization failed: ${error.message || String(error)}`);
     }
@@ -148,24 +117,20 @@ export class CacheService {
    */
   async get<T>(store: CacheStore, key: string): Promise<T | null> {
     try {
-      // Auto-initialize if not initialized
       if (!this.db) {
         await this.init();
       }
 
-      // If still no db after init (e.g., IndexedDB disabled), return null
       if (!this.db) {
         return null;
       }
 
       const entry = await this.db.get(store, key);
 
-      // Return null if entry doesn't exist
       if (!entry) {
         return null;
       }
 
-      // Check if expired
       if (Date.now() > entry.expiresAt) {
         // Clean up expired entry
         await this.db.delete(store, key);
@@ -176,7 +141,7 @@ export class CacheService {
       return entry.data as T;
     } catch (error: any) {
       console.error(`Cache get failed for ${store}:${key}:`, error);
-      return null; // Graceful degradation: return null on error
+      return null;
     }
   }
 
@@ -196,12 +161,10 @@ export class CacheService {
     ttl: number = DEFAULT_TTL,
   ): Promise<void> {
     try {
-      // Auto-initialize if not initialized
       if (!this.db) {
         await this.init();
       }
 
-      // If still no db after init, silently fail (graceful degradation)
       if (!this.db) {
         console.warn(`Cache unavailable, cannot store ${store}:${key}`);
         return;
@@ -218,10 +181,9 @@ export class CacheService {
 
       await this.db.put(store, entry as any, key);
     } catch (error: any) {
-      // Handle quota exceeded error
       if (error.name === "QuotaExceededError") {
         console.error(`Cache quota exceeded for ${store}:${key}. Consider clearing old entries.`);
-        // Attempt to clear expired entries to free up space
+        // Clear expired entries to free up space
         try {
           await this.clearExpired();
         } catch (clearError) {
@@ -230,54 +192,30 @@ export class CacheService {
       } else {
         console.error(`Cache set failed for ${store}:${key}:`, error);
       }
-      // Graceful degradation: don't throw, just log
     }
   }
 
-  /**
-   * Check if key exists and is not expired
-   *
-   * @param store - Store name (animals, clades, or lca)
-   * @param key - Cache key to check
-   * @returns Promise resolving to true if key exists and is valid
-   */
   async has(store: CacheStore, key: string): Promise<boolean> {
     const data = await this.get(store, key);
     return data !== null;
   }
 
-  /**
-   * Clear all data from a store
-   *
-   * @param store - Store name to clear
-   * @returns Promise that resolves when store is cleared
-   */
   async clear(store: CacheStore): Promise<void> {
     try {
-      // Auto-initialize if not initialized
       if (!this.db) {
         await this.init();
       }
 
       if (!this.db) {
-        return; // Graceful degradation
+        return;
       }
 
       await this.db.clear(store);
     } catch (error: any) {
       console.error(`Cache clear failed for ${store}:`, error);
-      // Don't throw, allow graceful degradation
     }
   }
 
-  /**
-   * Clear expired entries from a single store
-   * Helper method to reduce nesting complexity
-   *
-   * @param store - Store to clean
-   * @param now - Current timestamp
-   * @private
-   */
   private async clearExpiredFromStore(store: CacheStore, now: number): Promise<void> {
     if (!this.db) return;
 
@@ -291,21 +229,14 @@ export class CacheService {
     }
   }
 
-  /**
-   * Clear expired entries from all stores
-   * Useful for periodic cleanup to free up storage
-   *
-   * @returns Promise that resolves when cleanup is complete
-   */
   async clearExpired(): Promise<void> {
     try {
-      // Auto-initialize if not initialized
       if (!this.db) {
         await this.init();
       }
 
       if (!this.db) {
-        return; // Graceful degradation
+        return;
       }
 
       const stores: CacheStore[] = ["animals", "clades", "lca"];
@@ -316,19 +247,13 @@ export class CacheService {
           await this.clearExpiredFromStore(store, now);
         } catch (storeError: any) {
           console.error(`Failed to clear expired entries from ${store}:`, storeError);
-          // Continue with other stores
         }
       }
     } catch (error: any) {
       console.error("Cache clearExpired failed:", error);
-      // Don't throw, allow graceful degradation
     }
   }
 
-  /**
-   * Close database connection
-   * Useful for cleanup when cache is no longer needed
-   */
   close(): void {
     if (this.db) {
       this.db.close();
@@ -337,47 +262,25 @@ export class CacheService {
   }
 }
 
-/**
- * Create a new CacheService instance
- * Factory function for dependency injection and testing
- *
- * @returns New CacheService instance
- */
 export function createCacheService(): CacheService {
   return new CacheService();
 }
 
-/**
- * Default singleton instance
- * Pre-initialized cache service for application-wide use
- */
 export const cacheService = createCacheService();
 
 /**
  * Utility functions for generating consistent cache keys
  */
 export const CacheKeys = {
-  /**
-   * Generate cache key for animal data
-   * @param animalId - Unique animal identifier
-   * @returns Cache key in format "animal:{id}"
-   */
   animal: (animalId: string): string => `animal:${animalId}`,
 
-  /**
-   * Generate cache key for clade data
-   * @param cladeName - Clade name
-   * @returns Cache key in format "clade:{name}"
-   */
   clade: (cladeName: string): string => `clade:${cladeName}`,
 
   /**
-   * Generate cache key for LCA result
-   * IDs are sorted to ensure consistent key regardless of input order
-   *
-   * @param animalId1 - First animal ID
-   * @param animalId2 - Second animal ID
-   * @returns Cache key in format "lca:{id1}:{id2}" (sorted)
+   * Sorted IDs so A|B and B|A share one cache entry.
+   * @param animalId1
+   * @param animalId2
+   * @returns `lca:{id1}:{id2}` with ids ordered lexicographically
    */
   lca: (animalId1: string, animalId2: string): string => {
     const [id1, id2] = [animalId1, animalId2].sort();

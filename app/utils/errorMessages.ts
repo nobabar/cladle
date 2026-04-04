@@ -4,11 +4,6 @@
  * Provides user-friendly error messages for API and validation errors.
  * Converts technical error codes into actionable, user-friendly messages.
  *
- * Architecture Pattern:
- * - Centralized error message mapping
- * - Separates technical errors from user-facing messages
- * - Supports graceful error handling
- *
  * @see services/apiClient.ts - Error handling integration
  * @see utils/dataValidation.ts - Validation error integration
  */
@@ -24,22 +19,16 @@ export interface ErrorMessageMap {
 /**
  * Game Error Type
  * Represents errors that occur during game operations
- * Follows architecture pattern: store-level for API/data, component-level for UI
  */
 export interface GameError {
-  /** User-friendly error message */
   message: string;
-  /** Optional error code for programmatic handling */
   code?: string;
-  /** Optional additional error details (not exposed to user) */
   details?: any;
-  /** Error type for categorization */
   type: "validation" | "network" | "data" | "ui";
 }
 
 /**
  * Standard error messages for common error scenarios
- * These messages are user-friendly and don't expose technical details
  */
 export const ERROR_MESSAGES: ErrorMessageMap = {
   ANIMAL_NOT_FOUND: "Animal not found. Please try a different name.",
@@ -69,13 +58,6 @@ export const ERROR_MESSAGES: ErrorMessageMap = {
  * @param code - Error code (e.g., 'NETWORK_ERROR', 'VALIDATION_ERROR')
  * @param defaultMessage - Optional custom default message if code not found
  * @returns User-friendly error message
- *
- * @example
- * ```typescript
- * getUserFriendlyError('NETWORK_ERROR') // "Connection issue. Please check your internet and try again."
- * getUserFriendlyError('UNKNOWN_CODE') // "An unexpected error occurred. Please try again."
- * getUserFriendlyError('UNKNOWN_CODE', 'Custom message') // "Custom message"
- * ```
  */
 export function getUserFriendlyError(
   code?: string,
@@ -128,7 +110,6 @@ export function apiErrorToGameError(
     details?: any;
   },
 ): GameError {
-  // Determine error type based on code
   let errorType: GameError["type"] = "data";
 
   if (apiError.code === "NETWORK_ERROR" || apiError.code === "OFFLINE" || apiError.code === "TIMEOUT") {

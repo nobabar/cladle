@@ -1,10 +1,4 @@
-/**
- * Puzzle history storage (localStorage MVP).
- *
- * - Save completed puzzles for replay.
- * - Load history list and get puzzle by date.
- * - Enforce size limit and cleanup old entries.
- */
+/** Puzzle history in localStorage: save/load by date, prune by age. */
 
 import type { TreeData } from "~/types/tree";
 import type { PuzzleHistoryEntry } from "~/types/puzzleHistory";

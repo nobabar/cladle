@@ -1,24 +1,12 @@
 /**
- * Data Validation Utilities
- *
- * Comprehensive validation functions for API response data.
- * Ensures data integrity before use throughout the application.
- *
- * Architecture Pattern:
- * - Validation happens before data is cached or used
- * - Returns ValidationResult with detailed error information
- * - Supports graceful degradation with partial data
- *
- * @see services/apiClient.ts - Integration point
+ * Validation functions for API response data.
+ * Returns ValidationResult with errors; weak shapes are coerced where needed (e.g. empty taxonomy → ["Animalia"]).
  */
 
 import type { Animal } from "~/types/animal";
 import type { Clade } from "~/types/clade";
 
-/**
- * Validation result structure
- * Provides detailed information about validation success or failure
- */
+/** Validation result structure. */
 export interface ValidationResult<T> {
   /** Whether the data passed validation */
   valid: boolean;
@@ -30,10 +18,7 @@ export interface ValidationResult<T> {
   errors: string[];
 }
 
-/**
- * Valid taxonomic ranks
- * Used to validate clade rank values
- */
+/** Valid taxonomic ranks for clade validation. */
 const VALID_TAXONOMIC_RANKS = [
   "kingdom",
   "phylum",
@@ -102,8 +87,7 @@ export function validateAnimalData(
     errors.push("Missing animal name (name or scientificName required)");
   }
 
-  // Validate taxonomy - must have at least one valid term (empty terms will be filtered)
-  // Allow empty arrays but provide minimal fallback for graceful degradation
+  // Taxonomy: required field, but empty or all-blank entries are coerced to a minimal lineage below.
   if (!data.taxonomy) {
     errors.push("Missing taxonomy");
   } else if (!Array.isArray(data.taxonomy)) {
@@ -114,8 +98,7 @@ export function validateAnimalData(
       (term: any) => typeof term === "string" && term.trim().length > 0,
     );
     if (validTerms.length === 0) {
-      // Empty taxonomy is allowed for graceful degradation, but we'll use a minimal fallback
-      // Don't add error, just note that we'll use fallback
+      // No usable terms: still valid; animal builder substitutes ["Animalia"] (common for lightweight search hits).
     }
   }
 
@@ -128,7 +111,6 @@ export function validateAnimalData(
     };
   }
 
-  // Build validated animal object with graceful degradation
   const animal: Animal = {
     id: String(data.id).trim(),
     name: hasName ? data.name.trim() : data.scientificName.trim(),
@@ -137,12 +119,11 @@ export function validateAnimalData(
       : (data.name?.trim() || ""),
     taxonomy: (() => {
       if (!Array.isArray(data.taxonomy)) {
-        return ["Animalia"]; // Minimal fallback for graceful degradation
+        return ["Animalia"];
       }
       const validTerms = data.taxonomy
         .filter((term: any) => typeof term === "string" && term.trim().length > 0)
         .map((term: string) => term.trim());
-      // If no valid terms, provide minimal fallback for graceful degradation
       return validTerms.length > 0 ? validTerms : ["Animalia"];
     })(),
     // Optional fields - use undefined if not present (not empty strings)
@@ -235,7 +216,6 @@ export function validateCladeData(data: any): ValidationResult<Clade> {
     };
   }
 
-  // Build validated clade object with graceful degradation
   const clade: Clade = {
     name: data.name.trim(),
     rank: data.rank.trim(),

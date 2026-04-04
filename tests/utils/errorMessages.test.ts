@@ -1,10 +1,10 @@
 /**
  * Error Messages Tests
  *
- * Comprehensive test suite for error message utilities.
+ * Tests for error message utilities.
  * Tests cover:
  * - Error message mapping
- * - User-friendly error message retrieval
+ * - getUserFriendlyError
  * - HTTP status code mapping
  * - Default error handling
  */
@@ -185,8 +185,7 @@ describe("eRROR_MESSAGES constant", () => {
     }
   });
 
-  it("should have user-friendly messages (not technical)", () => {
-    // Messages should not contain technical terms like "HTTP", "status code", etc.
+  it("should not use raw HTTP jargon in copy", () => {
     const technicalTerms = ["HTTP", "status code", "statusCode", "500", "404"];
 
     for (const [_, message] of Object.entries(ERROR_MESSAGES)) {
@@ -196,21 +195,18 @@ describe("eRROR_MESSAGES constant", () => {
     }
   });
 
-  it("should have actionable messages", () => {
-    // Messages should provide guidance to users
-    const actionableWords = ["please", "try", "check", "available"];
+  it("should often include a clear next step (common English cues)", () => {
+    const cueWords = ["please", "try", "check", "available"];
 
-    // At least some messages should be actionable
-    let actionableCount = 0;
+    let withCue = 0;
     for (const message of Object.values(ERROR_MESSAGES)) {
       const lowerMessage = message.toLowerCase();
-      if (actionableWords.some(word => lowerMessage.includes(word))) {
-        actionableCount++;
+      if (cueWords.some(word => lowerMessage.includes(word))) {
+        withCue++;
       }
     }
 
-    // At least half of messages should be actionable
-    expect(actionableCount).toBeGreaterThan(Object.keys(ERROR_MESSAGES).length / 2);
+    expect(withCue).toBeGreaterThan(Object.keys(ERROR_MESSAGES).length / 2);
   });
 });
 

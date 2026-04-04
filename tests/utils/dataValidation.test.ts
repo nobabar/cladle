@@ -1,13 +1,13 @@
 /**
  * Data Validation Tests
  *
- * Comprehensive test suite for data validation utilities.
+ * Tests for data validation utilities.
  * Tests cover:
  * - Valid data validation
  * - Invalid data validation
  * - Missing required fields
  * - Invalid field types
- * - Edge cases and graceful degradation
+ * - Edge cases and fallback taxonomy
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -216,7 +216,7 @@ describe("validateAnimalData", () => {
 
     const result = validateAnimalData(dataWithEmptyTaxonomy);
 
-    // Empty taxonomy is allowed for graceful degradation, fallback to ["Animalia"]
+    // Empty taxonomy coerces to ["Animalia"]
     expect(result.valid).toBe(true);
     expect(result.data).not.toBeNull();
     expect(result.data?.taxonomy).toEqual(["Animalia"]);

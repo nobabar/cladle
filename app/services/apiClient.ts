@@ -1,15 +1,6 @@
 /**
- * Biological Database API Client Implementation
- *
- * Concrete implementation of the BiologicalAPIClient interface using iNaturalist API.
- * Features:
- * - Rate limiting with request throttling
- * - Retry logic with exponential backoff
- * - Response validation
- * - Error handling and logging
- * - AbortController for request timeouts
- *
- * @see composables/useBiologicalAPI.ts - Abstract interface
+ * iNaturalist client: ~1 req/s throttle, retries with backoff, validation, optional IndexedDB via `cacheService`.
+ * @see useBiologicalAPI.ts
  */
 
 import type { Animal } from "~/types/animal";
@@ -26,9 +17,6 @@ import {
   mapHttpStatusToErrorCode,
 } from "~/utils/errorMessages";
 
-/**
- * iNaturalist API Configuration
- */
 const INATURALIST_BASE_URL = "https://api.inaturalist.org/v1";
 // ~1 request / second to respect iNaturalist API recommended practices.
 // See: https://www.inaturalist.org/pages/api+recommended+practices
@@ -36,10 +24,6 @@ const RATE_LIMIT_DELAY = 1000;
 const MAX_RETRIES = 3;
 const TIMEOUT_MS = 5000; // 5 seconds timeout between retries
 
-/**
- * Rate Limiter
- * Simple in-memory rate limiter to respect API usage policies
- */
 class RateLimiter {
   private lastRequestTime = 0;
   private requestQueue: Array<() => void> = [];
@@ -159,18 +143,15 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       const taxon = response.results[0]!;
       const mappedAnimal = await this.mapToAnimal(taxon);
 
-      // Validate mapped animal data with comprehensive validation
       const validation = validateAnimalData(mappedAnimal);
 
       if (!validation.valid) {
-        // Log detailed validation errors for developers
         this.logError("Animal Data Validation Failed", {
           animalId: id,
           errors: validation.errors,
           rawData: taxon,
         });
 
-        // Return user-friendly error message
         return this.createErrorResponse(
           getUserFriendlyError("VALIDATION_ERROR"),
           "VALIDATION_ERROR",
@@ -234,13 +215,10 @@ class INaturalistAPIClient implements BiologicalAPIClient {
           return false;
         }
 
-        // Check iconic_taxon_name if available
         if (taxon.iconic_taxon_name) {
-          // Explicitly exclude Plantae and Fungi
           if (taxon.iconic_taxon_name === "Plantae" || taxon.iconic_taxon_name === "Fungi") {
             return false;
           }
-          // If it's Animalia, include it
           if (taxon.iconic_taxon_name === "Animalia") {
             return true;
           }
@@ -248,15 +226,12 @@ class INaturalistAPIClient implements BiologicalAPIClient {
           // they're descendants of Animalia
         }
 
-        // Check ancestor_ids array (most reliable)
         const ancestorIds = taxon.ancestor_ids || [];
 
-        // Exclude if Plantae or Fungi are in ancestor_ids
         if (ancestorIds.includes(PLANTAE_TAXON_ID) || ancestorIds.includes(FUNGI_TAXON_ID)) {
           return false;
         }
 
-        // Include if Animalia is in ancestor_ids
         if (ancestorIds.includes(ANIMALIA_TAXON_ID)) {
           return true;
         }
@@ -268,25 +243,21 @@ class INaturalistAPIClient implements BiologicalAPIClient {
             .map(p => Number.parseInt(p.trim(), 10))
             .filter(n => !Number.isNaN(n));
 
-          // Exclude if Plantae or Fungi are in ancestry
           if (ancestryIds.includes(PLANTAE_TAXON_ID) || ancestryIds.includes(FUNGI_TAXON_ID)) {
             return false;
           }
 
-          // Include if Animalia is in ancestry
           if (ancestryIds.includes(ANIMALIA_TAXON_ID)) {
             return true;
           }
         }
 
-        // If no clear indication, default to false (be conservative)
         return false;
       };
 
       const allowedRanks = new Set(["species", "subspecies"]);
       const MIN_OBSERVATIONS = 1000; // Minimum number of observations to include
 
-      // Helper function to process a single page of results
       const processResults = (results: Array<INaturalistSearchResult<INaturalistTaxon>>) => {
         const candidates: Array<{
           animal: Animal;
@@ -299,7 +270,6 @@ class INaturalistAPIClient implements BiologicalAPIClient {
           const taxon = item?.record;
           if (!taxon) continue;
 
-          // Be defensive: only keep taxa results
           const itemType = (item.type || "").toLowerCase();
           if (itemType && itemType !== "taxon" && itemType !== "taxa") continue;
 
@@ -327,10 +297,8 @@ class INaturalistAPIClient implements BiologicalAPIClient {
         return candidates;
       };
 
-      // Process first page
       let allCandidates = processResults(response.results);
 
-      // If we have fewer than 5 results, fetch next page
       if (allCandidates.length < 5 && response.results.length === limit * 3) {
         try {
           const nextPageUrl = `${INATURALIST_BASE_URL}/search?q=${encodeURIComponent(trimmedQuery)}&sources=taxa&per_page=${limit * 3}&page=2`;
@@ -349,7 +317,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
         }
       }
 
-      // Sort by iNaturalist's relevance score (higher is better)
+      // Sort by iNaturalist's relevance score (the higher the better)
       allCandidates.sort((a, b) => {
         if (a.score !== b.score) return b.score - a.score;
         return a.idx - b.idx; // stable fallback
@@ -411,18 +379,15 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       const taxon = detailResponse.results[0]!;
       const mappedClade = this.mapToClade(taxon);
 
-      // Validate mapped clade data with comprehensive validation
       const validation = validateCladeData(mappedClade);
 
       if (!validation.valid) {
-        // Log detailed validation errors for developers
         this.logError("Clade Data Validation Failed", {
           cladeName: name,
           errors: validation.errors,
           rawData: taxon,
         });
 
-        // Return user-friendly error message
         return this.createErrorResponse(
           getUserFriendlyError("VALIDATION_ERROR"),
           "VALIDATION_ERROR",
@@ -450,15 +415,12 @@ class INaturalistAPIClient implements BiologicalAPIClient {
    * @returns Promise resolving to parsed JSON response
    */
   private async makeRequest<T>(url: string): Promise<T> {
-    // Apply rate limiting
     await this.rateLimiter.throttle();
 
-    // Retry with exponential backoff
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
-        // Create AbortController for timeout
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -472,12 +434,11 @@ class INaturalistAPIClient implements BiologicalAPIClient {
 
         clearTimeout(timeoutId);
 
-        // Handle HTTP error responses
         if (!response.ok) {
           const shouldRetry = this.shouldRetry(response.status);
 
           if (!shouldRetry) {
-            // Don't retry client errors (4xx)
+            // Don't retry on client errors (4xx)
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
           }
 
@@ -506,13 +467,11 @@ class INaturalistAPIClient implements BiologicalAPIClient {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
-        // Parse JSON response
         const data = await response.json();
         return data as T;
       } catch (error: any) {
         lastError = error;
 
-        // Handle AbortError (timeout)
         if (error.name === "AbortError") {
           this.logError("API Error", {
             endpoint: url,
@@ -531,7 +490,6 @@ class INaturalistAPIClient implements BiologicalAPIClient {
           throw timeoutError;
         }
 
-        // Handle network errors
         if (error instanceof TypeError) {
           this.logError("API Error", {
             endpoint: url,
@@ -568,7 +526,6 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       }
     }
 
-    // Should not reach here, but TypeScript needs this
     throw lastError || new Error("Request failed after retries");
   }
 
@@ -578,7 +535,6 @@ class INaturalistAPIClient implements BiologicalAPIClient {
    * @returns True if request should be retried, false otherwise
    */
   private shouldRetry(status: number): boolean {
-    // Retry server errors (5xx) and rate limit (429)
     return status >= 500 || status === 429;
   }
 
@@ -595,8 +551,8 @@ class INaturalistAPIClient implements BiologicalAPIClient {
 
   /**
    * Parse Retry-After header (seconds or HTTP date) into a millisecond delay.
-   * @param response
-   * @returns delay in ms, or null if header missing/invalid.
+   * @param response - HTTP response object
+   * @returns Delay in milliseconds, or null if header missing/invalid.
    */
   private getRetryAfterMs(response: Response): number | null {
     const raw = response.headers?.get?.("Retry-After");
@@ -627,16 +583,14 @@ class INaturalistAPIClient implements BiologicalAPIClient {
    * @returns Animal object with minimal data (empty taxonomy array)
    */
   private mapToAnimalLightweight(taxon: INaturalistTaxon): Animal {
-    // API 'name' field is the scientific name
     const scientificName = taxon.name;
-    // API 'preferred_common_name' is the common name, fallback to scientific name if not available
     const name = taxon.preferred_common_name || taxon.name;
 
     return {
       id: String(taxon.id),
       name,
       scientificName,
-      taxonomy: [], // Empty taxonomy - will be fetched when animal is selected
+      taxonomy: [],
       url: `https://www.inaturalist.org/taxa/${taxon.id}`,
       wikipediaUrl: taxon.wikipedia_url,
       imageUrl: taxon.default_photo?.medium_url,
@@ -651,9 +605,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
    * @returns Promise resolving to Animal object with mapped fields including taxonomy
    */
   private async mapToAnimal(taxon: INaturalistTaxon): Promise<Animal> {
-    // API 'name' field is the scientific name
     const scientificName = taxon.name;
-    // API 'preferred_common_name' is the common name, fallback to scientific name if not available
     const name = taxon.preferred_common_name || taxon.name;
     const taxonomy = await this.parseTaxonomy(taxon);
 
@@ -703,7 +655,6 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       return [];
     }
 
-    // Fetch all ancestor taxa in a single batch API call
     const ancestors = await this.fetchAncestorTaxa(ancestorIds);
     return this.buildTaxonomyFromAncestors(ancestors, taxon);
   }
@@ -758,7 +709,6 @@ class INaturalistAPIClient implements BiologicalAPIClient {
         .map(id => taxaMap.get(id))
         .filter((t): t is INaturalistTaxon => t !== undefined);
     } catch (error) {
-      // If fetching ancestors fails, log but don't throw (graceful degradation)
       this.logError("Failed to fetch ancestor taxa", {
         ancestorIds,
         error: error instanceof Error ? error.message : String(error),
@@ -781,14 +731,12 @@ class INaturalistAPIClient implements BiologicalAPIClient {
     const standardRanks = ["kingdom", "phylum", "class", "order", "family", "genus", "species"];
     const taxonomy: string[] = [];
 
-    // Add ancestors in order (they should already be ordered from root to parent)
     for (const ancestor of ancestors) {
       if (ancestor.rank && standardRanks.includes(ancestor.rank)) {
         taxonomy.push(ancestor.name);
       }
     }
 
-    // Add the current taxon if it's a standard rank (for species-level taxa)
     if (taxon.rank && standardRanks.includes(taxon.rank)) {
       taxonomy.push(taxon.name);
     }
@@ -808,7 +756,6 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       error: error.message || String(error),
     });
 
-    // Determine error type and use user-friendly messages
     if (error.name === "AbortError" || error.name === "TimeoutError") {
       return this.createErrorResponse(
         getUserFriendlyError("TIMEOUT"),
@@ -818,7 +765,6 @@ class INaturalistAPIClient implements BiologicalAPIClient {
     }
 
     if (error.message && error.message.includes("404")) {
-      // Determine context from endpoint to return specific error code
       const isAnimalEndpoint = endpoint.includes("/taxa/") && !endpoint.includes("?q=");
       const errorCode = isAnimalEndpoint ? "ANIMAL_NOT_FOUND" : "NOT_FOUND";
       return this.createErrorResponse(
@@ -837,7 +783,6 @@ class INaturalistAPIClient implements BiologicalAPIClient {
     }
 
     if (error instanceof TypeError) {
-      // Check if offline
       if (typeof navigator !== "undefined" && !navigator.onLine) {
         return this.createErrorResponse(
           getUserFriendlyError("OFFLINE"),
@@ -860,7 +805,6 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       );
     }
 
-    // Extract HTTP status code if available
     const httpStatusMatch = error.message?.match(/HTTP (\d+)/);
     if (httpStatusMatch) {
       const status = Number.parseInt(httpStatusMatch[1], 10);
@@ -872,7 +816,6 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       );
     }
 
-    // Generic error
     return this.createErrorResponse(
       getUserFriendlyError("UNKNOWN_ERROR"),
       "UNKNOWN_ERROR",
@@ -894,7 +837,6 @@ class INaturalistAPIClient implements BiologicalAPIClient {
   ): ApiResponse<never> {
     const error: ApiError = { message, code, details };
 
-    // Log error
     this.logError("API Client Error", { code, message, details });
 
     return { data: null, error };

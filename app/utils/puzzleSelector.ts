@@ -1,12 +1,5 @@
 /**
- * Puzzle Selector Utility
- *
- * Implements target animal selection for daily puzzles.
- * Features:
- * - Curated list of diverse, educational animals
- * - Deterministic selection based on date seed
- * - Difficulty balancing across puzzle dates
- * - Support for both curated list and algorithm-based selection
+ * Picks daily (date-seeded) and free-play targets from `CURATED_ANIMALS`, with optional difficulty weighting.
  */
 
 /**
@@ -131,8 +124,6 @@ export function selectTargetAnimal(date: string): string {
     throw new Error(`Invalid date format: ${date}. Expected YYYY-MM-DD format.`);
   }
 
-  // Validate date is a real date
-  // Parse date components to ensure they're valid
   const parts = date.split("-");
   if (parts.length !== 3) {
     throw new TypeError(`Invalid date: ${date}. Date is not valid.`);
@@ -198,8 +189,6 @@ export function selectTargetAnimalWithDifficulty(date: string): string {
     throw new Error(`Invalid date format: ${date}. Expected YYYY-MM-DD format.`);
   }
 
-  // Validate date is a real date
-  // Parse date components to ensure they're valid
   const parts = date.split("-");
   if (parts.length !== 3) {
     throw new TypeError(`Invalid date: ${date}. Date is not valid.`);

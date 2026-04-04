@@ -2,9 +2,6 @@
 import { computed } from "vue";
 import type { GameError } from "~/utils/errorMessages";
 
-/**
- * Props
- */
 interface Props {
   /** Error to display */
   error?: GameError | null;
@@ -24,16 +21,10 @@ const emit = defineEmits<{
   (e: "dismiss"): void;
 }>();
 
-/**
- * Dismiss error
- */
 function dismiss() {
   emit("dismiss");
 }
 
-/**
- * Get error icon based on error type
- */
 const errorIcon = computed(() => {
   if (!props.error) return "⚠️";
 
@@ -51,10 +42,6 @@ const errorIcon = computed(() => {
   }
 });
 
-/**
- * Get error color classes based on error type
- * Uses notebook-style "teacher red pen" for errors, muted blue/grey for info
- */
 const errorColorClasses = computed(() => {
   if (!props.error) return "";
 
