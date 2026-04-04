@@ -231,10 +231,10 @@ describe("calculateTreeLayout", () => {
       const kingdom = result.nodes.get("clade-animalia");
       const phylum = result.nodes.get("clade-chordata");
 
-      // D3 layout ensures nodes at different depths have different y positions
+      // D3 assigns distinct y per depth in this fixture
       expect(root?.position.y).toBeLessThanOrEqual(kingdom?.position.y || Infinity);
       expect(kingdom?.position.y).toBeLessThanOrEqual(phylum?.position.y || Infinity);
-      // Ensure they're not all at the same level
+      // Depths should not collapse to one row
       expect(root?.depth).toBeLessThan(kingdom?.depth || Infinity);
       expect(kingdom?.depth).toBeLessThan(phylum?.depth || Infinity);
     });
@@ -373,7 +373,7 @@ describe("calculateTreeLayout", () => {
   });
 
   describe("edge cases", () => {
-    it("should handle empty tree gracefully", () => {
+    it("should handle empty tree", () => {
       const emptyTree: TreeData = {
         root: {
           id: "root",

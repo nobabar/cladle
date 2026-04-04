@@ -23,7 +23,7 @@ describe("puzzleAccessControl", () => {
       vi.useRealTimers();
     });
 
-    it("denies future dates (FR37)", () => {
+    it("denies future dates", () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date(Date.UTC(2026, 1, 15, 12, 0, 0)));
       expect(canAccessPuzzle("2026-02-16")).toBe(false);

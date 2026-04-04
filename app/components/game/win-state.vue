@@ -6,54 +6,15 @@ import { useResponsive } from "~/composables/useResponsive";
 import { useSharing } from "~/composables/useSharing";
 import { calculatePhylogeneticMetrics } from "~/utils/sharingFormatter";
 
-/**
- * Win/Loss State Component
- *
- * Displays win or loss state with target animal name, completion feedback,
- * and full tree structure. Uses custom overlay modal (teleported to body) on mobile/tablet
- * (< 1024px) and side panel on desktop (>= 1024px).
- */
-
 const gameStore = useGameStore();
-
-/**
- * Use responsive composable for breakpoint detection
- */
 const { isMobile, isTablet, isDesktop } = useResponsive();
 
-/**
- * Check if game has ended (won or lost)
- */
 const hasEnded = computed(() => gameStore.hasEnded);
-
-/**
- * Check if game is won
- */
 const isWon = computed(() => gameStore.isWon);
-
-/**
- * Check if game is lost
- */
 const isLost = computed(() => gameStore.isLost);
-
-/**
- * Get target animal from store
- */
 const targetAnimal = computed(() => gameStore.target);
-
-/**
- * Get tree data from store (full tree structure)
- */
 const treeData = computed(() => gameStore.treeData);
-
-/**
- * Get number of guesses made
- */
 const guessCount = computed(() => gameStore.guesses.length);
-
-/**
- * Get max guesses allowed
- */
 const maxGuesses = computed(() => gameStore.maxGuesses);
 
 /**
@@ -69,14 +30,9 @@ const phyloMetrics = computed(() =>
   ),
 );
 
-/**
- * Copy-to-clipboard share state and handler (FR44/FR47/FR68).
- */
+/** Copy-to-clipboard share state and handler. */
 const { copyShareText, isShareReady, lastCopyStatus, copyError } = useSharing();
 
-/**
- * Win state message
- */
 const winMessage = computed(() => {
   if (!targetAnimal.value) {
     return "Congratulations! You found the target animal!";
@@ -84,9 +40,6 @@ const winMessage = computed(() => {
   return `Congratulations! You found the ${targetAnimal.value.name}!`;
 });
 
-/**
- * Loss state message
- */
 const lossMessage = computed(() => {
   if (!targetAnimal.value) {
     return "Game Over! Better luck next time.";
@@ -105,9 +58,6 @@ const resultStats = computed(() => {
   return `You used all ${maxGuesses.value} guesses. Keep learning and try again!`;
 });
 
-/**
- * Screen reader announcement for win/loss
- */
 const screenReaderAnnouncement = computed(() => {
   if (isWon.value) {
     return `${winMessage.value} You completed the puzzle in ${guessCount.value} ${guessCount.value === 1 ? "guess" : "guesses"}.`;
@@ -260,18 +210,12 @@ watch(hasEnded, (ended) => {
   }
 });
 
-/**
- * Setup on mount
- */
 onMounted(() => {
   if (typeof window !== "undefined") {
     window.addEventListener("keydown", handleEscape);
   }
 });
 
-/**
- * Cleanup on unmount
- */
 onUnmounted(() => {
   if (typeof window !== "undefined") {
     window.removeEventListener("keydown", handleEscape);
@@ -853,7 +797,7 @@ onUnmounted(() => {
     overflow: auto;
   }
 
-  /* Ensure touch-friendly spacing */
+  /* Larger tap targets on touch */
   .win-state__content > * + * {
     margin-top: 1rem;
   }

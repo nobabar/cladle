@@ -8,9 +8,6 @@ import {
 import { treeToMermaid } from "~/utils/mermaidExporter";
 import { DEFAULT_ROUGHNESS, resolveColor, useRoughSvg } from "~/composables/useRoughSvg";
 
-/**
- * Props
- */
 interface Props {
   /** Tree data structure to visualize */
   treeData?: TreeData | null;
@@ -29,16 +26,10 @@ const props = withDefaults(defineProps<Props>(), {
   height: 600,
 });
 
-/**
- * Emits
- */
 const emit = defineEmits<{
   nodeClick: [node: TreeNode];
 }>();
 
-/**
- * Layout Configuration
- */
 const layoutConfig: TreeLayoutConfig = {
   horizontalSpacing: 150,
   verticalSpacing: 120,
@@ -47,9 +38,6 @@ const layoutConfig: TreeLayoutConfig = {
   padding: 40,
 };
 
-/**
- * Component State
- */
 const svgRef = ref<SVGSVGElement | null>(null);
 const containerRef = ref<HTMLDivElement | null>(null);
 const containerWidth = ref(props.width || 800);
@@ -59,26 +47,16 @@ const previousNodeIds = ref<Set<string>>(new Set());
 const newNodeIds = ref<Set<string>>(new Set());
 const isCopied = ref(false);
 
-// Rough.js integration
 const edgesGroupRef = ref<SVGGElement | null>(null);
 const nodesGroupRef = ref<SVGGElement | null>(null);
 const { getRoughGenerator } = useRoughSvg(svgRef);
 const lastRenderedLayoutHash = ref<string | null>(null);
 const isRendering = ref(false);
 
-/**
- * Check if we're in development mode
- */
 const isDevMode = computed(() => import.meta.dev);
 
-/**
- * Check if tree data is available
- */
 const hasTreeData = computed(() => props.treeData !== null && props.treeData !== undefined);
 
-/**
- * Computed layout result using the layout calculator
- */
 const computedLayout = computed(() => {
   if (!hasTreeData.value || !props.treeData || containerWidth.value === 0) {
     return null;
@@ -115,14 +93,8 @@ watch(
   { immediate: true },
 );
 
-/**
- * Computed positioned nodes
- */
 const computedNodes = computed(() => computedLayout.value?.nodes || new Map<string, TreeNode>());
 
-/**
- * Computed edges
- */
 const computedEdges = computed(() => computedLayout.value?.edges || []);
 
 /**
@@ -152,7 +124,6 @@ function calculateTextWidth(
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   if (!context) {
-    // Fallback if canvas is not available
     const avgCharWidth = fontSize * 0.6;
     const textWidth = text.length * avgCharWidth;
     const minWidth = 60;
@@ -209,9 +180,6 @@ function calculateEdgePath(
   return `M ${startX} ${startY} Q ${controlX} ${controlY} ${endX} ${endY}`;
 }
 
-/**
- * SVG viewBox dimensions from layout result
- */
 const svgViewBox = computed(() => {
   if (!computedLayout.value) {
     return `0 0 ${containerWidth.value} ${containerHeight.value}`;
@@ -236,20 +204,10 @@ function getNodeWidth(node: TreeNode): number {
   return calculateTextWidth(node.name, 10);
 }
 
-/**
- * Get node height (can be made dynamic in the future)
- * @param _node - The tree node
- * @returns Node height
- */
 function getNodeHeight(_node: TreeNode): number {
   return layoutConfig.nodeHeight;
 }
 
-/**
- * Get node CSS class
- * @param node - The tree node
- * @returns CSS class string for the node
- */
 function getNodeClass(node: TreeNode): string {
   const classes = ["tree-node"];
   if (node.type === "animal") {
@@ -272,11 +230,6 @@ function getNodeClass(node: TreeNode): string {
   return classes.join(" ");
 }
 
-/**
- * Get node colors for Rough.js rendering
- * @param node - The tree node
- * @returns Object with fill and stroke colors
- */
 function getNodeColors(node: TreeNode): { fill: string; stroke: string; strokeWidth: number } {
   if (node.type === "animal") {
     if (node.isTarget) {
@@ -299,7 +252,6 @@ function getNodeColors(node: TreeNode): { fill: string; stroke: string; strokeWi
       strokeWidth: 2,
     };
   } else {
-    // Clade node
     if (node.isLCA) {
       return {
         fill: "var(--color-warning-soft)",
@@ -315,29 +267,21 @@ function getNodeColors(node: TreeNode): { fill: string; stroke: string; strokeWi
   }
 }
 
-/**
- * Get edge color for Rough.js rendering
- * @returns Edge stroke color
- */
 function getEdgeColor(): string {
   return "var(--color-border-subtle)";
 }
 
-/**
- * Color mode detection for triggering re-renders on theme changes
- */
 const colorMode = useColorMode();
 
 /**
- * Generate a hash of the current layout for change detection
- * @returns Hash string representing the current layout state
+ * Fingerprint of layout, focus, and theme so Rough.js redraws only when the visible graph meaningfully changes.
+ * @returns Stable string for equality checks; empty when there is no layout.
  */
 function getLayoutHash(): string {
   if (!computedLayout.value) {
     return "";
   }
 
-  // Create a hash from node IDs, names, positions, and states
   const nodeData = Array.from(computedNodes.value.entries())
     .map(([id, node]) => {
       const pos = node.position ? `${node.position.x},${node.position.y}` : "";
@@ -353,23 +297,18 @@ function getLayoutHash(): string {
   return `${nodeData}|${edgeCount}|${focusedId}|${currentColorMode}`;
 }
 
-/**
- * Render tree with Rough.js
- * Only redraws when tree layout or data changes
- * Includes performance guards to prevent redundant redraws
- */
 function renderTreeWithRough(): void {
   if (typeof window === "undefined" || !svgRef.value || !computedLayout.value) {
     return;
   }
 
-  // Performance guard: skip if already rendering
+  // Nested calls (e.g. layout + theme watchers) must not run a second draw before the first finishes.
   if (isRendering.value) {
     return;
   }
 
-  // Performance guard: skip if layout hasn't changed
   const currentHash = getLayoutHash();
+  // Skip when watchers fire multiple times for the same frame-worthy state (Rough is expensive).
   if (currentHash === lastRenderedLayoutHash.value) {
     return;
   }
@@ -383,7 +322,6 @@ function renderTreeWithRough(): void {
     }
 
     // Clear existing rough elements completely
-    // This prevents duplicate rendering and ensures clean state
     if (edgesGroupRef.value) {
       while (edgesGroupRef.value.firstChild) {
         edgesGroupRef.value.removeChild(edgesGroupRef.value.firstChild);
@@ -420,7 +358,7 @@ function renderTreeWithRough(): void {
       }
     }
 
-    // Render nodes using Rough.js rectangle() method
+    // Render nodes
     if (nodesGroupRef.value) {
       for (const node of Array.from(computedNodes.value.values())) {
         if (!node.position) {
@@ -435,11 +373,9 @@ function renderTreeWithRough(): void {
         const rectX = node.position.x - nodeWidth / 2;
         const rectY = node.position.y - nodeHeight / 2;
 
-        // Resolve CSS variables to actual colors
         const fillColor = resolveColor(colors.fill);
         const strokeColor = resolveColor(colors.stroke);
 
-        // Use Rough.js rectangle() method directly
         const roughRect = generator.rectangle(rectX, rectY, nodeWidth, nodeHeight, {
           fill: fillColor || "transparent",
           stroke: strokeColor || "currentColor",
@@ -519,21 +455,15 @@ function renderTreeWithRough(): void {
             hitArea.setAttribute("cursor", "default");
           }
           nodeGroup.addEventListener("click", (e) => {
-            e.stopPropagation(); // Prevent event bubbling
+            e.stopPropagation();
             handleNodeClick(node);
           });
           nodeGroup.addEventListener("focus", () => {
-            // Only update focus state, don't trigger panel opening
-            // Panel opening is handled by click event
             focusedNodeId.value = node.id;
             // Update tabindex for all nodes when one is focused
             nextTick(() => {
               updateNodeTabIndices();
             });
-          });
-          nodeGroup.addEventListener("blur", () => {
-            // Don't clear focus immediately on blur - let keyboard navigation handle it
-            // This prevents focus loss when clicking outside
           });
 
           // Add keyboard navigation support
@@ -588,7 +518,6 @@ watch(
     // Update tab indices when focus changes, but don't trigger full re-render
     nextTick(() => {
       updateNodeTabIndices();
-      // Update aria-selected attributes without full re-render
       if (nodesGroupRef.value) {
         const nodeGroups = nodesGroupRef.value.querySelectorAll("[data-node-id]");
         nodeGroups.forEach((group) => {
@@ -600,8 +529,7 @@ watch(
   },
 );
 
-// Watch for color mode changes to trigger re-render
-// This ensures Rough.js elements update their colors when theme changes
+// Theme change: clear layout hash so Rough.js strokes/fills pick up new CSS variables.
 watch(
   () => colorMode.value,
   () => {
@@ -639,11 +567,6 @@ function updateNodeTabIndices(): void {
   });
 }
 
-/**
- * Get node ARIA label
- * @param node - The tree node
- * @returns ARIA label string for accessibility
- */
 function getNodeAriaLabel(node: TreeNode): string {
   const parts: string[] = [];
   if (node.type === "animal") {
@@ -679,10 +602,6 @@ function getNodeAriaLabel(node: TreeNode): string {
   return parts.join(", ");
 }
 
-/**
- * Handle node click
- * @param node - The tree node that was clicked
- */
 function handleNodeClick(node: TreeNode): void {
   // In production, prevent clicking on target nodes to avoid revealing the answer
   if (!isDevMode.value && node.isTarget) {
@@ -694,10 +613,6 @@ function handleNodeClick(node: TreeNode): void {
   emit("nodeClick", node);
 }
 
-/**
- * Handle keyboard navigation
- * @param event - The keyboard event
- */
 function handleKeyDown(event: KeyboardEvent): void {
   if (!hasTreeData.value || !props.treeData) {
     return;
@@ -821,10 +736,6 @@ function handleKeyDown(event: KeyboardEvent): void {
   }
 }
 
-/**
- * Focus a specific node element by ID
- * @param nodeId - The ID of the node to focus
- */
 function focusNodeElement(nodeId: string): void {
   nextTick(() => {
     if (nodesGroupRef.value) {
@@ -866,9 +777,6 @@ onUnmounted(() => {
   }
 });
 
-/**
- * Copy tree as Mermaid format to clipboard
- */
 async function copyTreeAsMermaid(): Promise<void> {
   if (!hasTreeData.value || !props.treeData) {
     return;
@@ -930,13 +838,10 @@ async function copyTreeAsMermaid(): Promise<void> {
       xmlns="http://www.w3.org/2000/svg"
       aria-label="Phylogenetic tree visualization"
     >
-      <!-- Rough.js rendered edges (connections between nodes) -->
       <g ref="edgesGroupRef" class="tree-edges-rough" />
 
-      <!-- Rough.js rendered nodes -->
       <g ref="nodesGroupRef" class="tree-nodes-rough" />
 
-      <!-- Node text labels (rendered separately for clarity) -->
       <g v-if="computedLayout" class="tree-node-labels">
         <template
           v-for="node in computedNodes.values()"
@@ -1165,10 +1070,9 @@ async function copyTreeAsMermaid(): Promise<void> {
   outline-offset: 2px;
 }
 
-/* Ensure touch targets on mobile for tree nodes */
+/* Larger tap targets on mobile */
 @media (max-width: 767px) {
   .tree-node-rect {
-    /* Increase touch target area on mobile */
     min-width: 44px;
     min-height: 44px;
   }
@@ -1339,7 +1243,7 @@ async function copyTreeAsMermaid(): Promise<void> {
   }
 
   .tree-node {
-    /* Ensure nodes are touch-friendly on mobile */
+    /* Larger node hit area on small screens */
     cursor: pointer;
   }
 

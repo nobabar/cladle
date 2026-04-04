@@ -4,16 +4,9 @@ import type { Animal } from "~/types/animal";
  * Result of Last Common Ancestor (LCA) calculation
  */
 export interface LCAResult {
-  /** Name of the LCA clade (e.g., "Carnivora") */
   clade: string;
-
-  /** Taxonomic rank (e.g., "order", "family", "genus") */
   rank: string;
-
-  /** Index in taxonomy array representing depth (0-based) */
   depth: number;
-
-  /** Full path from root to LCA */
   path: string[];
 }
 
@@ -44,9 +37,6 @@ const TAXONOMIC_RANKS: Record<number, string> = {
  * 2. Find the first index where taxonomies diverge
  * 3. The LCA is the taxonomic level just before divergence
  * 4. Return LCA name, rank, depth, and full path
- *
- * Time Complexity: O(n) where n is the shorter taxonomy length
- * Space Complexity: O(n) for the path array
  *
  * @param animal1 - First animal with taxonomy classification
  * @param animal2 - Second animal with taxonomy classification
@@ -85,15 +75,13 @@ export function calculateLCA(animal1: Animal, animal2: Animal): LCAResult {
   // Find the length of the shorter taxonomy (we can only compare up to this point)
   const minLength = Math.min(taxonomy1.length, taxonomy2.length);
 
-  // Find the last common index (last matching element in both arrays)
-  // Use case-insensitive comparison to handle variations
+  // Last index where both paths still agree (case-insensitive); first mismatch ends the shared prefix.
   let lastCommonIndex = -1;
 
   for (let i = 0; i < minLength; i++) {
     const taxon1 = taxonomy1[i]?.trim();
     const taxon2 = taxonomy2[i]?.trim();
 
-    // Compare case-insensitively
     if (taxon1 && taxon2 && taxon1.toLowerCase() === taxon2.toLowerCase()) {
       lastCommonIndex = i;
     } else {
@@ -102,7 +90,6 @@ export function calculateLCA(animal1: Animal, animal2: Animal): LCAResult {
     }
   }
 
-  // Handle edge case: no common ancestor found
   if (lastCommonIndex === -1) {
     return {
       clade: "Life",
@@ -112,21 +99,19 @@ export function calculateLCA(animal1: Animal, animal2: Animal): LCAResult {
     };
   }
 
-  // Handle special case: taxonomies are identical
-  // If we matched up to the last index and lengths are equal, all elements match
+  // Identical paths: LCA is the deepest rank (both lists match through the end).
   if (lastCommonIndex === minLength - 1 && taxonomy1.length === taxonomy2.length) {
     // Return the deepest level (most specific) as LCA
     const depth = taxonomy1.length - 1;
     return {
-      clade: taxonomy1Original[depth]!, // Use original, not normalized
+      clade: taxonomy1Original[depth]!,
       rank: TAXONOMIC_RANKS[depth] || "unknown",
       depth,
-      path: [...taxonomy1Original], // Use original, not normalized
+      path: [...taxonomy1Original],
     };
   }
 
-  // Normal case: extract LCA information
-  // Use original taxonomy values, not normalized ones
+  // Prefer original strings for display; comparison used trimmed/lowercase only above.
   const lcaClade = taxonomy1Original[lastCommonIndex]!;
   const lcaDepth = lastCommonIndex;
   const lcaRank = TAXONOMIC_RANKS[lcaDepth] || "unknown";

@@ -6,25 +6,6 @@ This document serves as the authoritative coding standards and project context f
 
 ---
 
-## Critical Rules for Developers
-
-### ALWAYS Follow These Standards
-
-1. **Read the Architecture Document First**
-   - Location: `_bmad-output/planning-artifacts/architecture.md`
-   - This document contains comprehensive architectural decisions, patterns, and structures
-   - All implementation MUST align with architectural decisions
-
-2. **Follow ESLint Configuration**
-   - Configuration file: `eslint.config.mjs`
-   - ESLint rules are MANDATORY and auto-enforced
-
-3. **Run Linting Before Committing**
-   - Always run linting checks before marking tasks complete
-   - Fix all linting errors immediately
-
----
-
 ## Code Style Standards
 
 ### TypeScript/JavaScript Formatting
@@ -70,6 +51,15 @@ From `eslint.config.mjs`:
 - **brace-style: "1tbs"** - One True Brace Style with single line allowed
 - **max-len: 100** - Maximum 100 characters per line (with exceptions for URLs, strings, etc.)
 - **camelcase: "warn"** - Use camelCase for variable names
+
+**Linting Commands:**
+```bash
+# Run linting
+pnpm run lint
+
+# Auto-fix formatting issues (when possible)
+pnpm run lint:fix
+```
 
 ---
 
@@ -244,26 +234,10 @@ const error = {
 
 ---
 
-## Testing Requirements
+## Testing
 
-### Test-Driven Development (TDD)
-
-**For Algorithms and Core Logic (MANDATORY TDD):**
-- LCA calculation
-- Puzzle selection algorithm
-- Taxonomy normalization
-- API client utilities
-- Pinia stores
-
-**Write tests FIRST (Red-Green-Refactor):**
-
-1. **RED:** Write failing test
-2. **GREEN:** Write minimal code to pass test
-3. **REFACTOR:** Improve code while keeping tests green
-
-**Test Framework:**
-- Use Vitest (configured in `vitest.config.ts`)
-- All tests must pass before marking tasks complete
+**Test Framework:** Vitest (configured in `vitest.config.ts`)
+- All tests must pass before committing
 - No regressions allowed
 
 ---
@@ -298,9 +272,8 @@ const error = {
 
 ## Git Workflow
 
-**Follow git-workflow-standards.md:**
 - Never commit to `main` or `dev` directly
-- Create feature branches: `feature/{story-id}-{description}`
+- Create feature branches: `feature/{short-description}`
 - Use conventional commits for semantic release
 - Commit format: `<type>(<scope>): <subject>`
 
@@ -314,58 +287,3 @@ feat(api): implement biological database client
 
 Closes #2-3
 ```
-
----
-
-## Enforcement
-
-### Before Completing Any Task
-
-1. ✅ Run ESLint: All rules must pass
-2. ✅ Run tests: All tests must pass (no regressions)
-3. ✅ Verify naming conventions match architecture
-4. ✅ Check file organization matches project structure
-5. ✅ Confirm code follows formatting rules (double quotes, semicolons)
-
-### ESLint Command
-
-```bash
-# Run linting
-npx eslint .
-
-# Auto-fix formatting issues (when possible)
-npx eslint . --fix
-```
-
----
-
-## Quick Reference Checklist
-
-Before marking any task complete, verify:
-
-- [ ] Code uses **double quotes** for all strings
-- [ ] Code includes **semicolons** at the end of statements
-- [ ] Code uses **2 space indentation**
-- [ ] File naming follows conventions (kebab-case for components, camelCase for composables/stores/utils)
-- [ ] Files are in correct directories per project structure
-- [ ] Tests exist and pass (100% pass rate)
-- [ ] ESLint passes with no errors
-- [ ] TypeScript compiles with no errors
-- [ ] Pinia actions follow naming conventions (fetch*/get*/set*/update*/reset*)
-- [ ] Error handling follows standardized patterns
-- [ ] API responses use wrapped format with camelCase fields
-- [ ] No regressions in existing functionality
-
----
-
-## References
-
-- **Architecture Document:** `_bmad-output/planning-artifacts/architecture.md`
-- **ESLint Config:** `eslint.config.mjs`
-- **Git Workflow:** `_bmad/bmm/data/git-workflow-standards.md`
-- **Epics & Stories:** `_bmad-output/planning-artifacts/epics.md`
-- **PRD:** `_bmad-output/planning-artifacts/prd.md`
-
----
-
-**Remember:** This document is the authoritative source for coding standards. Follow it strictly to ensure consistency across all code in this project.

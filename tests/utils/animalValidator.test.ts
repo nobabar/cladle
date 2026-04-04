@@ -1,7 +1,7 @@
 /**
  * Animal Validator Tests
  *
- * Comprehensive test suite for animal validation utilities.
+ * Tests for animal validation utilities.
  * Tests cover:
  * - Valid animal validation
  * - Invalid animal validation (not in database)
@@ -147,7 +147,7 @@ describe("validateAnimalGuess", () => {
       expect(result.error?.message).toContain("We couldn't find that animal");
     });
 
-    it("should handle API errors gracefully", async () => {
+    it("should return invalid when the API errors", async () => {
       const apiClient = createMockApiClient(null, true);
       const result = await validateAnimalGuess(testAnimal1, [], apiClient);
 
@@ -257,7 +257,7 @@ describe("validateAnimalGuess", () => {
   });
 
   describe("error messages", () => {
-    it("should provide user-friendly empty error message", async () => {
+    it("should return the empty-input copy for blank name", async () => {
       const apiClient = createMockApiClient(testAnimal1);
       const emptyAnimal: Animal = { ...testAnimal1, name: "" };
       const result = await validateAnimalGuess(emptyAnimal, [], apiClient);
@@ -267,7 +267,7 @@ describe("validateAnimalGuess", () => {
       expect(result.error?.message).not.toContain("error");
     });
 
-    it("should provide user-friendly invalid error message", async () => {
+    it("should return the not-found copy when the API has no taxon", async () => {
       const apiClient = createMockApiClient(null);
       const nonExistentAnimal: Animal = {
         id: "999",
@@ -283,7 +283,7 @@ describe("validateAnimalGuess", () => {
       expect(result.error?.message).not.toContain("database");
     });
 
-    it("should provide user-friendly duplicate error message", async () => {
+    it("should return the duplicate copy when the animal was already guessed", async () => {
       const apiClient = createMockApiClient(testAnimal1);
       const result = await validateAnimalGuess(testAnimal1, [testAnimal1], apiClient);
 

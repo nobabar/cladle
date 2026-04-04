@@ -3,7 +3,7 @@
  *
  * - Current date (UTC): accessible.
  * - Past dates: accessible (for history/replay).
- * - Future dates: not accessible (FR37).
+ * - Future dates: not accessible.
  * - Invalid dates: not accessible.
  */
 

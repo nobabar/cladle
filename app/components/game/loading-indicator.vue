@@ -1,7 +1,6 @@
 <script setup lang="ts">
-/**
- * Props
- */
+import { computed } from "vue";
+
 interface Props {
   /** Loading message to display */
   message?: string;
@@ -20,9 +19,6 @@ const props = withDefaults(defineProps<Props>(), {
   class: "",
 });
 
-/**
- * Size classes for spinner
- */
 const sizeClasses = computed(() => {
   switch (props.size) {
     case "sm":

@@ -5,17 +5,6 @@ import type { Clade } from "~/types/clade";
 import type { Animal } from "~/types/animal";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 
-/**
- * Information Panel Post-it Component
- *
- * Displays information about tree nodes in a post-it note style.
- * Fixed position in bottom-right corner with modern design, supports
- * keyboard navigation and screen reader accessibility.
- */
-
-/**
- * Props
- */
 interface Props {
   /** Controls panel visibility */
   isOpen?: boolean;
@@ -28,37 +17,19 @@ const props = withDefaults(defineProps<Props>(), {
   nodeData: null,
 });
 
-/**
- * Emits
- */
 const emit = defineEmits<{
   "close": [];
   "update:isOpen": [value: boolean];
 }>();
 
-/**
- * Container element ref (moves both post-it and image card together)
- */
 const containerRef = ref<HTMLElement | null>(null);
 
-/**
- * Focus trap element ref
- */
 const focusTrapRef = ref<HTMLElement | null>(null);
 
-/**
- * Sticky tab element ref
- */
 const stickyTabRef = ref<HTMLElement | null>(null);
 
-/**
- * Previous focus element (to restore on close)
- */
 let previousFocusElement: HTMLElement | null = null;
 
-/**
- * Drag state
- */
 const isDragging = ref(false);
 const hasDragged = ref(false);
 const dragStartX = ref(0);
@@ -67,15 +38,8 @@ const dragOffsetX = ref(0);
 const dragOffsetY = ref(0);
 const isClosingViaDrag = ref(false);
 
-/**
- * Which element is in front: 'postit' or 'image'
- */
 const frontElement = ref<"postit" | "image">("postit");
 
-/**
- * Handle escape key to close panel
- * @param event - Keyboard event
- */
 function handleEscape(event: KeyboardEvent) {
   if (event.key === "Escape" && props.isOpen) {
     event.preventDefault();
@@ -83,9 +47,6 @@ function handleEscape(event: KeyboardEvent) {
   }
 }
 
-/**
- * Close the panel
- */
 function closePanel() {
   emit("close");
   emit("update:isOpen", false);
@@ -144,10 +105,6 @@ function handleImageCardClick(event: MouseEvent) {
   }
 }
 
-/**
- * Handle mouse down on sticky tab to start drag
- * @param event - Mouse event
- */
 function handleStickyTabMouseDown(event: MouseEvent) {
   if (!containerRef.value) return;
 
@@ -163,10 +120,6 @@ function handleStickyTabMouseDown(event: MouseEvent) {
   event.preventDefault();
 }
 
-/**
- * Handle mouse move during drag
- * @param event - Mouse event
- */
 function handleMouseMove(event: MouseEvent) {
   if (!isDragging.value || !containerRef.value) return;
 
@@ -184,10 +137,6 @@ function handleMouseMove(event: MouseEvent) {
   containerRef.value.style.opacity = String(1 - distance / 200);
 }
 
-/**
- * Handle mouse up to end drag
- * @param event - Mouse event
- */
 function handleMouseUp(event: MouseEvent) {
   if (!isDragging.value || !containerRef.value) return;
 
@@ -210,10 +159,6 @@ function handleMouseUp(event: MouseEvent) {
   hasDragged.value = false;
 }
 
-/**
- * Handle touch events for mobile
- * @param event - Touch event
- */
 function handleStickyTabTouchStart(event: TouchEvent) {
   if (!containerRef.value || event.touches.length === 0) return;
 
@@ -232,10 +177,6 @@ function handleStickyTabTouchStart(event: TouchEvent) {
   event.preventDefault();
 }
 
-/**
- * Handle touch move during drag
- * @param event - Touch event
- */
 function handleTouchMove(event: TouchEvent) {
   if (!isDragging.value || !containerRef.value || event.touches.length === 0) return;
 
@@ -255,10 +196,6 @@ function handleTouchMove(event: TouchEvent) {
   containerRef.value.style.opacity = String(1 - distance / 200);
 }
 
-/**
- * Handle touch end to finish drag
- * @param event - Touch event
- */
 function handleTouchEnd(event: TouchEvent) {
   if (!isDragging.value || !containerRef.value || event.changedTouches.length === 0) return;
 
@@ -339,29 +276,16 @@ function handleTabKey(event: KeyboardEvent) {
   }
 }
 
-/**
- * Biological API client
- */
 const api = useBiologicalAPI();
 
-/**
- * Clade data state
- */
 const cladeData = ref<Clade | null>(null);
 const isLoadingClade = ref(false);
 const cladeError = ref<string | null>(null);
 
-/**
- * Animal data state
- */
 const animalData = ref<Animal | null>(null);
 const isLoadingAnimal = ref(false);
 const animalError = ref<string | null>(null);
 
-/**
- * Fetch clade information
- * @param cladeName - Name of the clade to fetch
- */
 async function fetchCladeInfo(cladeName: string) {
   isLoadingClade.value = true;
   cladeError.value = null;
@@ -382,10 +306,6 @@ async function fetchCladeInfo(cladeName: string) {
   }
 }
 
-/**
- * Fetch animal information
- * @param animalId - ID of the animal to fetch
- */
 async function fetchAnimalInfo(animalId: string) {
   isLoadingAnimal.value = true;
   animalError.value = null;
@@ -631,9 +551,6 @@ watch(() => props.isOpen, (newValue) => {
   }
 });
 
-/**
- * Setup on mount
- */
 onMounted(() => {
   if (typeof window !== "undefined") {
     window.addEventListener("keydown", handleEscape);
@@ -645,9 +562,6 @@ onMounted(() => {
   }
 });
 
-/**
- * Cleanup on unmount
- */
 onUnmounted(() => {
   if (typeof window !== "undefined") {
     window.removeEventListener("keydown", handleEscape);

@@ -2,7 +2,7 @@
  * Tests for GamePuzzleDateDisplay component
  *
  * Validates puzzle date display, formatting, accessibility (ARIA, time element),
- * and graceful handling of missing/invalid dates.
+ * and missing or invalid dates.
  */
 
 import { describe, expect, it, vi } from "vitest";

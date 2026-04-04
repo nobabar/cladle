@@ -9,30 +9,12 @@ import type { PuzzleHistoryEntry } from "~/types/puzzleHistory";
 import { gameStorePersistSerializer } from "~/utils/piniaGameStorePersistence";
 import { createSafeLocalStorageForPinia } from "~/utils/storageSafe";
 
-/**
- * Default maximum number of guesses allowed per game
- */
 export const DEFAULT_MAX_GUESSES = 20;
 
-/**
- * Game State
- */
 export type GameStatus = "idle" | "playing" | "won" | "lost";
-
-/**
- * Completion Status
- */
 export type CompletionStatus = "playing" | "won" | "lost";
-
-/**
- * Game Mode
- */
 export type GameMode = "daily" | "free-play";
 
-/**
- * Guess Entry
- * Represents a single guess with its LCA result
- */
 export interface GuessEntry {
   /** The guessed animal */
   animal: Animal;
@@ -42,9 +24,6 @@ export interface GuessEntry {
   timestamp: number;
 }
 
-/**
- * Mode-specific game state snapshot
- */
 interface ModeGameState {
   /** Current game status */
   status: GameStatus;
@@ -64,9 +43,6 @@ interface ModeGameState {
   puzzleDate: string;
 }
 
-/**
- * Game Store State
- */
 interface GameState {
   /** Current game mode (daily or free-play) */
   gameMode: GameMode | null;
@@ -101,10 +77,7 @@ interface GameState {
 }
 
 /**
- * Game Store
- *
- * Manages game state, guess processing, and tree building logic.
- * Implements progressive tree building with each guess.
+ * Game state, guesses, and incremental phylogeny tree updates after each guess.
  */
 export const useGameStore = defineStore("game", {
   state: (): GameState => ({
@@ -140,73 +113,42 @@ export const useGameStore = defineStore("game", {
   },
 
   getters: {
-    /**
-     * @returns Number of guesses remaining
-     */
     guessesRemaining(): number {
       return Math.max(0, this.maxGuesses - this.guesses.length);
     },
 
-    /**
-     * @returns Whether the game is active (playing)
-     */
     isPlaying(): boolean {
       return this.status === "playing";
     },
 
-    /**
-     * @returns Whether the game is won
-     */
     isWon(): boolean {
       return this.status === "won";
     },
 
-    /**
-     * @returns Whether the game is lost
-     */
     isLost(): boolean {
       return this.status === "lost";
     },
 
-    /**
-     * @returns Whether the game has ended (won or lost)
-     */
     hasEnded(): boolean {
       return this.status === "won" || this.status === "lost";
     },
 
-    /**
-     * Returns a function to check if an animal has been guessed
-     * @returns Function that takes an animal and returns whether it has been guessed
-     */
     hasGuessed(): (animal: Animal) => boolean {
       return (animal: Animal) => this.guesses.some(g => g.animal.id === animal.id);
     },
 
-    /**
-     * @returns Whether the game is complete (won or lost)
-     */
     isComplete(): boolean {
       return this.status === "won" || this.status === "lost";
     },
 
-    /**
-     * @returns Whether more guesses are allowed
-     */
     canGuess(): boolean {
       return this.status === "playing" && this.guessesRemaining > 0;
     },
 
-    /**
-     * @returns Number of guesses made
-     */
     guessCount(): number {
       return this.guesses.length;
     },
 
-    /**
-     * @returns Current completion status (playing | won | lost)
-     */
     completionStatus(): CompletionStatus {
       if (this.status === "idle") {
         return "playing";
@@ -523,35 +465,18 @@ export const useGameStore = defineStore("game", {
       }
     },
 
-    /**
-     * Set target animal for puzzle
-     * @param animal - The target animal to guess
-     */
     setTargetAnimal(animal: Animal): void {
       this.target = animal;
     },
 
-    /**
-     * Add a guess to the history
-     * This is a wrapper around processGuess for naming convention compliance
-     * @param guess - The guessed animal
-     */
     addGuess(guess: Animal): void {
       this.processGuess(guess);
     },
 
-    /**
-     * Set completion status
-     * @param status - The completion status (playing | won | lost)
-     */
     setCompletionStatus(status: CompletionStatus): void {
       this.status = status;
     },
 
-    /**
-     * Update tree state
-     * @param treeData - The tree data structure
-     */
     updateTreeState(treeData: TreeData): void {
       this.treeData = treeData;
       // Rebuild node map and clade map from new tree data
@@ -560,11 +485,6 @@ export const useGameStore = defineStore("game", {
       this.buildNodeMap(treeData.root);
     },
 
-    /**
-     * Get current date in YYYY-MM-DD format (UTC).
-     * Uses UTC for consistency across time zones (NFR37) for daily puzzle.
-     * @returns Current date string in UTC
-     */
     getCurrentDate(): string {
       return getCurrentDateUTC();
     },
@@ -610,7 +530,6 @@ export const useGameStore = defineStore("game", {
      * @returns Initial tree data
      */
     initializeTree(target: Animal): TreeData {
-      // Create root node (Animalia)
       const rootNode: TreeNode = {
         id: "root",
         type: "clade",
@@ -623,7 +542,6 @@ export const useGameStore = defineStore("game", {
         depth: 0,
       };
 
-      // Create target node
       const targetNode: TreeNode = {
         id: `animal-${target.id}`,
         type: "animal",
@@ -634,17 +552,13 @@ export const useGameStore = defineStore("game", {
         depth: 1,
       };
 
-      // Simply connect Animalia directly to target (no intermediate taxonomy)
       rootNode.children.push(targetNode);
       targetNode.parent = rootNode;
 
-      // Add to clade map with normalized key
       this.cladeMap.set(this.normalizeCladeName("Animalia"), rootNode);
 
-      // Build node map
       this.buildNodeMap(rootNode);
 
-      // Build tree data
       const allNodes = Array.from(this.nodeMap.values());
       const guessNodes = allNodes.filter(node => node.isGuess);
 
@@ -674,37 +588,30 @@ export const useGameStore = defineStore("game", {
         throw new Error("No guesses remaining");
       }
 
-      // Check for duplicate guess
       if (this.guesses.some(g => g.animal.id === guess.id)) {
         throw new Error("Animal already guessed");
       }
 
-      // Calculate LCA between guess and target
       const lcaResult = calculateLCA(guess, this.target);
 
-      // Create guess entry
       const guessEntry: GuessEntry = {
         animal: guess,
         lca: lcaResult,
         timestamp: Date.now(),
       };
 
-      // Add guess to history
       this.guesses.push(guessEntry);
 
-      // Update tree structure
       this.updateTreeWithGuess(guess, lcaResult);
 
-      // Check win condition (exact match)
       if (guess.id === this.target.id) {
         this.status = "won";
       } else if (this.guessesRemaining <= 0) {
         this.status = "lost";
       }
 
-      // Auto-save state for current mode after each guess
-      // Use setTimeout to ensure state is fully updated before saving
       if (this.gameMode) {
+        // Let Pinia flush this guess before serializing mode state (status/guesses/tree must match).
         setTimeout(() => {
           this.saveModeState(this.gameMode!);
         }, 0);
@@ -724,8 +631,7 @@ export const useGameStore = defineStore("game", {
         throw new Error("Tree not initialized");
       }
 
-      // Rebuild node map first to ensure all existing nodes are accessible
-      // This is needed for computeLCAWithRelatedGuesses to find previous guess nodes
+      // Refresh maps so prior guesses resolve; `cleanupChildrenArrays` drops stale/duplicate child links (common after restore).
       this.buildNodeMap(this.treeData.root);
 
       // Clean up tree structure to remove any duplicate node references
@@ -772,8 +678,6 @@ export const useGameStore = defineStore("game", {
         depth: (lcaNode.depth ?? 0) + 1,
       };
 
-      // Compute LCA with previous guesses that share the same LCA with target
-      // This handles cases like Rat + Hamster (both rodents)
       this.computeLCAWithRelatedGuesses(guess, lcaResult, guessNode);
 
       // Move target animal to LCA node only if new LCA is more specific (deeper)
@@ -897,7 +801,6 @@ export const useGameStore = defineStore("game", {
         .filter(node => node.isLCA && node.id !== lcaNode.id)
         .map((node) => {
           // Find the guess entry that created this LCA to get its depth
-          // Use normalized comparison for robustness
           const guessEntry = this.guesses.find(
             entry => this.normalizeCladeName(entry.lca.clade) === this.normalizeCladeName(node.name || ""),
           );
@@ -1356,40 +1259,22 @@ export const useGameStore = defineStore("game", {
       return ranks[depth] || "unknown";
     },
 
-    /**
-     * Set loading state (for global operations)
-     * @param loading - Whether loading is active
-     */
     setLoading(loading: boolean): void {
       this.isLoading = loading;
     },
 
-    /**
-     * Set tree rendering state
-     * @param rendering - Whether tree is being rendered
-     */
     setRenderingTree(rendering: boolean): void {
       this.isRenderingTree = rendering;
     },
 
-    /**
-     * Set store-level error (for API/data errors)
-     * @param error - GameError or null to clear
-     */
     setError(error: GameError | null): void {
       this.error = error;
     },
 
-    /**
-     * Clear error state
-     */
     clearError(): void {
       this.error = null;
     },
 
-    /**
-     * Reset game state for current mode
-     */
     resetGame(): void {
       this.status = "idle";
       this.target = null;

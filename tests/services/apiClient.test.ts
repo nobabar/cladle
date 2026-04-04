@@ -1,7 +1,7 @@
 /**
  * API Client Tests
  *
- * Comprehensive test suite for the biological database API client.
+ * Tests for the biological database API client.
  * Tests cover:
  * - Successful API calls
  * - Rate limiting behavior
@@ -965,7 +965,7 @@ describe("api client", () => {
       expect(result.error?.code).toBe("VALIDATION_ERROR");
     });
 
-    it("should handle optional fields gracefully", async () => {
+    it("should accept missing optional fields", async () => {
       // Arrange - Only required fields
       const mockResponse = {
         results: [{

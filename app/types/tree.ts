@@ -8,13 +8,11 @@ import type { Clade } from "~/types/clade";
  * Nodes can be either animals (leaf nodes) or clades (internal nodes).
  */
 export interface TreeNode {
-  /** Unique identifier for the node */
   id: string;
 
-  /** Type of node: 'animal' for leaf nodes, 'clade' for internal nodes */
+  /** Leaf vs internal (clade) node */
   type: "animal" | "clade";
 
-  /** Display name of the node */
   name: string;
 
   /** Animal data (if type is 'animal') */
@@ -29,19 +27,12 @@ export interface TreeNode {
   /** Parent node (undefined for root) */
   parent?: TreeNode;
 
-  /** Calculated position for rendering (x, y coordinates) */
   position?: { x: number; y: number };
 
   /** Depth in the tree (0 for root) */
   depth?: number;
-
-  /** Whether this node represents the target animal */
   isTarget?: boolean;
-
-  /** Whether this node represents a guessed animal */
   isGuess?: boolean;
-
-  /** Whether this node is a Last Common Ancestor (LCA) */
   isLCA?: boolean;
 }
 
@@ -53,14 +44,8 @@ export interface TreeNode {
 export interface TreeData {
   /** Root node (typically Metazoa) */
   root: TreeNode;
-
-  /** Target animal node */
   target: TreeNode;
-
-  /** All nodes in the tree (flat list for easy access) */
   nodes: TreeNode[];
-
-  /** Guessed animals (leaf nodes) */
   guesses: TreeNode[];
 }
 

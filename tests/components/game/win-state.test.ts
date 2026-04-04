@@ -190,7 +190,7 @@ describe("winState Component", () => {
     });
   });
 
-  describe("completion share integration (FR68)", () => {
+  describe("completion share integration", () => {
     const shareableTarget = () =>
       createMockAnimal("Tiger", "Panthera tigris", [
         "Animalia",
@@ -639,7 +639,7 @@ describe("winState Component", () => {
   });
 
   describe("edge Cases", () => {
-    it("should handle missing target animal gracefully", async () => {
+    it("should handle missing target animal", async () => {
       const store = getGameStore();
       store.status = "won";
       store.target = null;
@@ -653,7 +653,7 @@ describe("winState Component", () => {
       expect(wrapper.text()).toContain("Congratulations");
     });
 
-    it("should handle missing tree data gracefully", async () => {
+    it("should handle missing tree data", async () => {
       const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);

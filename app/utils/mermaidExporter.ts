@@ -8,7 +8,7 @@ import type { TreeData, TreeNode } from "~/types/tree";
  */
 function sanitizeNodeId(id: string): string {
   // Replace non-alphanumeric characters with underscores
-  // Ensure it starts with a letter
+  // Mermaid node ids must start with a letter
   const sanitized = id.replace(/\W/g, "_");
   return sanitized.match(/^[a-z]/i) ? sanitized : `N${sanitized}`;
 }

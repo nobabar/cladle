@@ -56,9 +56,6 @@ export function useSharing() {
     }, 2000);
   }
 
-  /**
-   * Copies the full share body to clipboard.
-   */
   async function copyShareText(): Promise<void> {
     const text = shareableText.value;
     if (!text) {

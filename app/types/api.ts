@@ -2,14 +2,8 @@
  * API Response Wrapper Types
  *
  * Standardized response format for all API client methods.
- * Follows the architecture pattern: wrapped response format for consistency.
  */
 
-/**
- * Standard API error format
- *
- * Provides detailed error information for debugging and user feedback.
- */
 export interface ApiError {
   /** User-facing error message */
   message: string;

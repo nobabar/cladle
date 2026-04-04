@@ -149,7 +149,7 @@ describe("calculateLCA", () => {
       expect(result.path).toEqual([]);
     });
 
-    it("should handle missing taxonomy data gracefully", () => {
+    it("should handle missing taxonomy data", () => {
       const noTaxonomyAnimal = {
         id: "8",
         name: "Mystery Animal",

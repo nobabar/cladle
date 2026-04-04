@@ -38,10 +38,10 @@ export interface PhylogeneticMetrics {
 }
 
 /**
- * Typed input for shareable text generation (used by 8.2 and imported by 8.3).
+ * Typed input for shareable text generation.
  *
  * Important: This snapshot may include `target` and `guesses`, but share text must
- * never echo those names (FR46).
+ * never echo those names.
  */
 export interface ShareableGameSnapshot {
   status: GameStatus;
@@ -167,13 +167,12 @@ export function calculatePhylogeneticMetrics(
 }
 
 /**
- * Builds spoiler-safe, multi-line plain text for copy/paste (FR46/FR48).
+ * Builds spoiler-safe, multi-line plain text for copy/paste.
  *
  * @param snapshot - Shareable inputs. May include `target` and `guesses`, but output
- * must never echo their names (FR46).
+ * must never echo their names.
  *
- * @returns `null` when the puzzle is not complete or when metrics cannot be computed
- * (callers must treat `null` as "no share text").
+ * @returns `null` when the puzzle is not complete or when metrics cannot be computed.
  */
 export function buildShareableText(snapshot: ShareableGameSnapshot): string | null {
   const { status, target, guesses, treeData, gameMode, puzzleDate } = snapshot;

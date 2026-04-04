@@ -6,12 +6,6 @@
  * - Animal has not been guessed before (duplicate prevention)
  * - Input is valid (not empty, properly formatted)
  *
- * Architecture Pattern:
- * - Pure functions with no side effects
- * - Returns ValidationResult with detailed error information
- * - User-friendly error messages (no technical details exposed)
- * - Case-insensitive duplicate detection
- *
  * @see components/game/animal-search.vue - Integration point
  * @see stores/gameStore.ts - Guess history source
  */
@@ -19,71 +13,28 @@
 import type { Animal } from "~/types/animal";
 import type { BiologicalAPIClient } from "~/composables/useBiologicalAPI";
 
-/**
- * Validation error types
- */
 export type ValidationErrorType = "invalid" | "duplicate" | "empty";
 
-/**
- * Validation error structure
- * Provides detailed error information for user feedback
- */
 export interface ValidationError {
-  /** Type of validation error */
   type: ValidationErrorType;
-
-  /** User-friendly error message */
   message: string;
-
-  /** Optional additional error details (not exposed to user) */
   details?: unknown;
 }
 
-/**
- * Validation result structure for animal guess validation
- * Provides validation status and either validated animal or error information
- */
 export interface AnimalGuessValidationResult {
-  /** Whether the validation passed */
   valid: boolean;
-
-  /** Validation error (if validation failed) */
   error?: ValidationError;
-
-  /** Validated animal data (if validation passed) */
   animal?: Animal;
 }
 
-/**
- * Normalize animal name for comparison
- * Handles case-insensitive comparison and whitespace normalization
- *
- * @param name - Animal name to normalize
- * @returns Normalized name (trimmed, lowercase)
- */
 function normalizeAnimalName(name: string): string {
   return name.trim().toLowerCase();
 }
 
-/**
- * Check if animal has already been guessed
- * Uses ID comparison for reliable duplicate detection
- *
- * @param animal - Animal to check
- * @param guessHistory - Array of previously guessed animals
- * @returns True if animal is a duplicate
- */
 function isDuplicate(animal: Animal, guessHistory: Animal[]): boolean {
   return guessHistory.some(guessedAnimal => guessedAnimal.id === animal.id);
 }
 
-/**
- * Get user-friendly error message for validation error type
- *
- * @param errorType - Type of validation error
- * @param _animalName - Optional animal name for context (currently unused)
- * @returns User-friendly error message
- */
 function getErrorMessage(
   errorType: ValidationErrorType,
   _animalName?: string,
@@ -118,27 +69,12 @@ function getErrorMessage(
  * @param guessHistory - Array of previously guessed animals
  * @param apiClient - Biological API client instance for validation
  * @returns Promise resolving to AnimalGuessValidationResult
- *
- * @example
- * ```typescript
- * const result = await validateAnimalGuess(
- *   animalObject,
- *   previousGuesses,
- *   apiClient
- * );
- * if (result.valid) {
- *   // Process guess with result.animal (includes full taxonomy)
- * } else {
- *   // Display error: result.error.message
- * }
- * ```
  */
 export async function validateAnimalGuess(
   animal: Animal,
   guessHistory: Animal[],
   apiClient: BiologicalAPIClient,
 ): Promise<AnimalGuessValidationResult> {
-  // Check if animal has an ID
   if (!animal.id) {
     return {
       valid: false,
@@ -149,7 +85,6 @@ export async function validateAnimalGuess(
     };
   }
 
-  // Check if name is empty (basic validation)
   const trimmedName = animal.name.trim();
   if (!trimmedName) {
     return {
@@ -177,7 +112,6 @@ export async function validateAnimalGuess(
 
     const validatedAnimal = result.data;
 
-    // Check for duplicates using the validated animal
     if (isDuplicate(validatedAnimal, guessHistory)) {
       return {
         valid: false,
@@ -212,20 +146,11 @@ export async function validateAnimalGuess(
  * @param animalName - Name of the animal to validate
  * @param guessHistory - Array of previously guessed animals
  * @returns AnimalGuessValidationResult (synchronous, doesn't check database)
- *
- * @example
- * ```typescript
- * const result = validateAnimalGuessSync("", []);
- * if (!result.valid) {
- *   // Show error immediately without API call
- * }
- * ```
  */
 export function validateAnimalGuessSync(
   animalName: string,
   guessHistory: Animal[],
 ): AnimalGuessValidationResult {
-  // Check if input is empty or whitespace-only
   const trimmedName = animalName.trim();
   if (!trimmedName) {
     return {

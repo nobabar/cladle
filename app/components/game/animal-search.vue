@@ -5,9 +5,6 @@ import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 import { validateAnimalGuess } from "~/utils/animalValidator";
 import type { ValidationError } from "~/utils/animalValidator";
 
-/**
- * Props
- */
 interface Props {
   /** Optional list of animals to search through (if not provided, uses API) */
   animals?: Animal[];
@@ -34,23 +31,14 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<Emits>();
 
-/**
- * Emits
- */
 interface Emits {
   (e: "select", animal: Animal): void;
   (e: "input", value: string): void;
   (e: "validationError", error: ValidationError): void;
 }
 
-/**
- * API Client
- */
 const api = useBiologicalAPI();
 
-/**
- * State
- */
 const searchQuery = ref("");
 const isOpen = ref(false);
 const highlightedIndex = ref(-1);
@@ -63,21 +51,13 @@ const validationError = ref<ValidationError | null>(null);
 const isSearching = ref(false);
 const isSubmitting = ref(false);
 
-/**
- * Keyboard shortcut to focus input
- * Must be defined after inputRef is declared
- * Only triggers when input is not already focused (prevents interference when typing "/")
- */
 defineShortcuts({
   "/": {
     handler: () => {
       if (inputRef.value) {
-        // UInput component wraps the actual input, need to find the real input element
         const componentElement = (inputRef.value as any)?.$el || inputRef.value;
-        // Find the actual input element within the component
         const actualInput = componentElement?.querySelector?.("input") || componentElement;
         if (actualInput && typeof actualInput.focus === "function") {
-          // Check if input is not already focused
           if (document.activeElement !== actualInput) {
             actualInput.focus();
           }
@@ -89,9 +69,6 @@ defineShortcuts({
   },
 });
 
-/**
- * Use API or provided animals
- */
 const useApi = computed(() => !props.animals);
 
 /**
@@ -116,15 +93,8 @@ const filteredSuggestions = computed(() => {
   return matches;
 });
 
-/**
- * Check if suggestions should be visible
- */
 const showSuggestions = computed(() => isOpen.value && filteredSuggestions.value.length > 0);
 
-/**
- * Handle input change
- * @param event
- */
 function handleInput(event: Event) {
   const target = event.target as HTMLInputElement;
   searchQuery.value = target.value;
@@ -141,15 +111,10 @@ function handleInput(event: Event) {
   emit("input", searchQuery.value);
 }
 
-/**
- * Handle suggestion selection with validation
- * @param animal
- */
 async function selectAnimal(animal: Animal) {
   // Clear previous validation error
   validationError.value = null;
 
-  // Set submitting state
   isSubmitting.value = true;
 
   try {
@@ -175,21 +140,17 @@ async function selectAnimal(animal: Animal) {
     selectedAnimal.value = validationResult.animal || animal;
     searchQuery.value = ""; // Clear input after selection
     closeSuggestions();
-    // Clear API results to prevent reopening
     if (useApi.value) {
       apiAnimals.value = [];
     }
-    // Clear validation error on success
     validationError.value = null;
     emit("select", validationResult.animal || animal);
 
-    // Clear submitting state after a short delay for visual feedback
     setTimeout(() => {
       isSubmitting.value = false;
     }, 300);
   } catch (error) {
     isSubmitting.value = false;
-    // Handle unexpected errors
     validationError.value = {
       type: "invalid",
       message: "An unexpected error occurred. Please try again.",
@@ -199,10 +160,6 @@ async function selectAnimal(animal: Animal) {
   }
 }
 
-/**
- * Handle keyboard navigation
- * @param event KeyboardEvent
- */
 function handleKeydown(event: KeyboardEvent) {
   // Handle Escape key first
   if (event.key === "Escape") {
@@ -261,9 +218,6 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
-/**
- * Scroll to highlighted suggestion
- */
 function scrollToHighlighted() {
   nextTick(() => {
     if (suggestionsRef.value && highlightedIndex.value >= 0) {
@@ -276,17 +230,11 @@ function scrollToHighlighted() {
   });
 }
 
-/**
- * Close suggestions
- */
 function closeSuggestions() {
   isOpen.value = false;
   highlightedIndex.value = -1;
 }
 
-/**
- * Clear input and reset state
- */
 function clearInput() {
   searchQuery.value = "";
   selectedAnimal.value = null;
@@ -305,10 +253,6 @@ function clearInput() {
   });
 }
 
-/**
- * Handle click outside to close suggestions
- * @param event MouseEvent
- */
 function handleClickOutside(event: MouseEvent) {
   const target = event.target as HTMLElement;
   // Handle both component ref and element ref
@@ -386,17 +330,10 @@ function getSuggestionId(index: number): string {
   return `animal-suggestion-${index}`;
 }
 
-/**
- * Lifecycle hooks
- */
 onMounted(() => {
   document.addEventListener("click", handleClickOutside);
 });
 
-/**
- * Search animals from API
- * @param query - Search query string
- */
 async function searchAnimalsFromAPI(query: string) {
   if (!useApi.value) {
     return;
@@ -424,10 +361,6 @@ async function searchAnimalsFromAPI(query: string) {
   }
 }
 
-/**
- * Debounced search function
- * @param query - Search query string
- */
 function debouncedSearch(query: string) {
   if (searchTimeout.value) {
     clearTimeout(searchTimeout.value);
@@ -460,9 +393,6 @@ watch(searchQuery, (newQuery) => {
   }
 });
 
-/**
- * Cleanup timeout on unmount
- */
 onUnmounted(() => {
   if (searchTimeout.value) {
     clearTimeout(searchTimeout.value);
@@ -595,7 +525,8 @@ onUnmounted(() => {
             index === highlightedIndex
               ? 'bg-[var(--color-secondary-soft)] dark:bg-[var(--color-secondary-soft)] '
                 + 'focus-within:outline focus-within:outline-2 '
-                + 'focus-within:outline-[var(--color-focus-ring)] focus-within:outline-offset-[-2px]'
+                + 'focus-within:outline-[var(--color-focus-ring)] '
+                + 'focus-within:outline-offset-[-2px]'
               : 'bg-[var(--color-paper)] dark:bg-[var(--color-paper)]',
           ]"
           tabindex="-1"
@@ -750,7 +681,7 @@ ul::-webkit-scrollbar-thumb:hover {
     font-size: 1rem;
   }
 
-  /* Ensure UKbd is properly centered */
+  /* Center virtual keyboard hint */
   .animal-search :deep(kbd) {
     display: inline-flex;
     align-items: center;
