@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, ref, watch, watchEffect } from "vue";
 import type { Animal } from "~/types/animal";
 import type { TreeNode } from "~/types/tree";
+import { useResponsive } from "~/composables/useResponsive";
 import { DEFAULT_MAX_GUESSES, useGameStore } from "~/stores/gameStore";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 import { apiErrorToGameError } from "~/utils/errorMessages";
@@ -9,6 +10,7 @@ import { selectRandomTargetAnimal } from "~/utils/puzzleSelector";
 
 const gameStore = useGameStore();
 const api = useBiologicalAPI();
+const { isDesktop } = useResponsive();
 
 const colorMode = useColorMode();
 
@@ -85,6 +87,10 @@ function handleInformationPanelClose() {
   isInformationPanelOpen.value = false;
   selectedNode.value = null;
 }
+
+const infoPanelPositionSide = computed(() =>
+  gameStore.hasEnded && isDesktop.value ? "left" as const : "right" as const,
+);
 
 /**
  * Watch for game state changes and close panel when appropriate
@@ -558,12 +564,13 @@ onMounted(() => {
       </div>
 
       <!-- Win/Loss State Component - positioned relative to notebook-sheet -->
-      <GameWinState />
+      <GameWinState @node-click="handleNodeClick" />
 
       <!-- Information Panel Component - positioned relative to notebook-sheet -->
       <GameInformationPanelPostit
         :is-open="isInformationPanelOpen"
         :node-data="selectedNode"
+        :position-side="infoPanelPositionSide"
         @close="handleInformationPanelClose"
         @update:is-open="isInformationPanelOpen = $event"
       />
