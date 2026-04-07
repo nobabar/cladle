@@ -1155,8 +1155,6 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: 60vh;
-  overflow-y: auto;
 }
 
 .information-panel-postit__empty {
@@ -1346,7 +1344,7 @@ onUnmounted(() => {
   line-height: 1.6;
   margin: 0;
   color: var(--color-ink, #2C2416);
-  text-align: justify;
+  text-align: left;
 }
 
 .dark .information-panel-postit__clade-description p {
@@ -1405,7 +1403,7 @@ onUnmounted(() => {
   line-height: 1.6;
   margin: 0;
   color: var(--color-ink, #2C2416);
-  text-align: justify;
+  text-align: left;
 }
 
 .dark .information-panel-postit__animal-description p {
@@ -1568,7 +1566,6 @@ onUnmounted(() => {
 
   .information-panel-postit__content {
     gap: 0.375rem;
-    max-height: 50vh;
   }
 }
 
