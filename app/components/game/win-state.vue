@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import GameWinStateResultContent from "~/components/game/win-state-result-content.vue";
+import type { TreeNode } from "~/types/tree";
 import { useGameStore } from "~/stores/gameStore";
 import { useResponsive } from "~/composables/useResponsive";
 import { useSharing } from "~/composables/useSharing";
 import { calculatePhylogeneticMetrics } from "~/utils/sharingFormatter";
+
+const emit = defineEmits<{
+  nodeClick: [node: TreeNode];
+}>();
 
 const gameStore = useGameStore();
 const { isMobile, isTablet, isDesktop } = useResponsive();
@@ -299,6 +304,7 @@ onUnmounted(() => {
               :tree-width="800"
               :tree-height="400"
               @copy="copyShareText"
+              @node-click="emit('nodeClick', $event)"
             />
           </div>
         </div>
@@ -387,6 +393,7 @@ onUnmounted(() => {
           :tree-width="380"
           :tree-height="600"
           @copy="copyShareText"
+          @node-click="emit('nodeClick', $event)"
         />
       </div>
       <!-- Collapsed state: thin strip with expand button at top + vertical status -->

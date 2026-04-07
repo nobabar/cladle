@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, toRefs, useId } from "vue";
 import type { Animal } from "~/types/animal";
-import type { TreeData } from "~/types/tree";
+import type { TreeData, TreeNode } from "~/types/tree";
 import type { PhylogeneticMetrics } from "~/utils/sharingFormatter";
 
 const props = defineProps<{
@@ -23,6 +23,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   copy: [];
+  nodeClick: [node: TreeNode];
 }>();
 
 const {
@@ -57,6 +58,10 @@ const furthestHelpId = useId();
 
 function onCopy(): void {
   emit("copy");
+}
+
+function onNodeClick(node: TreeNode): void {
+  emit("nodeClick", node);
 }
 </script>
 
@@ -264,6 +269,7 @@ function onCopy(): void {
           :show-target="true"
           :width="treeWidth"
           :height="treeHeight"
+          @nodeClick="onNodeClick"
         />
       </div>
     </div>

@@ -4,23 +4,29 @@ import type { TreeNode } from "~/types/tree";
 import type { Clade } from "~/types/clade";
 import type { Animal } from "~/types/animal";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
+import { useResponsive } from "~/composables/useResponsive";
 
 interface Props {
   /** Controls panel visibility */
   isOpen?: boolean;
   /** Node data to display */
   nodeData?: TreeNode | null;
+  /** Which side to anchor the panel: 'right' (default) or 'left' */
+  positionSide?: "left" | "right";
 }
 
 const props = withDefaults(defineProps<Props>(), {
   isOpen: false,
   nodeData: null,
+  positionSide: "right",
 });
 
 const emit = defineEmits<{
   "close": [];
   "update:isOpen": [value: boolean];
 }>();
+
+const { isMobile } = useResponsive();
 
 const containerRef = ref<HTMLElement | null>(null);
 
@@ -43,6 +49,15 @@ const frontElement = ref<"postit" | "image">("postit");
 function handleEscape(event: KeyboardEvent) {
   if (event.key === "Escape" && props.isOpen) {
     event.preventDefault();
+    closePanel();
+  }
+}
+
+function handleClickOutside(event: MouseEvent) {
+  if (!props.isOpen || !isMobile.value) {
+    return;
+  }
+  if (containerRef.value && !containerRef.value.contains(event.target as Node)) {
     closePanel();
   }
 }
@@ -559,6 +574,7 @@ onMounted(() => {
     window.addEventListener("mouseup", handleMouseUp);
     window.addEventListener("touchmove", handleTouchMove);
     window.addEventListener("touchend", handleTouchEnd);
+    document.addEventListener("click", handleClickOutside, true);
   }
 });
 
@@ -570,6 +586,7 @@ onUnmounted(() => {
     window.removeEventListener("mouseup", handleMouseUp);
     window.removeEventListener("touchmove", handleTouchMove);
     window.removeEventListener("touchend", handleTouchEnd);
+    document.removeEventListener("click", handleClickOutside, true);
   }
 });
 </script>
@@ -599,7 +616,10 @@ onUnmounted(() => {
         v-if="isOpen"
         ref="containerRef"
         class="information-panel-container"
-        :class="{ 'information-panel-container--dragging': isDragging }"
+        :class="{
+          'information-panel-container--dragging': isDragging,
+          'information-panel-container--left': props.positionSide === 'left',
+        }"
       >
         <!-- Sticky Tab (adhesive part - always on top) -->
         <div
@@ -884,6 +904,44 @@ onUnmounted(() => {
   max-width: calc(100vw - 2rem);
   height: fit-content;
   transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.information-panel-container--left {
+  right: auto;
+  left: 1rem;
+}
+
+.information-panel-container--left .information-panel-postit {
+  margin-left: 0;
+  margin-right: auto;
+  transform: rotate(-2deg);
+}
+
+.information-panel-container--left .information-panel-postit__sticky-tab {
+  right: auto;
+  left: 40px;
+}
+
+.information-panel-container--left .information-panel-postit--front:hover {
+  transform: rotate(-1deg) scale(1.02);
+}
+
+.information-panel-container--left .information-panel-postit--behind:hover {
+  transform: rotate(-2deg) scale(1.02);
+}
+
+.information-panel-container--left .information-panel-image-card {
+  left: auto;
+  right: 0;
+  transform: rotate(1deg) translateX(20px);
+}
+
+.information-panel-container--left .information-panel-image-card--behind:hover {
+  transform: rotate(0.5deg) translateX(20px) scale(1.02);
+}
+
+.information-panel-container--left .information-panel-image-card--front:hover {
+  transform: rotate(0.5deg) translateX(20px) scale(1.02);
 }
 
 .information-panel-container--dragging {
@@ -1553,6 +1611,11 @@ onUnmounted(() => {
     width: 440px;
   }
 
+  .information-panel-container--left {
+    right: auto;
+    left: 1.5rem;
+  }
+
   .information-panel-postit {
     width: 360px;
   }
@@ -1562,6 +1625,11 @@ onUnmounted(() => {
     right: 40px;
     width: 120px;
     height: 32px;
+  }
+
+  .information-panel-container--left .information-panel-postit__sticky-tab {
+    right: auto;
+    left: 40px;
   }
 
   .information-panel-image-card {
