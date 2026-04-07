@@ -6,11 +6,6 @@ import type { PhylogeneticMetrics } from "~/utils/sharingFormatter";
 
 const props = defineProps<{
   isWon: boolean;
-  showTitle?: boolean;
-  title?: string;
-  titleId?: string;
-  message: string;
-  descriptionId?: string;
   statsText: string;
   targetAnimal: Animal | null;
   phyloMetrics: PhylogeneticMetrics | null;
@@ -28,11 +23,6 @@ const emit = defineEmits<{
 
 const {
   isWon,
-  showTitle,
-  title,
-  titleId,
-  message,
-  descriptionId,
   statsText,
   targetAnimal,
   phyloMetrics,
@@ -71,19 +61,6 @@ function onNodeClick(node: TreeNode): void {
     :class="isWon ? 'win-state__content--win' : 'win-state__content--loss'"
   >
     <div class="win-state__header">
-      <h2
-        v-if="showTitle"
-        :id="titleId"
-        class="win-state__title"
-      >
-        {{ title }}
-      </h2>
-      <p
-        :id="descriptionId"
-        class="win-state__message"
-      >
-        {{ message }}
-      </p>
       <div
         v-if="targetAnimal"
         class="win-state__target-meta"
@@ -290,28 +267,6 @@ function onNodeClick(node: TreeNode): void {
   flex-direction: column;
   gap: 0.75rem;
 }
-
-.win-state__title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1.2;
-  margin: 0;
-  color: var(--win-state-accent);
-}
-
-.win-state__content--win { --win-state-accent: var(--color-success, #059669); }
-.win-state__content--loss { --win-state-accent: var(--color-error, #dc2626); }
-.dark .win-state__content--win .win-state__title { color: #10b981; }
-.dark .win-state__content--loss .win-state__title { color: #f87171; }
-
-.win-state__message {
-  font-size: 1.125rem;
-  line-height: 1.5;
-  margin: 0;
-  color: var(--color-ink-muted, #374151);
-}
-
-.dark .win-state__message { color: #d1d5db; }
 
 .win-state__stats {
   font-size: 0.875rem;
@@ -547,12 +502,12 @@ function onNodeClick(node: TreeNode): void {
 }
 
 .dark .win-state__share-button {
-  background: var(--color-ink, #1f2937);
-  border-color: #374151;
+  background: #374151;
+  border-color: #4b5563;
 }
 
 .dark .win-state__share-button:hover {
-  background: color-mix(in srgb, var(--color-ink, #1f2937) 92%, #ffffff);
+  background: #4b5563;
 }
 
 .win-state__share-label {
