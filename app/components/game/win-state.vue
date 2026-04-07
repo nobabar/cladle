@@ -275,37 +275,51 @@ onUnmounted(() => {
             class="win-state-modal"
             @click.stop
           >
-            <button
-              type="button"
-              class="win-state-modal__close"
-              aria-label="Close"
-              @click="closeMobileModal"
-            >
-              <Icon
-                name="i-lucide-x"
-                class="win-state-modal__close-icon"
-                aria-hidden="true"
+            <div class="win-state-modal__sticky-header">
+              <div class="win-state-modal__sticky-header-text">
+                <h2
+                  id="win-state-modal-title"
+                  class="win-state-modal__title"
+                  :class="isWon ? 'win-state-modal__title--win' : 'win-state-modal__title--loss'"
+                >
+                  {{ resultTitle }}
+                </h2>
+                <p
+                  id="win-state-modal-description"
+                  class="win-state-modal__message"
+                >
+                  {{ resultMessage }}
+                </p>
+              </div>
+              <button
+                type="button"
+                class="win-state-modal__close"
+                aria-label="Close"
+                @click="closeMobileModal"
+              >
+                <Icon
+                  name="i-lucide-x"
+                  class="win-state-modal__close-icon"
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
+            <div class="win-state-modal__body">
+              <GameWinStateResultContent
+                v-if="isWon || isLost"
+                :is-won="isWon"
+                :stats-text="resultStats"
+                :target-animal="targetAnimal"
+                :phylo-metrics="phyloMetrics"
+                :is-share-ready="isShareReady"
+                :last-copy-status="lastCopyStatus"
+                :tree-data="treeData"
+                :tree-width="800"
+                :tree-height="400"
+                @copy="copyShareText"
+                @node-click="emit('nodeClick', $event)"
               />
-            </button>
-            <GameWinStateResultContent
-              v-if="isWon || isLost"
-              :is-won="isWon"
-              :show-title="true"
-              title-id="win-state-modal-title"
-              :title="resultTitle"
-              description-id="win-state-modal-description"
-              :message="resultMessage"
-              :stats-text="resultStats"
-              :target-animal="targetAnimal"
-              :phylo-metrics="phyloMetrics"
-              :is-share-ready="isShareReady"
-              :last-copy-status="lastCopyStatus"
-              :tree-data="treeData"
-              :tree-width="800"
-              :tree-height="400"
-              @copy="copyShareText"
-              @node-click="emit('nodeClick', $event)"
-            />
+            </div>
           </div>
         </div>
       </Transition>
@@ -379,11 +393,15 @@ onUnmounted(() => {
             />
           </button>
         </div>
+        <p
+          id="win-state-panel-description"
+          class="win-state-panel__message"
+        >
+          {{ resultMessage }}
+        </p>
         <GameWinStateResultContent
           v-if="isWon || isLost"
           :is-won="isWon"
-          description-id="win-state-panel-description"
-          :message="resultMessage"
           :stats-text="resultStats"
           :target-animal="targetAnimal"
           :phylo-metrics="phyloMetrics"
@@ -454,26 +472,6 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 0.75rem;
 }
-
-.win-state__title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1.2;
-  margin: 0;
-  color: var(--win-state-accent);
-}
-.win-state__content--win { --win-state-accent: var(--color-success, #059669); }
-.win-state__content--loss { --win-state-accent: var(--color-error, #dc2626); }
-.dark .win-state__content--win .win-state__title { color: #10b981; }
-.dark .win-state__content--loss .win-state__title { color: #f87171; }
-
-.win-state__message {
-  font-size: 1.125rem;
-  line-height: 1.5;
-  margin: 0;
-  color: var(--color-ink-muted, #374151);
-}
-.dark .win-state__message { color: #d1d5db; }
 
 .win-state__stats {
   font-size: 0.875rem;
@@ -621,7 +619,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding-bottom: 1.25rem;
+  padding-bottom: 0.25rem;
 }
 
 .win-state-panel__title {
@@ -637,6 +635,15 @@ onUnmounted(() => {
 .win-state-panel__title--loss { --win-state-accent: var(--color-error, #dc2626); }
 .dark .win-state-panel__title--win { color: #10b981; }
 .dark .win-state-panel__title--loss { color: #f87171; }
+
+.win-state-panel__message {
+  font-size: 1rem;
+  line-height: 1.4;
+  margin: 0 0 1rem;
+  color: var(--color-ink-muted, #374151);
+}
+
+.dark .win-state-panel__message { color: #d1d5db; }
 
 /* Toggle buttons (collapse › and expand ‹) */
 .win-state-panel__toggle {
@@ -791,14 +798,6 @@ onUnmounted(() => {
     gap: 0.5rem;
   }
 
-  .win-state__title {
-    font-size: 1.25rem;
-  }
-
-  .win-state__message {
-    font-size: 1rem;
-  }
-
   .win-state__tree-container {
     max-height: 300px;
     overflow: auto;
@@ -914,16 +913,67 @@ onUnmounted(() => {
   width: 100%;
   max-width: 42rem;
   max-height: 90vh;
-  overflow-y: auto;
-  padding: 1rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   position: relative;
   margin: auto;
 }
 
+.win-state-modal__sticky-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1rem 1rem 0.75rem;
+  border-bottom: 1px solid var(--color-border-subtle, #e2d6c3);
+  background: var(--color-paper, #FDFBF5);
+  z-index: 1;
+}
+
+.dark .win-state-modal__sticky-header {
+  background: var(--color-paper, #1e293b);
+  border-bottom-color: #374151;
+}
+
+.win-state-modal__sticky-header-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.win-state-modal__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.win-state-modal__title--win { color: var(--color-success, #059669); }
+.win-state-modal__title--loss { color: var(--color-error, #dc2626); }
+.dark .win-state-modal__title--win { color: #10b981; }
+.dark .win-state-modal__title--loss { color: #f87171; }
+
+.win-state-modal__message {
+  font-size: 1rem;
+  line-height: 1.4;
+  margin: 0;
+  color: var(--color-ink-muted, #374151);
+}
+
+.dark .win-state-modal__message { color: #d1d5db; }
+
+.win-state-modal__body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 1rem;
+  min-height: 0;
+}
+
 .win-state-modal__close {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -963,13 +1013,19 @@ onUnmounted(() => {
 }
 
 @media (min-width: 640px) {
-  .win-state-modal {
+  .win-state-modal__sticky-header {
+    padding: 1.25rem 1.25rem 0.75rem;
+  }
+  .win-state-modal__body {
     padding: 1.25rem;
   }
 }
 
 @media (min-width: 768px) {
-  .win-state-modal {
+  .win-state-modal__sticky-header {
+    padding: 1.5rem 1.5rem 0.75rem;
+  }
+  .win-state-modal__body {
     padding: 1.5rem;
   }
 }
