@@ -236,54 +236,55 @@ watchEffect(() => {
 });
 
 /**
- * Check if we need to initialize a new daily puzzle (e.g., date changed)
+ * Ensure daily mode is selected and any persisted daily snapshot is rehydrated
+ * into live store fields before we decide whether to initialize a new puzzle.
  */
-function checkAndInitializeDailyPuzzle() {
+function restoreDailyModeStateIfNeeded(): void {
+  const today = gameStore.getCurrentDate();
+
   // If we're switching from another mode, restore daily state
   if (gameStore.gameMode && gameStore.gameMode !== "daily") {
     gameStore.switchGameMode("daily");
-    // If we have valid state after restore, don't initialize new game
-    if (gameStore.target && gameStore.puzzleDate === gameStore.getCurrentDate()) {
-      return;
-    }
-  }
-
-  // Check if we have valid restored state - if so, don't initialize
-  // Valid state means: we have a target, we're in the right mode, puzzle date matches (for daily), and we're not idle
-  // Also check if we have guesses - if we do, state was definitely restored
-  const hasValidRestoredState = gameStore.target
-    && gameStore.gameMode === "daily"
-    && gameStore.puzzleDate === gameStore.getCurrentDate()
-    && gameStore.status !== "idle"
-    && (gameStore.guesses.length > 0 || gameStore.treeData); // If we have guesses or treeData, state was restored
-
-  if (hasValidRestoredState) {
-    // State was restored from persistence, don't initialize new game
     return;
   }
 
-  // Also check if we have any state at all (might be from persistence but not yet in daily mode)
-  // If we have guesses or treeData, we definitely have restored state
-  if (gameStore.target && (gameStore.guesses.length > 0 || gameStore.treeData)) {
-    // We have restored state - set mode if not set and don't initialize
-    if (gameStore.gameMode === null) {
-      // Determine mode from puzzleDate
-      gameStore.gameMode = gameStore.puzzleDate === "" ? "free-play" : "daily";
-    }
-    // If we're in daily mode and puzzle date matches, or free-play mode, don't initialize
-    if (
-      (gameStore.gameMode === "daily" && gameStore.puzzleDate === gameStore.getCurrentDate())
-      || (gameStore.gameMode === "free-play" && gameStore.puzzleDate === "")
-    ) {
-      // Valid restored state, don't initialize
-      return;
-    }
+  // Persisted mode snapshots can exist while root fields are still empty on reload.
+  if (gameStore.gameMode === "daily" && gameStore.dailyState && !gameStore.target) {
+    gameStore.restoreModeState("daily");
+    return;
   }
 
-  // Check if we need to initialize - only if we don't have valid restored state
-  const needsInitialization = !gameStore.target
+  // If mode is missing but a daily snapshot exists for today, infer daily mode and restore.
+  if (
+    gameStore.gameMode === null
+    && gameStore.dailyState
+    && gameStore.dailyState.puzzleDate === today
+  ) {
+    gameStore.gameMode = "daily";
+    gameStore.restoreModeState("daily");
+  }
+}
+
+/**
+ * Check if we need to initialize a new daily puzzle (e.g., date changed)
+ */
+function checkAndInitializeDailyPuzzle() {
+  restoreDailyModeStateIfNeeded();
+
+  const today = gameStore.getCurrentDate();
+  const hasValidDailyState = gameStore.target
+    && gameStore.gameMode === "daily"
+    && gameStore.puzzleDate === today
+    && gameStore.status !== "idle";
+
+  if (hasValidDailyState) {
+    return;
+  }
+
+  const needsInitialization = gameStore.gameMode !== "daily"
+    || !gameStore.target
     || gameStore.status === "idle"
-    || (gameStore.gameMode === "daily" && gameStore.puzzleDate !== gameStore.getCurrentDate());
+    || gameStore.puzzleDate !== today;
 
   if (needsInitialization) {
     startNewGame();

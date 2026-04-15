@@ -317,44 +317,50 @@ watchEffect(() => {
 });
 
 /**
+ * Ensure free-play mode is selected and any persisted free-play snapshot is rehydrated
+ * into live store fields before deciding whether to initialize a new game.
+ */
+function restoreFreePlayModeStateIfNeeded(): void {
+  if (gameStore.gameMode && gameStore.gameMode !== "free-play") {
+    gameStore.switchGameMode("free-play");
+    return;
+  }
+
+  if (gameStore.gameMode === "free-play" && gameStore.freePlayState && !gameStore.target) {
+    gameStore.restoreModeState("free-play");
+    return;
+  }
+
+  // If mode is missing but a free-play snapshot exists, infer free-play mode and restore.
+  if (
+    gameStore.gameMode === null
+    && gameStore.freePlayState
+    && gameStore.freePlayState.puzzleDate === ""
+  ) {
+    gameStore.gameMode = "free-play";
+    gameStore.restoreModeState("free-play");
+  }
+}
+
+/**
  * Initialize game on mount if not already started or if we're switching to free-play mode
  */
 onMounted(() => {
   // Wait for next tick to ensure persist plugin has restored state
   nextTick(() => {
-    // If we're switching from another mode, restore free-play state
-    if (gameStore.gameMode && gameStore.gameMode !== "free-play") {
-      gameStore.switchGameMode("free-play");
-      // If we have valid state after restore, don't initialize new game
-      if (gameStore.target && gameStore.status !== "idle") {
-        return;
-      }
-    }
+    restoreFreePlayModeStateIfNeeded();
 
-    // Check if we have valid restored state - if so, don't initialize
-    // Also check if we have guesses - if we do, state was definitely restored
-    const hasValidRestoredState = gameStore.target
+    const hasValidFreePlayState = gameStore.target
       && gameStore.gameMode === "free-play"
-      && gameStore.status !== "idle"
-      && (gameStore.guesses.length > 0 || gameStore.treeData); // If we have guesses or treeData, state was restored
+      && gameStore.status !== "idle";
 
-    if (hasValidRestoredState) {
-      // State was restored from persistence, don't initialize new game
+    if (hasValidFreePlayState) {
       return;
     }
 
-    // Also check if we have any state at all (might be from persistence but not yet in free-play mode)
-    if (gameStore.target && gameStore.gameMode === null) {
-      // State exists but no mode set - set mode to free-play
-      gameStore.gameMode = "free-play";
-      if (gameStore.status !== "idle") {
-        // Valid state, don't initialize
-        return;
-      }
-    }
-
-    // Check if we need to initialize - only if we don't have valid restored state
-    const needsInitialization = !gameStore.target || gameStore.status === "idle";
+    const needsInitialization = gameStore.gameMode !== "free-play"
+      || !gameStore.target
+      || gameStore.status === "idle";
 
     if (needsInitialization) {
       startNewGame();
