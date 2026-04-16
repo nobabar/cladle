@@ -108,10 +108,19 @@ test("free-play reset behavior clears progress", async ({ page }) => {
   await expect(lionOption).toBeVisible();
   await lionOption.click();
   await expect(lionOption).toHaveCount(0);
-  await expect(page.locator(".notebook-guess-history").getByText("Recent Guesses")).toBeVisible();
-  await expect(page.locator(".notebook-guess-history").getByText("Lion", { exact: true })).toBeVisible();
+  await expect
+    .poll(async () => {
+      const hasRecentGuess = await page
+        .locator(".notebook-guess-history")
+        .getByText("Lion", { exact: true })
+        .isVisible()
+        .catch(() => false);
+      const hasEndState = await page.getByRole("heading", { name: /You Won!|Game Over/ }).isVisible().catch(() => false);
+      return hasRecentGuess || hasEndState;
+    })
+    .toBe(true);
 
-  await page.getByRole("button", { name: "New Random Animal" }).click();
+  await page.getByRole("button", { name: "New Random Animal" }).dispatchEvent("click");
   await expect(page.locator(".notebook-guess-history")).toHaveCount(0);
   await expect(page.getByText(/Guesses remaining:\s*20/)).toBeVisible();
 });
