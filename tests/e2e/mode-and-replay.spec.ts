@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { goToFreePlayFromDaily, openPuzzleHistoryFromDaily } from "./helpers/daily-header";
 import { getTodayUtcDate, mockINaturalist } from "./helpers/inaturalist";
 
 test.beforeEach(async ({ page }) => {
@@ -7,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 
 test("free play entry is accessible from daily page", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "Go to free play mode" }).click();
+  await goToFreePlayFromDaily(page);
   await expect(page).toHaveURL(/\/free-play/);
   await expect(page.getByText("Free Play Mode")).toBeVisible();
   await expect(page.getByRole("button", { name: "New Random Animal" })).toBeVisible();
@@ -89,7 +90,7 @@ test("replay mode from history and return to today", async ({ page }) => {
   }, { date: today });
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Open puzzle history" }).click();
+  await openPuzzleHistoryFromDaily(page);
   await page.getByRole("button", { name: "View puzzle" }).click();
 
   await expect(page.getByRole("button", { name: "Back to today's puzzle" })).toBeVisible();
@@ -133,7 +134,7 @@ test("persistence across mode switch keeps each mode state", async ({ page }) =>
   await page.getByRole("option", { name: /Lion/i }).click();
   await expect(page.locator(".notebook-guess-history").getByText("Lion", { exact: true })).toBeVisible();
 
-  await page.getByRole("link", { name: "Go to free play mode" }).click();
+  await goToFreePlayFromDaily(page);
   await expect(page).toHaveURL(/\/free-play/);
 
   const freePlaySearch = page.getByRole("combobox", { name: "Search for an animal" });
@@ -146,6 +147,6 @@ test("persistence across mode switch keeps each mode state", async ({ page }) =>
   await expect(page.locator(".notebook-guess-history").getByText("Lion", { exact: true })).toBeVisible();
   await expect(page.locator(".notebook-guess-history").getByText("Gray Wolf", { exact: true })).toHaveCount(0);
 
-  await page.getByRole("link", { name: "Go to free play mode" }).click();
+  await goToFreePlayFromDaily(page);
   await expect(page.locator(".notebook-guess-history").getByText("Gray Wolf", { exact: true })).toBeVisible();
 });
