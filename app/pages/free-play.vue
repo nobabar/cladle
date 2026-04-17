@@ -7,6 +7,7 @@ import { DEFAULT_MAX_GUESSES, useGameStore } from "~/stores/gameStore";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 import { apiErrorToGameError } from "~/utils/errorMessages";
 import { selectRandomTargetAnimal } from "~/utils/puzzleSelector";
+import { uiIcon } from "~/utils/uiIcons";
 
 const gameStore = useGameStore();
 const api = useBiologicalAPI();
@@ -18,7 +19,8 @@ function toggleColorMode() {
   colorMode.preference = colorMode.value === "dark" ? "light" : "dark";
 }
 
-const colorModeIcon = computed(() => colorMode.value === "dark" ? "i-lucide-sun" : "i-lucide-moon");
+const colorModeIcon = computed(() =>
+  colorMode.value === "dark" ? uiIcon.sun : uiIcon.moon);
 
 const colorModeLabel = computed(() => colorMode.value === "dark"
   ? "Switch to light mode"
@@ -384,7 +386,7 @@ onMounted(() => {
             <!-- Daily Puzzle Link -->
             <UButton
               to="/"
-              icon="i-lucide-calendar"
+              :icon="uiIcon.calendar"
               color="neutral"
               variant="ghost"
               size="sm"
@@ -445,7 +447,7 @@ onMounted(() => {
         <div class="max-w-2xl mx-auto mb-3 sm:mb-4 text-center">
           <UButton
             :disabled="gameStore.isLoading"
-            icon="i-lucide-refresh-cw"
+            :icon="uiIcon.refresh"
             color="primary"
             variant="solid"
             size="md"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { uiIcon } from "~/utils/uiIcons";
 
 useSeoMeta({
   title: "Privacy - Cladle",
@@ -25,7 +26,7 @@ function revealEmail() {
             class="inline-flex items-center gap-1 text-sm text-[var(--color-ink-subtle)]
               underline underline-offset-2 hover:text-[var(--color-ink)] mb-3"
           >
-            <UIcon name="i-lucide-arrow-left" />
+            <UIcon :name="uiIcon.return" />
             Back to home
           </NuxtLink>
           <h1
@@ -101,7 +102,7 @@ function revealEmail() {
                 color="neutral"
                 variant="soft"
                 size="sm"
-                icon="i-lucide-mail"
+                :icon="uiIcon.mail"
                 @click="revealEmail"
               >
                 Reveal email

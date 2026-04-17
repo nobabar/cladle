@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { uiIcon } from "~/utils/uiIcons";
+
 const taxonomyResources = [
   {
     name: "iNaturalist",
@@ -57,7 +59,7 @@ const taxonomyResources = [
                 >
                   GitHub
                   <Icon
-                    name="i-lucide-external-link"
+                    :name="uiIcon.externalLink"
                     class="site-footer-external-indicator"
                     aria-hidden="true"
                   />
@@ -84,7 +86,7 @@ const taxonomyResources = [
                 >
                   {{ resource.name }}
                   <Icon
-                    name="i-lucide-external-link"
+                    :name="uiIcon.externalLink"
                     class="site-footer-external-indicator"
                     aria-hidden="true"
                   />
