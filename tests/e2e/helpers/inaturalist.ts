@@ -1,5 +1,21 @@
 import type { Page } from "@playwright/test";
 
+/**
+ * Broad Playwright URL globs for taxa details can accidentally match animal search URLs that
+ * include "sources=taxa" in the query string. Use these predicates instead of fragile path globs.
+ * @param url - The URL to check.
+ * @returns True if the URL is a valid iNaturalist search URL.
+ */
+export function isINaturalistSearchUrl(url: URL): boolean {
+  return url.hostname === "api.inaturalist.org" && url.pathname === "/v1/search";
+}
+
+export function isINaturalistTaxonDetailUrl(url: URL): boolean {
+  return url.hostname === "api.inaturalist.org"
+    && /^\/v1\/taxa\/\d+$/.test(url.pathname)
+    && url.searchParams.get("include_ancestors") === "true";
+}
+
 const TAXONOMY = {
   tiger: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera tigris"],
   lion: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera leo"],
@@ -55,8 +71,8 @@ function createTaxonResponse(id: string) {
   };
 }
 
-export async function mockINaturalist(page: Page) {
-  await page.route("**/v1/search**", async (route) => {
+export async function mockINaturalistSearch(page: Page) {
+  await page.route(isINaturalistSearchUrl, async (route) => {
     const url = new URL(route.request().url());
     const query = (url.searchParams.get("q") || "").toLowerCase();
 
@@ -91,8 +107,10 @@ export async function mockINaturalist(page: Page) {
       body: JSON.stringify({ results }),
     });
   });
+}
 
-  await page.route("**/v1/taxa/*?include_ancestors=true**", async (route) => {
+export async function mockINaturalistTaxa(page: Page) {
+  await page.route(isINaturalistTaxonDetailUrl, async (route) => {
     const match = route.request().url().match(/\/taxa\/(\d+)\?include_ancestors=true/);
     const id = match?.[1] ?? "41967";
     await route.fulfill({
@@ -101,6 +119,11 @@ export async function mockINaturalist(page: Page) {
       body: JSON.stringify(createTaxonResponse(id)),
     });
   });
+}
+
+export async function mockINaturalist(page: Page) {
+  await mockINaturalistSearch(page);
+  await mockINaturalistTaxa(page);
 }
 
 export function getTodayUtcDate(): string {

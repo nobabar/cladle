@@ -43,6 +43,8 @@ const searchQuery = ref("");
 const isOpen = ref(false);
 const highlightedIndex = ref(-1);
 const inputRef = ref<HTMLInputElement | null>(null);
+/** Root for input + all dropdown overlays (click-outside closes together). */
+const searchComboboxRef = ref<HTMLElement | null>(null);
 const suggestionsRef = ref<HTMLUListElement | null>(null);
 const selectedAnimal = ref<Animal | null>(null);
 const apiAnimals = ref<Animal[]>([]);
@@ -50,6 +52,8 @@ const searchTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
 const validationError = ref<ValidationError | null>(null);
 const isSearching = ref(false);
 const isSubmitting = ref(false);
+const outageMessage = ref<string | null>(null);
+const outageStatusUrl = "https://www.inaturalist.org/";
 
 defineShortcuts({
   "/": {
@@ -105,6 +109,9 @@ function handleInput(event: Event) {
   // Clear validation error when user starts typing
   if (validationError.value) {
     validationError.value = null;
+  }
+  if (outageMessage.value) {
+    outageMessage.value = null;
   }
   isOpen.value = true;
   highlightedIndex.value = -1;
@@ -163,12 +170,11 @@ async function selectAnimal(animal: Animal) {
 function handleKeydown(event: KeyboardEvent) {
   // Handle Escape key first
   if (event.key === "Escape") {
-    if (isOpen.value && filteredSuggestions.value.length > 0) {
-      // If suggestions are open, close them (don't unfocus)
+    if (isOpen.value) {
       event.preventDefault();
       closeSuggestions();
     } else {
-      // If suggestions are closed and input is focused, unfocus the input
+      // Dropdown already closed: unfocus the input if it is focused
       event.preventDefault();
       const componentElement = inputRef.value
         ? ((inputRef.value as any)?.$el || inputRef.value)
@@ -254,19 +260,12 @@ function clearInput() {
 }
 
 function handleClickOutside(event: MouseEvent) {
-  const target = event.target as HTMLElement;
-  // Handle both component ref and element ref
-  const inputElement = (
-    (inputRef.value as any)?.$el || inputRef.value
-  ) as HTMLElement | null;
-  if (
-    inputElement
-    && typeof inputElement.contains === "function"
-    && !inputElement.contains(target)
-    && suggestionsRef.value
-    && typeof suggestionsRef.value.contains === "function"
-    && !suggestionsRef.value.contains(target)
-  ) {
+  const root = searchComboboxRef.value;
+  const target = event.target as Node | null;
+  if (!root || !target) {
+    return;
+  }
+  if (!root.contains(target)) {
     closeSuggestions();
   }
 }
@@ -334,6 +333,9 @@ onMounted(() => {
   document.addEventListener("click", handleClickOutside);
 });
 
+/** Bumps on each API search so slower responses cannot overwrite newer queries (retries can overlap). */
+let searchAnimalsGeneration = 0;
+
 async function searchAnimalsFromAPI(query: string) {
   if (!useApi.value) {
     return;
@@ -343,22 +345,47 @@ async function searchAnimalsFromAPI(query: string) {
   if (!trimmedQuery || trimmedQuery.length < props.minChars) {
     apiAnimals.value = [];
     isSearching.value = false;
+    outageMessage.value = null;
     return;
   }
 
+  const generation = ++searchAnimalsGeneration;
   isSearching.value = true;
   try {
     const result = await api.searchAnimals(trimmedQuery, props.maxSuggestions);
+    if (generation !== searchAnimalsGeneration || searchQuery.value.trim() !== trimmedQuery) {
+      return;
+    }
+
+    const details = result.error?.details;
+    const isINaturalistOutage = result.error?.code === "API_UNAVAILABLE"
+      && details?.provider === "iNaturalist"
+      && details?.outageLikely === true;
+
+    outageMessage.value = isINaturalistOutage
+      ? "iNaturalist is currently unavailable, so taxonomy/media search is temporarily degraded."
+      : null;
+
     if (result.data) {
       apiAnimals.value = result.data;
     } else {
       apiAnimals.value = [];
     }
   } catch {
+    if (generation !== searchAnimalsGeneration || searchQuery.value.trim() !== trimmedQuery) {
+      return;
+    }
     apiAnimals.value = [];
   } finally {
-    isSearching.value = false;
+    if (generation === searchAnimalsGeneration) {
+      isSearching.value = false;
+    }
   }
+}
+
+async function retrySearch() {
+  if (isSearching.value || isSubmitting.value) return;
+  await searchAnimalsFromAPI(searchQuery.value);
 }
 
 function debouncedSearch(query: string) {
@@ -404,7 +431,7 @@ onUnmounted(() => {
 <template>
   <div class="animal-search relative w-full">
     <!-- Search Input -->
-    <div class="relative">
+    <div ref="searchComboboxRef" class="relative w-full">
       <UInput
         ref="inputRef"
         :model-value="searchQuery"
@@ -451,6 +478,185 @@ onUnmounted(() => {
           />
         </template>
       </UInput>
+
+      <!-- Dropdown panels: shared anchor (top-full + mt-1) + empty-state padding (p-4) -->
+      <Transition
+        enter-active-class="transition ease-out duration-100"
+        enter-from-class="opacity-0 -translate-y-1"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition ease-in duration-75"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 -translate-y-1"
+      >
+        <div
+          v-if="outageMessage && isOpen"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          class="
+            animal-search__dropdown-panel
+            absolute left-0 right-0 top-full z-50 mt-1 w-full p-4 text-sm
+            text-[var(--color-warning)] dark:text-[var(--color-warning)]
+            bg-[var(--color-warning-soft)] dark:bg-[var(--color-warning-soft)]
+            border border-[var(--color-warning)] dark:border-[var(--color-warning)]
+            rounded-sm
+          "
+        >
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span>{{ outageMessage }}</span>
+            <div class="flex items-center gap-2">
+              <UButton
+                size="xs"
+                variant="soft"
+                color="neutral"
+                icon="i-lucide-refresh-cw"
+                aria-label="Retry search"
+                @click="retrySearch"
+              >
+                Retry
+              </UButton>
+              <a
+                :href="outageStatusUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-xs underline underline-offset-2 text-[var(--color-ink-subtle)]"
+              >
+                Check iNaturalist
+              </a>
+            </div>
+          </div>
+        </div>
+      </Transition>
+
+      <Transition
+        enter-active-class="transition ease-out duration-100"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition ease-in duration-75"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
+      >
+        <ul
+          v-if="showSuggestions"
+          id="animal-suggestions"
+          ref="suggestionsRef"
+          role="listbox"
+          :aria-label="
+            `${filteredSuggestions.length} ${
+              filteredSuggestions.length === 1 ? 'suggestion' : 'suggestions'
+            } available. Use arrow keys to navigate, Enter to select.`
+          "
+          class="
+            animal-search__dropdown-panel
+            absolute left-0 right-0 top-full z-50 mt-1 w-full max-h-60 overflow-auto rounded-sm
+            border border-[var(--color-secondary)] dark:border-[var(--color-secondary)]
+            bg-[var(--color-paper)] dark:bg-[var(--color-paper)]
+            notebook-suggestions
+          "
+        >
+          <li
+            v-for="(animal, index) in filteredSuggestions"
+            :id="getSuggestionId(index)"
+            :key="animal.id"
+            role="option"
+            :aria-selected="index === highlightedIndex ? 'true' : 'false'"
+            :aria-label="
+              `${animal.name}${
+                animal.scientificName ? `, ${animal.scientificName}` : ''
+              }`
+            "
+            class="
+              min-h-[44px] px-3 sm:px-4 py-3 cursor-pointer text-sm sm:text-base
+              transition-colors touch-target
+              border-b border-[var(--color-border-subtle)] dark:border-[var(--color-border-subtle)]
+            "
+            :class="[
+              index === highlightedIndex
+                ? 'bg-[var(--color-secondary-soft)] dark:bg-[var(--color-secondary-soft)] '
+                  + 'focus-within:outline focus-within:outline-2 '
+                  + 'focus-within:outline-[var(--color-focus-ring)] '
+                  + 'focus-within:outline-offset-[-2px]'
+                : 'bg-[var(--color-paper)] dark:bg-[var(--color-paper)]',
+            ]"
+            tabindex="-1"
+            @click="selectAnimal(animal)"
+            @mouseenter="highlightedIndex = index"
+          >
+            <div class="flex flex-col">
+              <span class="font-medium text-gray-900 dark:text-gray-100">
+                <template
+                  v-for="(part, partIndex) in splitTextForHighlight(animal.name, searchQuery)"
+                  :key="partIndex"
+                >
+                  <mark
+                    v-if="part.isMatch"
+                    class="bg-yellow-200 dark:bg-yellow-500 font-semibold"
+                  >
+                    {{ part.text }}
+                  </mark>
+                  <template v-else>
+                    {{ part.text }}
+                  </template>
+                </template>
+              </span>
+              <span
+                v-if="animal.scientificName"
+                class="text-sm text-gray-500 dark:text-gray-400 italic"
+              >
+                <template
+                  v-for="
+                    (part, partIndex) in splitTextForHighlight(
+                      animal.scientificName,
+                      searchQuery,
+                    )
+                  "
+                  :key="partIndex"
+                >
+                  <mark
+                    v-if="part.isMatch"
+                    class="bg-yellow-200 dark:bg-yellow-500 font-semibold"
+                  >
+                    {{ part.text }}
+                  </mark>
+                  <template v-else>
+                    {{ part.text }}
+                  </template>
+                </template>
+              </span>
+            </div>
+          </li>
+        </ul>
+      </Transition>
+
+      <Transition
+        enter-active-class="transition ease-out duration-100"
+        enter-from-class="opacity-0"
+        enter-to-class="opacity-100"
+        leave-active-class="transition ease-in duration-75"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="
+            !outageMessage
+              && isOpen
+              && searchQuery.length >= minChars
+              && filteredSuggestions.length === 0
+              && !isSearching
+          "
+          role="status"
+          aria-live="polite"
+          class="
+            animal-search__dropdown-panel
+            absolute left-0 right-0 top-full z-50 mt-1 w-full rounded-sm
+            border border-[var(--color-border-subtle)] dark:border-[var(--color-border-subtle)]
+            bg-[var(--color-paper)] dark:bg-[var(--color-paper)]
+            p-4 text-center text-[var(--color-ink-subtle)] dark:text-[var(--color-ink-subtle)]
+          "
+        >
+          No animals found matching "{{ searchQuery }}"
+        </div>
+      </Transition>
     </div>
 
     <!-- Validation Error Message -->
@@ -482,130 +688,6 @@ onUnmounted(() => {
         </div>
       </div>
     </Transition>
-
-    <!-- Suggestions Dropdown -->
-    <Transition
-      enter-active-class="transition ease-out duration-100"
-      enter-from-class="opacity-0 scale-95"
-      enter-to-class="opacity-100 scale-100"
-      leave-active-class="transition ease-in duration-75"
-      leave-from-class="opacity-100 scale-100"
-      leave-to-class="opacity-0 scale-95"
-    >
-      <ul
-        v-if="showSuggestions"
-        id="animal-suggestions"
-        ref="suggestionsRef"
-        role="listbox"
-        :aria-label="
-          `${filteredSuggestions.length} ${
-            filteredSuggestions.length === 1 ? 'suggestion' : 'suggestions'
-          } available. Use arrow keys to navigate, Enter to select.`
-        "
-        class="
-          absolute z-50 mt-1 w-full max-h-60 overflow-auto rounded-sm
-          border border-[var(--color-secondary)] dark:border-[var(--color-secondary)]
-          bg-[var(--color-paper)] dark:bg-[var(--color-paper)]
-          notebook-suggestions
-        "
-      >
-        <li
-          v-for="(animal, index) in filteredSuggestions"
-          :id="getSuggestionId(index)"
-          :key="animal.id"
-          role="option"
-          :aria-selected="index === highlightedIndex ? 'true' : 'false'"
-          :aria-label="`${animal.name}${animal.scientificName ? `, ${animal.scientificName}` : ''}`"
-          class="
-            min-h-[44px] px-3 sm:px-4 py-3 cursor-pointer text-sm sm:text-base
-            transition-colors touch-target
-            border-b border-[var(--color-border-subtle)] dark:border-[var(--color-border-subtle)]
-          "
-          :class="[
-            index === highlightedIndex
-              ? 'bg-[var(--color-secondary-soft)] dark:bg-[var(--color-secondary-soft)] '
-                + 'focus-within:outline focus-within:outline-2 '
-                + 'focus-within:outline-[var(--color-focus-ring)] '
-                + 'focus-within:outline-offset-[-2px]'
-              : 'bg-[var(--color-paper)] dark:bg-[var(--color-paper)]',
-          ]"
-          tabindex="-1"
-          @click="selectAnimal(animal)"
-          @mouseenter="highlightedIndex = index"
-        >
-          <div class="flex flex-col">
-            <span class="font-medium text-gray-900 dark:text-gray-100">
-              <template
-                v-for="(part, partIndex) in splitTextForHighlight(animal.name, searchQuery)"
-                :key="partIndex"
-              >
-                <mark
-                  v-if="part.isMatch"
-                  class="bg-yellow-200 dark:bg-yellow-500 font-semibold"
-                >
-                  {{ part.text }}
-                </mark>
-                <template v-else>
-                  {{ part.text }}
-                </template>
-              </template>
-            </span>
-            <span
-              v-if="animal.scientificName"
-              class="text-sm text-gray-500 dark:text-gray-400 italic"
-            >
-              <template
-                v-for="
-                  (part, partIndex) in splitTextForHighlight(
-                    animal.scientificName,
-                    searchQuery,
-                  )
-                "
-                :key="partIndex"
-              >
-                <mark
-                  v-if="part.isMatch"
-                  class="bg-yellow-200 dark:bg-yellow-500 font-semibold"
-                >
-                  {{ part.text }}
-                </mark>
-                <template v-else>
-                  {{ part.text }}
-                </template>
-              </template>
-            </span>
-          </div>
-        </li>
-      </ul>
-    </Transition>
-
-    <!-- Empty State -->
-    <Transition
-      enter-active-class="transition ease-out duration-100"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition ease-in duration-75"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
-      <div
-        v-if="
-          isOpen
-            && searchQuery.length >= minChars
-            && filteredSuggestions.length === 0
-        "
-        role="status"
-        aria-live="polite"
-        class="
-          absolute z-50 mt-1 w-full rounded-sm
-          border border-[var(--color-border-subtle)] dark:border-[var(--color-border-subtle)]
-          bg-[var(--color-paper)] dark:bg-[var(--color-paper)]
-          p-4 text-center text-[var(--color-ink-subtle)] dark:text-[var(--color-ink-subtle)]
-        "
-      >
-        No animals found matching "{{ searchQuery }}"
-      </div>
-    </Transition>
   </div>
 </template>
 
@@ -625,8 +707,8 @@ onUnmounted(() => {
   outline: none;
 }
 
-/* Notebook-style suggestions - light rows aligned to grid */
-.notebook-suggestions {
+/* Shared dropdown shadow (suggestions + outage + empty) */
+.animal-search__dropdown-panel {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 

@@ -101,11 +101,18 @@ interface INaturalistSearchResponse {
   results: Array<INaturalistSearchResult<INaturalistTaxon>>;
 }
 
+interface SearchHealthSample {
+  timestamp: number;
+  success: boolean;
+}
+
 /**
  * API Client Implementation
  */
 class INaturalistAPIClient implements BiologicalAPIClient {
   private rateLimiter: RateLimiter;
+  private searchHealthWindowMs = 2 * 60 * 1000; // 2 minutes
+  private searchHealthSamples: SearchHealthSample[] = [];
 
   constructor() {
     this.rateLimiter = new RateLimiter();
@@ -199,6 +206,8 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       const response = await this.makeRequest<INaturalistSearchResponse>(url);
 
       if (!response.results || response.results.length === 0) {
+        // HTTP succeeded but no hits — counts as a healthy provider response for outage heuristics.
+        this.recordSearchOutcome(true);
         return { data: [], error: null };
       }
 
@@ -323,16 +332,65 @@ class INaturalistAPIClient implements BiologicalAPIClient {
         return a.idx - b.idx; // stable fallback
       });
 
+      this.recordSearchOutcome(true);
       return { data: allCandidates.slice(0, limit).map(c => c.animal), error: null };
     } catch (error) {
-      // For search, return empty array on error rather than error response
-      // This allows the UI to continue working even if API fails
+      this.recordSearchOutcome(false);
+      const outageLikely = this.isLikelySearchOutage();
+
       this.logError("Animal Search Error", {
         query: trimmedQuery,
         error: error instanceof Error ? error.message : String(error),
+        outageLikely,
       });
-      return { data: [], error: null };
+
+      // Keep search UX resilient, but expose structured provider outage signals
+      // so UI can show explicit iNaturalist degradation messaging.
+      return {
+        data: [],
+        error: {
+          code: "API_UNAVAILABLE",
+          message: outageLikely
+            ? "iNaturalist appears to be unavailable right now. Search is temporarily degraded."
+            : "Search is temporarily unavailable. Please try again.",
+          details: {
+            provider: "iNaturalist",
+            operation: "search",
+            outageLikely,
+          },
+        },
+      };
     }
+  }
+
+  private recordSearchOutcome(success: boolean): void {
+    const now = Date.now();
+    this.searchHealthSamples.push({ timestamp: now, success });
+    this.searchHealthSamples = this.searchHealthSamples
+      .filter(sample => now - sample.timestamp <= this.searchHealthWindowMs)
+      .slice(-12);
+  }
+
+  private isLikelySearchOutage(): boolean {
+    const samples = this.searchHealthSamples;
+    if (samples.length < 3) return false;
+
+    let consecutiveFailures = 0;
+    for (let i = samples.length - 1; i >= 0; i--) {
+      if (!samples[i]?.success) {
+        consecutiveFailures++;
+      } else {
+        break;
+      }
+    }
+
+    if (consecutiveFailures >= 3) {
+      return true;
+    }
+
+    const recentWindow = samples.slice(-5);
+    const failures = recentWindow.filter(sample => !sample.success).length;
+    return recentWindow.length >= 4 && failures >= 4;
   }
 
   /**
