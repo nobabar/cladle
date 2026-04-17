@@ -6,6 +6,7 @@ import { useGameStore } from "~/stores/gameStore";
 import { useResponsive } from "~/composables/useResponsive";
 import { useSharing } from "~/composables/useSharing";
 import { calculatePhylogeneticMetrics } from "~/utils/sharingFormatter";
+import { uiIcon } from "~/utils/uiIcons";
 
 const emit = defineEmits<{
   nodeClick: [node: TreeNode];
@@ -298,7 +299,7 @@ onUnmounted(() => {
                 @click="closeMobileModal"
               >
                 <Icon
-                  name="i-lucide-x"
+                  :name="uiIcon.close"
                   class="win-state-modal__close-icon"
                   aria-hidden="true"
                 />
@@ -387,7 +388,7 @@ onUnmounted(() => {
             @click="togglePanelCollapsed"
           >
             <Icon
-              name="i-lucide-chevron-right"
+              :name="uiIcon.chevronRight"
               class="win-state-panel__icon"
               aria-hidden="true"
             />
@@ -424,7 +425,7 @@ onUnmounted(() => {
           @click="togglePanelCollapsed"
         >
           <Icon
-            name="i-lucide-chevron-left"
+            :name="uiIcon.chevronLeft"
             class="win-state-panel__icon"
             aria-hidden="true"
           />
@@ -625,9 +626,9 @@ onUnmounted(() => {
 .win-state-panel__title {
   flex: 1;
   min-width: 0;
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 700;
-  line-height: 2;
+  line-height: 1.5;
   margin: 0;
   color: var(--win-state-accent);
 }
@@ -713,7 +714,7 @@ onUnmounted(() => {
 .win-state-panel__vertical-status {
   writing-mode: vertical-lr;
   text-orientation: mixed;
-  font-size: 0.75rem;
+  font-size: 1.25rem;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0.02em;
@@ -945,9 +946,9 @@ onUnmounted(() => {
 }
 
 .win-state-modal__title {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.5;
   margin: 0;
 }
 

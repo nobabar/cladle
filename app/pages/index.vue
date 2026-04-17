@@ -13,6 +13,7 @@ import {
   clearOldHistory,
   savePuzzleToHistory,
 } from "~/utils/puzzleHistory";
+import { uiIcon } from "~/utils/uiIcons";
 
 const gameStore = useGameStore();
 const isDevMode = computed(() => import.meta.dev);
@@ -27,7 +28,8 @@ function toggleColorMode() {
   colorMode.preference = colorMode.value === "dark" ? "light" : "dark";
 }
 
-const colorModeIcon = computed(() => colorMode.value === "dark" ? "i-lucide-sun" : "i-lucide-moon");
+const colorModeIcon = computed(() =>
+  colorMode.value === "dark" ? uiIcon.sun : uiIcon.moon);
 
 const colorModeLabel = computed(() => colorMode.value === "dark"
   ? "Switch to light mode"
@@ -44,7 +46,7 @@ const headerMobileMenuItems = computed(() => {
   if (!gameStore.isReplayMode && gameStore.gameMode === "daily") {
     items.push({
       label: "Puzzle history",
-      icon: "i-lucide-history",
+      icon: uiIcon.history,
       onSelect: () => {
         puzzleHistoryRef.value?.open();
       },
@@ -54,7 +56,7 @@ const headerMobileMenuItems = computed(() => {
   items.push(
     {
       label: "Free play",
-      icon: "i-lucide-infinity",
+      icon: uiIcon.infinity,
       onSelect: () => {
         void navigateTo("/free-play");
       },
@@ -415,7 +417,7 @@ onMounted(() => {
             <UButton
               variant="ghost"
               size="sm"
-              icon="i-lucide-arrow-left"
+              :icon="uiIcon.return"
               aria-label="Back to today's puzzle"
               class="text-[var(--color-ink-subtle)]"
               @click="gameStore.exitReplay()"
@@ -437,7 +439,7 @@ onMounted(() => {
             >
               <template #default="{ open: menuOpen }">
                 <UButton
-                  icon="i-lucide-menu"
+                  :icon="uiIcon.menu"
                   color="neutral"
                   variant="ghost"
                   size="sm"
@@ -459,7 +461,7 @@ onMounted(() => {
               <!-- Free Play Button -->
               <UButton
                 to="/free-play"
-                icon="i-lucide-infinity"
+                :icon="uiIcon.infinity"
                 color="neutral"
                 variant="ghost"
                 size="sm"

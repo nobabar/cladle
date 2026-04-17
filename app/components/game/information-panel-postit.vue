@@ -5,6 +5,7 @@ import type { Clade } from "~/types/clade";
 import type { Animal } from "~/types/animal";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 import { useResponsive } from "~/composables/useResponsive";
+import { uiIcon } from "~/utils/uiIcons";
 
 interface Props {
   /** Controls panel visibility */
@@ -717,7 +718,7 @@ onUnmounted(() => {
                     aria-label="View on iNaturalist"
                   >
                     <Icon
-                      name="i-lucide-external-link"
+                      :name="uiIcon.externalLink"
                       class="information-panel-postit__link-icon"
                     />
                     iNaturalist
@@ -735,7 +736,7 @@ onUnmounted(() => {
                     aria-label="View on Wikipedia"
                   >
                     <Icon
-                      name="i-lucide-external-link"
+                      :name="uiIcon.externalLink"
                       class="information-panel-postit__link-icon"
                     />
                     Wikipedia
@@ -795,7 +796,7 @@ onUnmounted(() => {
                     aria-label="View on iNaturalist"
                   >
                     <Icon
-                      name="i-lucide-external-link"
+                      :name="uiIcon.externalLink"
                       class="information-panel-postit__link-icon"
                     />
                     iNaturalist
@@ -813,7 +814,7 @@ onUnmounted(() => {
                     aria-label="View on Wikipedia"
                   >
                     <Icon
-                      name="i-lucide-external-link"
+                      :name="uiIcon.externalLink"
                       class="information-panel-postit__link-icon"
                     />
                     Wikipedia

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { GameError } from "~/utils/errorMessages";
+import { uiIcon } from "~/utils/uiIcons";
 
 interface Props {
   /** Error to display */
@@ -96,7 +97,7 @@ const errorColorClasses = computed(() => {
           color="neutral"
           variant="ghost"
           size="xs"
-          icon="i-lucide-x"
+          :icon="uiIcon.close"
           aria-label="Dismiss error"
           class="flex-shrink-0 ml-2 min-w-[24px] min-h-[24px] notebook-button-secondary"
           @click="dismiss"
