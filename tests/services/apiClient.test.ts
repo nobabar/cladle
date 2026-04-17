@@ -479,6 +479,40 @@ describe("api client", () => {
       expect(result.data?.find(a => a.scientificName === "Portobello mushroom")).toBeUndefined();
       expect(result.data?.find(a => a.scientificName === "Rosa canina")).toBeUndefined();
     });
+
+    it("should not mark outage on a single search failure", async () => {
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("Network error"));
+
+      const promise = client.searchAnimals("lion", 10);
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      expect(result.data).toEqual([]);
+      expect(result.error?.code).toBe("API_UNAVAILABLE");
+      expect(result.error?.details?.provider).toBe("iNaturalist");
+      expect(result.error?.details?.outageLikely).toBe(false);
+    });
+
+    it("should mark outage after repeated search failures", async () => {
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
+
+      const p1 = client.searchAnimals("lion", 10);
+      await vi.runAllTimersAsync();
+      const r1 = await p1;
+
+      const p2 = client.searchAnimals("tiger", 10);
+      await vi.runAllTimersAsync();
+      const r2 = await p2;
+
+      const p3 = client.searchAnimals("bear", 10);
+      await vi.runAllTimersAsync();
+      const r3 = await p3;
+
+      expect(r1.error?.details?.outageLikely).toBe(false);
+      expect(r2.error?.details?.outageLikely).toBe(false);
+      expect(r3.error?.details?.outageLikely).toBe(true);
+      expect(r3.error?.message).toContain("iNaturalist appears to be unavailable");
+    });
   });
 
   describe("rate limiting", () => {
