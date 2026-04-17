@@ -15,6 +15,7 @@ import {
 } from "~/utils/puzzleHistory";
 
 const gameStore = useGameStore();
+const isDevMode = computed(() => import.meta.dev);
 const api = useBiologicalAPI();
 const { isDesktop } = useResponsive();
 
@@ -596,9 +597,9 @@ onMounted(() => {
           </p>
         </div>
 
-        <!-- Game Info Display (Progressive Disclosure) -->
+        <!-- Dev-only: recent guesses + LCA -->
         <div
-          v-if="gameStore.isPlaying && gameStore.guesses.length > 0"
+          v-if="isDevMode && gameStore.isPlaying && gameStore.guesses.length > 0"
           class="max-w-2xl mx-auto mt-4 sm:mt-6 md:mt-8 notebook-guess-history"
         >
           <h2
