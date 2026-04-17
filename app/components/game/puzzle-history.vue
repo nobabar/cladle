@@ -4,6 +4,7 @@ import { loadPuzzleHistory } from "~/utils/puzzleHistory";
 import { formatPuzzleDate } from "~/utils/dateUtils";
 import { useGameStore } from "~/stores/gameStore";
 import type { PuzzleHistoryEntry } from "~/types/puzzleHistory";
+import { uiIcon } from "~/utils/uiIcons";
 
 const props = withDefaults(
   defineProps<{
@@ -50,7 +51,7 @@ defineExpose({ open });
   <div>
     <UButton
       v-if="!props.hideTrigger"
-      icon="i-lucide-history"
+      :icon="uiIcon.history"
       color="neutral"
       variant="ghost"
       size="sm"

@@ -4,6 +4,7 @@ import type { Animal } from "~/types/animal";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 import { validateAnimalGuess } from "~/utils/animalValidator";
 import type { ValidationError } from "~/utils/animalValidator";
+import { uiIcon } from "~/utils/uiIcons";
 
 interface Props {
   /** Optional list of animals to search through (if not provided, uses API) */
@@ -466,7 +467,7 @@ onUnmounted(() => {
             color="neutral"
             variant="link"
             size="sm"
-            icon="i-lucide-circle-x"
+            :icon="uiIcon.circleX"
             aria-label="Clear input"
             class="min-w-[44px] min-h-[44px] touch-target flex items-center justify-center"
             @click="clearInput"
@@ -509,7 +510,7 @@ onUnmounted(() => {
                 size="xs"
                 variant="soft"
                 color="neutral"
-                icon="i-lucide-refresh-cw"
+                :icon="uiIcon.refresh"
                 aria-label="Retry search"
                 @click="retrySearch"
               >

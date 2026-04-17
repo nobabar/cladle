@@ -3,6 +3,7 @@ import { computed, toRefs, useId } from "vue";
 import type { Animal } from "~/types/animal";
 import type { TreeData, TreeNode } from "~/types/tree";
 import type { PhylogeneticMetrics } from "~/utils/sharingFormatter";
+import { uiIcon } from "~/utils/uiIcons";
 
 const props = defineProps<{
   isWon: boolean;
@@ -95,7 +96,7 @@ function onNodeClick(node: TreeNode): void {
             class="win-state__target-link"
             aria-label="View on iNaturalist"
           >
-            <Icon name="i-lucide-external-link" />
+            <Icon :name="uiIcon.externalLink" />
             iNaturalist
           </a>
           <a
@@ -106,7 +107,7 @@ function onNodeClick(node: TreeNode): void {
             class="win-state__target-link"
             aria-label="View on Wikipedia"
           >
-            <Icon name="i-lucide-external-link" />
+            <Icon :name="uiIcon.externalLink" />
             Wikipedia
           </a>
         </div>
@@ -142,7 +143,7 @@ function onNodeClick(node: TreeNode): void {
                   aria-label="What is furthest evolutionary distance?"
                 >
                   <Icon
-                    name="i-lucide-help-circle"
+                    :name="uiIcon.help"
                     class="win-state__help-icon"
                     aria-hidden="true"
                   />
@@ -173,7 +174,7 @@ function onNodeClick(node: TreeNode): void {
                   aria-label="What is evolutionary distance?"
                 >
                   <Icon
-                    name="i-lucide-help-circle"
+                    :name="uiIcon.help"
                     class="win-state__help-icon"
                     aria-hidden="true"
                   />
@@ -219,7 +220,7 @@ function onNodeClick(node: TreeNode): void {
               @click="onCopy"
             >
               <Icon
-                :name="lastCopyStatus === 'success' ? 'i-lucide-check' : 'i-lucide-share-2'"
+                :name="lastCopyStatus === 'success' ? uiIcon.check : uiIcon.share"
                 class="win-state__share-icon"
                 aria-hidden="true"
               />

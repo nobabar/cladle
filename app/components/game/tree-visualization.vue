@@ -6,6 +6,7 @@ import {
   getViewBoxFromDimensions,
 } from "~/utils/treeLayoutCalculator";
 import { treeToMermaid } from "~/utils/mermaidExporter";
+import { uiIcon } from "~/utils/uiIcons";
 import { DEFAULT_ROUGHNESS, resolveColor, useRoughSvg } from "~/composables/useRoughSvg";
 
 interface Props {
@@ -102,13 +103,13 @@ const computedEdges = computed(() => computedLayout.value?.edges || []);
  * Uses canvas measurement for accurate width calculation
  *
  * @param text - Text to measure
- * @param fontSize - Font size in pixels (default: 10)
+ * @param fontSize - Font size in pixels (default: 14)
  * @param fontFamily - Font family (default: system font)
  * @returns Calculated text width in pixels
  */
 function calculateTextWidth(
   text: string,
-  fontSize: number = 10,
+  fontSize: number = 14,
   fontFamily: string = "system-ui, -apple-system, sans-serif",
 ): number {
   if (typeof window === "undefined") {
@@ -198,10 +199,10 @@ function getNodeWidth(node: TreeNode): number {
   // If this is a target node and it's hidden, use fixed width for "?"
   // This prevents players from guessing the animal based on node width
   if (node.isTarget && !props.showTarget) {
-    return calculateTextWidth("?", 10);
+    return calculateTextWidth("?", 14);
   }
   // Otherwise, use the actual name width
-  return calculateTextWidth(node.name, 10);
+  return calculateTextWidth(node.name, 14);
 }
 
 function getNodeHeight(_node: TreeNode): number {
@@ -815,7 +816,7 @@ async function copyTreeAsMermaid(): Promise<void> {
       @click="copyTreeAsMermaid"
     >
       <Icon
-        :name="isCopied ? 'i-lucide-check' : 'i-lucide-copy'"
+        :name="isCopied ? uiIcon.check : uiIcon.copy"
         class="tree-visualization__copy-icon"
       />
     </button>
@@ -1079,7 +1080,7 @@ async function copyTreeAsMermaid(): Promise<void> {
 }
 
 .tree-node__text {
-  font-size: 10px;
+  font-size: 14px;
   font-weight: 500;
   fill: var(--color-ink, #111827);
   pointer-events: none;
@@ -1239,7 +1240,7 @@ async function copyTreeAsMermaid(): Promise<void> {
   }
 
   .tree-node__text {
-    font-size: 8px;
+    font-size: 12px;
   }
 
   .tree-node {
@@ -1278,7 +1279,7 @@ async function copyTreeAsMermaid(): Promise<void> {
   }
 
   .tree-node__text {
-    font-size: 9px;
+    font-size: 13px;
   }
 
   .tree-visualization__copy-button {
@@ -1298,7 +1299,7 @@ async function copyTreeAsMermaid(): Promise<void> {
   }
 
   .tree-node__text {
-    font-size: 10px;
+    font-size: 14px;
   }
 
   .tree-visualization__copy-button {
