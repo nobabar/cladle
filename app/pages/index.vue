@@ -18,6 +18,8 @@ const gameStore = useGameStore();
 const api = useBiologicalAPI();
 const { isDesktop } = useResponsive();
 
+const puzzleHistoryRef = ref<{ open: () => void } | null>(null);
+
 const colorMode = useColorMode();
 
 function toggleColorMode() {
@@ -29,6 +31,44 @@ const colorModeIcon = computed(() => colorMode.value === "dark" ? "i-lucide-sun"
 const colorModeLabel = computed(() => colorMode.value === "dark"
   ? "Switch to light mode"
   : "Switch to dark mode");
+
+/** Mobile header menu (burger below Tailwind `sm`; same row as icons from `sm` up). */
+const headerMobileMenuItems = computed(() => {
+  const items: {
+    label?: string;
+    icon?: string;
+    onSelect?: (e: Event) => void;
+  }[] = [];
+
+  if (!gameStore.isReplayMode && gameStore.gameMode === "daily") {
+    items.push({
+      label: "Puzzle history",
+      icon: "i-lucide-history",
+      onSelect: () => {
+        puzzleHistoryRef.value?.open();
+      },
+    });
+  }
+
+  items.push(
+    {
+      label: "Free play",
+      icon: "i-lucide-infinity",
+      onSelect: () => {
+        void navigateTo("/free-play");
+      },
+    },
+    {
+      label: colorModeLabel.value,
+      icon: colorModeIcon.value,
+      onSelect: () => {
+        toggleColorMode();
+      },
+    },
+  );
+
+  return items;
+});
 
 const treeData = computed(() => gameStore.treeData);
 const guessHistory = computed(() => gameStore.guesses.map(g => g.animal));
@@ -354,7 +394,8 @@ onMounted(() => {
           <!-- Notebook-style date in top-left corner (always show calendar date) -->
           <div
             v-if="gameStore.puzzleDate"
-            class="absolute top-0 right-0 sm:top-5 sm:left-2 flex flex-col gap-2"
+            class="absolute top-0 left-0 z-[1] sm:top-5 sm:left-2 flex flex-col gap-1
+              sm:gap-2 items-start"
           >
             <GamePuzzleDateDisplay
               :puzzle-date="gameStore.puzzleDate"
@@ -381,36 +422,69 @@ onMounted(() => {
               Back to today
             </UButton>
           </div>
-          <!-- Navigation and Color Mode Toggle -->
-          <div class="absolute top-0 right-0 sm:top-2 sm:right-2 flex">
-            <!-- Puzzle history (daily mode only) -->
-            <GamePuzzleHistory v-if="!gameStore.isReplayMode && gameStore.gameMode === 'daily'" />
-            <!-- Free Play Link -->
-            <UButton
-              to="/free-play"
-              icon="i-lucide-infinity"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              aria-label="Go to free play mode"
-              title="Free Play"
-              class="min-w-[44px] min-h-[44px] touch-target justify-center items-center
-                notebook-button-secondary cursor-pointer"
-            />
-            <!-- Color Mode Toggle -->
-            <UButton
-              :icon="colorModeIcon"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              :aria-label="colorModeLabel"
-              :title="colorModeLabel"
-              class="min-w-[44px] min-h-[44px] touch-target justify-center items-center
-                notebook-button-secondary cursor-pointer"
-              @click="toggleColorMode"
-            />
+          <!-- Navigation: burger below `sm`; from `sm` up show history + icons in a row -->
+          <div
+            class="absolute top-0 right-0 z-[1] flex items-center gap-0.5
+              sm:top-2 sm:right-2 sm:gap-1"
+          >
+            <UDropdownMenu
+              class="sm:hidden"
+              :items="headerMobileMenuItems"
+              :external-icon="false"
+              :content="{ align: 'start', side: 'bottom', sideOffset: 2 }"
+              :ui="{ item: 'items-center' }"
+            >
+              <template #default="{ open: menuOpen }">
+                <UButton
+                  icon="i-lucide-menu"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Open game menu"
+                  aria-haspopup="menu"
+                  :aria-expanded="menuOpen"
+                  class="min-w-[44px] min-h-[44px] touch-target justify-center items-center
+                    notebook-button-secondary cursor-pointer"
+                />
+              </template>
+            </UDropdownMenu>
+
+            <div class="hidden sm:flex items-center gap-1">
+              <!-- Puzzle history (daily mode only) -->
+              <GamePuzzleHistory
+                v-if="!gameStore.isReplayMode && gameStore.gameMode === 'daily'"
+                ref="puzzleHistoryRef"
+              />
+              <!-- Free Play Button -->
+              <UButton
+                to="/free-play"
+                icon="i-lucide-infinity"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                aria-label="Go to free play mode"
+                title="Free Play"
+                class="min-w-[44px] min-h-[44px] touch-target justify-center items-center
+                  notebook-button-secondary cursor-pointer"
+              />
+              <!-- Color Mode Toggle -->
+              <UButton
+                :icon="colorModeIcon"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                :aria-label="colorModeLabel"
+                :title="colorModeLabel"
+                class="min-w-[44px] min-h-[44px] touch-target justify-center items-center
+                  notebook-button-secondary cursor-pointer"
+                @click="toggleColorMode"
+              />
+            </div>
           </div>
-          <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-2 sm:mb-4">
+          <h1
+            class="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-2 sm:mb-4
+              max-sm:pl-[5.25rem] max-sm:pr-14 sm:px-0"
+          >
             Cladle
           </h1>
           <p

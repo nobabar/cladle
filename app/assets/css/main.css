@@ -199,6 +199,11 @@ body {
   a + button {
     margin-left: var(--space-2, 0.5rem); /* 8px */
   }
+
+  /* Vertical menus (e.g. UDropdownMenu) stack items; sibling margin is for horizontal rows */
+  [role="menu"] :is(button, a) + :is(button, a) {
+    margin-left: 0;
+  }
 }
 
 /* Tablet breakpoint (768px - 1023px) */

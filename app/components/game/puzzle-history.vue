@@ -5,6 +5,14 @@ import { formatPuzzleDate } from "~/utils/dateUtils";
 import { useGameStore } from "~/stores/gameStore";
 import type { PuzzleHistoryEntry } from "~/types/puzzleHistory";
 
+const props = withDefaults(
+  defineProps<{
+    /** When true, no toolbar button is rendered (e.g. mobile menu opens history). */
+    hideTrigger?: boolean;
+  }>(),
+  { hideTrigger: false },
+);
+
 const gameStore = useGameStore();
 
 const isOpen = ref(false);
@@ -34,11 +42,14 @@ function statusLabel(status: string) {
   if (status === "lost") return "Unsolved";
   return "In progress";
 }
+
+defineExpose({ open });
 </script>
 
 <template>
   <div>
     <UButton
+      v-if="!props.hideTrigger"
       icon="i-lucide-history"
       color="neutral"
       variant="ghost"

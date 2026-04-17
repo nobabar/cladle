@@ -62,6 +62,22 @@ describe("puzzleHistory", () => {
     expect(btn.exists()).toBe(true);
   });
 
+  it("hideTrigger omits toolbar button but exposed open() still opens modal", async () => {
+    const wrapper = mount(PuzzleHistory, {
+      props: { hideTrigger: true },
+      global: {
+        stubs: {
+          UButton: UButtonStub,
+          UModal: UModalStub,
+        },
+      },
+    });
+    expect(wrapper.find("button[aria-label='Open puzzle history']").exists()).toBe(false);
+    (wrapper.vm as unknown as { open: () => void }).open();
+    await wrapper.vm.$nextTick();
+    expect(wrapper.text()).toContain("No past puzzles yet");
+  });
+
   it("shows empty message when no history", async () => {
     const wrapper = mountWithStubs();
     await wrapper.find("button[aria-label='Open puzzle history']").trigger("click");
