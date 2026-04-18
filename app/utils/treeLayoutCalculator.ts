@@ -1,5 +1,6 @@
 import { hierarchy, tree } from "d3-hierarchy";
 import type { TreeData, TreeLayoutConfig, TreeNode } from "~/types/tree";
+import { getTreeNodeBoxWidth } from "~/utils/treeNodeWidth";
 
 export interface Edge {
   from: TreeNode;
@@ -25,6 +26,14 @@ export interface LayoutResult {
   };
 }
 
+/** Options that must stay aligned with tree visualization rendering. */
+export interface CalculateTreeLayoutOptions {
+  /**
+   * When false, the target leaf uses "?" width (game mode). Defaults to true.
+   */
+  showTarget?: boolean;
+}
+
 const DEFAULT_CONFIG: TreeLayoutConfig = {
   horizontalSpacing: 150,
   verticalSpacing: 120,
@@ -42,20 +51,35 @@ const DEFAULT_CONFIG: TreeLayoutConfig = {
  * @param treeData - The tree data structure to layout
  * @param containerWidth - Width of the container (for auto-fitting)
  * @param config - Optional layout configuration
+ * @param options
  * @returns Layout result with positioned nodes, edges, and dimensions
  */
 export function calculateTreeLayout(
   treeData: TreeData,
   containerWidth: number = 800,
   config: Partial<TreeLayoutConfig> = {},
+  options: CalculateTreeLayoutOptions = {},
 ): LayoutResult {
   const layoutConfig: TreeLayoutConfig = { ...DEFAULT_CONFIG, ...config };
+  const showTargetForLayout = options.showTarget ?? true;
+  const dx = layoutConfig.horizontalSpacing;
+  /** Minimum gap between adjacent node rectangles (pixels). */
+  const siblingGapPx = 12;
 
   // Convert to D3 hierarchy and calculate layout
   const d3Root = hierarchy(treeData.root, d => d.children);
   const treeLayout = tree<TreeNode>()
     .nodeSize([layoutConfig.horizontalSpacing, layoutConfig.verticalSpacing])
-    .separation(() => 1.0);
+    .separation((a, b) => {
+      // d3-hierarchy passes layout nodes; `.data` is our TreeNode.
+      const na = a.data;
+      const nb = b.data;
+      const wa = getTreeNodeBoxWidth(na, showTargetForLayout);
+      const wb = getTreeNodeBoxWidth(nb, showTargetForLayout);
+      const minCenterDistance = wa / 2 + wb / 2 + siblingGapPx;
+      const sepUnits = minCenterDistance / dx;
+      return a.parent === b.parent ? Math.max(1, sepUnits) : Math.max(2, sepUnits);
+    });
 
   const layoutedRoot = treeLayout(d3Root);
 
@@ -85,9 +109,9 @@ export function calculateTreeLayout(
 
     nodeMap.set(treeNode.id, positionedNode);
 
-    // Calculate bounds accounting for node dimensions
-    const nodeLeft = centeredX - layoutConfig.nodeWidth / 2;
-    const nodeRight = centeredX + layoutConfig.nodeWidth / 2;
+    const nodeW = getTreeNodeBoxWidth(treeNode, showTargetForLayout);
+    const nodeLeft = centeredX - nodeW / 2;
+    const nodeRight = centeredX + nodeW / 2;
     const nodeTop = positionedY - layoutConfig.nodeHeight / 2;
     const nodeBottom = positionedY + layoutConfig.nodeHeight / 2;
 

@@ -5,6 +5,7 @@ import {
   calculateTreeLayout,
   getViewBoxFromDimensions,
 } from "~/utils/treeLayoutCalculator";
+import { getTreeNodeBoxWidth } from "~/utils/treeNodeWidth";
 import { treeToMermaid } from "~/utils/mermaidExporter";
 import { uiIcon } from "~/utils/uiIcons";
 import { DEFAULT_ROUGHNESS, resolveColor, useRoughSvg } from "~/composables/useRoughSvg";
@@ -65,7 +66,9 @@ const computedLayout = computed(() => {
     return null;
   }
 
-  return calculateTreeLayout(props.treeData, containerWidth.value, layoutConfig);
+  return calculateTreeLayout(props.treeData, containerWidth.value, layoutConfig, {
+    showTarget: props.showTarget,
+  });
 });
 
 /**
@@ -99,50 +102,6 @@ watch(
 const computedNodes = computed(() => computedLayout.value?.nodes || new Map<string, TreeNode>());
 
 const computedEdges = computed(() => computedLayout.value?.edges || []);
-
-/**
- * Calculate text width for a given text string
- * Uses canvas measurement for accurate width calculation
- *
- * @param text - Text to measure
- * @param fontSize - Font size in pixels (default: 14)
- * @param fontFamily - Font family (default: system font)
- * @returns Calculated text width in pixels
- */
-function calculateTextWidth(
-  text: string,
-  fontSize: number = 14,
-  fontFamily: string = "system-ui, -apple-system, sans-serif",
-): number {
-  if (typeof window === "undefined") {
-    // Fallback for SSR
-    const avgCharWidth = fontSize * 0.6;
-    const textWidth = text.length * avgCharWidth;
-    const minWidth = 60;
-    const padding = 20;
-    return Math.max(minWidth, textWidth + padding * 2);
-  }
-
-  // Use canvas for accurate text measurement
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
-  if (!context) {
-    const avgCharWidth = fontSize * 0.6;
-    const textWidth = text.length * avgCharWidth;
-    const minWidth = 60;
-    const padding = 20;
-    return Math.max(minWidth, textWidth + padding * 2);
-  }
-
-  context.font = `${fontSize}px ${fontFamily}`;
-  const metrics = context.measureText(text);
-  const textWidth = metrics.width;
-
-  // Add padding for node (20px on each side)
-  const minWidth = 60; // Minimum node width
-  const padding = 20;
-  return Math.max(minWidth, textWidth + padding * 2);
-}
 
 /**
  * Calculate curved SVG path for an edge
@@ -198,13 +157,7 @@ const svgViewBox = computed(() => {
  * @returns Calculated node width
  */
 function getNodeWidth(node: TreeNode): number {
-  // If this is a target node and it's hidden, use fixed width for "?"
-  // This prevents players from guessing the animal based on node width
-  if (node.isTarget && !props.showTarget) {
-    return calculateTextWidth("?", 14);
-  }
-  // Otherwise, use the actual name width
-  return calculateTextWidth(node.name, 14);
+  return getTreeNodeBoxWidth(node, props.showTarget);
 }
 
 function getNodeHeight(_node: TreeNode): number {
