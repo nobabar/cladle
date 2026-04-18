@@ -1,6 +1,32 @@
 import { vi } from "vitest";
 import en from "~/locales/en.json";
 
+// JSDOM has no Canvas 2D implementation; `treeNodeWidth` uses measureText. Without this,
+// every getContext("2d") logs: "Not implemented: HTMLCanvasElement's getContext()..."
+if (typeof HTMLCanvasElement !== "undefined") {
+  function mockGetContext(this: HTMLCanvasElement, type: string): CanvasRenderingContext2D | null {
+    if (type !== "2d") {
+      return null;
+    }
+    let font = "14px sans-serif";
+    return {
+      get font() {
+        return font;
+      },
+      set font(value: string) {
+        font = value;
+      },
+      measureText(text: string) {
+        const sizeMatch = /(\d+(?:\.\d+)?)px/.exec(font);
+        const fontSize = sizeMatch ? Number(sizeMatch[1]) : 14;
+        const avgCharWidth = fontSize * 0.6;
+        return { width: (text ?? "").length * avgCharWidth };
+      },
+    } as unknown as CanvasRenderingContext2D;
+  }
+  HTMLCanvasElement.prototype.getContext = mockGetContext as unknown as typeof HTMLCanvasElement.prototype.getContext;
+}
+
 interface TranslateParams {
   [key: string]: string | number;
 }
