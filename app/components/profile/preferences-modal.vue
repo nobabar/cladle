@@ -14,6 +14,8 @@ const {
   supportedLocales,
 } = useUserPreferences();
 
+const { readableFontPreference, setReadableFontPreference } = useReadableFont();
+
 const languageOptions = computed(() =>
   supportedLocales.map(option => ({
     code: option.code,
@@ -24,6 +26,19 @@ const languageOptions = computed(() =>
 const colorModeLabel = computed(() => (isDarkMode.value
   ? t("profile.colorMode.switchToLight")
   : t("profile.colorMode.switchToDark")));
+
+const readableFontOptions = [
+  {
+    value: "on" as const,
+    labelKey: "profile.readableFont.on",
+    ariaKey: "profile.readableFont.ariaOn",
+  },
+  {
+    value: "off" as const,
+    labelKey: "profile.readableFont.off",
+    ariaKey: "profile.readableFont.ariaOff",
+  },
+];
 </script>
 
 <template>
@@ -59,6 +74,25 @@ const colorModeLabel = computed(() => (isDarkMode.value
               @click="updateLocale(option.code)"
             >
               {{ option.label }}
+            </UButton>
+          </div>
+        </div>
+
+        <div class="space-y-2">
+          <p class="text-sm font-medium">
+            {{ t("profile.readableFont.label") }}
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <UButton
+              v-for="option in readableFontOptions"
+              :key="option.value"
+              :variant="readableFontPreference === option.value ? 'solid' : 'soft'"
+              color="neutral"
+              :aria-label="t(option.ariaKey)"
+              :title="t(option.ariaKey)"
+              @click="setReadableFontPreference(option.value)"
+            >
+              {{ t(option.labelKey) }}
             </UButton>
           </div>
         </div>

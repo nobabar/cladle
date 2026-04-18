@@ -6,6 +6,8 @@
   /* Indie Flower: handwritten personality; Lexend fallback for readability / missing glyphs */
   --font-sans: "Indie Flower", "Lexend", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
+  /* Lexend-first stack when user chooses easier reading (see html.font-readable) */
+  --font-readable: "Lexend", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-dyslexia: "OpenDyslexic", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   --text-h1: 2rem; /* 32px */
@@ -104,6 +106,13 @@
 /* Color mode support: light (default) and dark */
 :root {
   color-scheme: light;
+}
+
+/*
+ * Lexend for easier reading. Toggled from Profile & Preferences.
+ */
+html.font-readable {
+  --font-sans: var(--font-readable);
 }
 
 .dark {
