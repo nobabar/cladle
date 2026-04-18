@@ -34,6 +34,13 @@
     },
     "language": {
       "label": "Langue"
+    },
+    "readableFont": {
+      "label": "Confort de lecture",
+      "on": "Lecture facilitée",
+      "off": "Apparence manuscrite",
+      "ariaOn": "Police de lecture : caractères plus lisibles",
+      "ariaOff": "Police de lecture : style manuscrite"
     }
   },
   "daily": {

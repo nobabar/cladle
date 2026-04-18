@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
+/** Initialize reading-comfort cookie → `<html class="font-readable">` sync (see useReadableFont). */
+useReadableFont();
+
 const { t } = useI18n();
 
 const title = computed(() => t("meta.title"));

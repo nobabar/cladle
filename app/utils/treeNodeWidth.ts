@@ -2,20 +2,32 @@ import type { TreeNode } from "~/types/tree";
 
 const DEFAULT_FONT_SIZE = 14;
 const DEFAULT_FONT_FAMILY = "system-ui, -apple-system, sans-serif";
+/** Canvas measureText stack when Lexend is active (matches --font-readable). */
+const LEXEND_MEASURE_STACK = "\"Lexend\", system-ui, -apple-system, sans-serif";
+
+function measureFontFamilyForDocument(): string {
+  if (typeof document === "undefined") {
+    return DEFAULT_FONT_FAMILY;
+  }
+  return document.documentElement.classList.contains("font-readable")
+    ? LEXEND_MEASURE_STACK
+    : DEFAULT_FONT_FAMILY;
+}
 const HORIZONTAL_PADDING = 20;
 const MIN_BOX_WIDTH = 60;
 
 /**
  * Approximate rendered width of a tree node box from its label (padding included).
  * Uses canvas when available; character estimate on SSR.
- * @param text
- * @param fontSize
- * @param fontFamily
+ * @param text - Text to measure
+ * @param fontSize - Font size to use
+ * @param fontFamily - Font family to use
+ * @returns Measured width of the text
  */
 export function measureTreeLabelBoxWidth(
   text: string,
   fontSize: number = DEFAULT_FONT_SIZE,
-  fontFamily: string = DEFAULT_FONT_FAMILY,
+  fontFamily: string = measureFontFamilyForDocument(),
 ): number {
   const label = text ?? "";
   if (typeof window === "undefined") {
@@ -40,8 +52,9 @@ export function measureTreeLabelBoxWidth(
 /**
  * Node width used for layout and rendering. When the target is hidden in game mode,
  * width matches "?" so the layout does not leak the name length.
- * @param node
- * @param showTarget
+ * @param node - Tree node to measure
+ * @param showTarget - Whether to show the target node
+ * @returns Measured width of the node box
  */
 export function getTreeNodeBoxWidth(node: TreeNode, showTarget: boolean): number {
   if (node.isTarget && !showTarget) {
