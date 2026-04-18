@@ -219,6 +219,12 @@ export function validateCladeData(data: any): ValidationResult<Clade> {
   const clade: Clade = {
     name: data.name.trim(),
     rank: data.rank.trim(),
+    preferredCommonName:
+      data.preferredCommonName
+      && typeof data.preferredCommonName === "string"
+      && data.preferredCommonName.trim().length > 0
+        ? data.preferredCommonName.trim()
+        : undefined,
     // Optional fields - use undefined if not present
     url:
       data.url && typeof data.url === "string" && data.url.trim().length > 0

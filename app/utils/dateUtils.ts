@@ -13,6 +13,32 @@
 
 const DATE_FORMAT_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
+function getLocalizedText(key: string, fallback: string): string {
+  try {
+    const nuxtApp = useNuxtApp() as { $i18n?: { t?: (k: string) => string } };
+    const i18nT = nuxtApp.$i18n?.t;
+    if (typeof i18nT === "function") {
+      const translated = i18nT(key) as string;
+      return translated || fallback;
+    }
+  } catch {
+    // Utility can be called in non-app contexts (tests).
+  }
+  return fallback;
+}
+
+function getCurrentLocale(): string | undefined {
+  try {
+    const nuxtApp = useNuxtApp() as { $i18n?: { locale?: string | { value?: string } } };
+    const locale = nuxtApp.$i18n?.locale;
+    if (typeof locale === "string") return locale;
+    if (locale && typeof locale.value === "string") return locale.value;
+  } catch {
+    // no-op
+  }
+  return undefined;
+}
+
 /**
  * Validate date string is YYYY-MM-DD format (does not validate calendar validity)
  * @param date - Date string to validate
@@ -118,13 +144,13 @@ export function formatPuzzleDate(
     return "—";
   }
   if (format === "relative" && date === getCurrentDateUTC()) {
-    return "Today's Puzzle";
+    return getLocalizedText("date.todayPuzzle", "Today's Puzzle");
   }
   const opts: Intl.DateTimeFormatOptions
     = format === "short"
       ? { year: "numeric", month: "short", day: "numeric" }
       : { year: "numeric", month: "long", day: "numeric" };
-  return new Intl.DateTimeFormat(undefined, opts).format(dateObj);
+  return new Intl.DateTimeFormat(getCurrentLocale(), opts).format(dateObj);
 }
 
 /**
@@ -161,7 +187,7 @@ export function getSecondsUntilNextPuzzle(now: Date = new Date()): number {
  */
 export function formatTimeUntilNextPuzzle(now: Date = new Date()): string {
   const totalSeconds = getSecondsUntilNextPuzzle(now);
-  if (totalSeconds <= 0) return "Next puzzle soon";
+  if (totalSeconds <= 0) return getLocalizedText("date.nextPuzzleSoon", "Next puzzle soon");
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;

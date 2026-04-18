@@ -1,5 +1,19 @@
 import type { Page } from "@playwright/test";
 
+/** Must match `playwright.config.ts` webServer port / baseURL origin. */
+const E2E_ORIGIN = "http://localhost:4173";
+
+/**
+ * Force English UI for E2E (aligns with @nuxtjs/i18n `cladle_locale` cookie).
+ * Call before the first navigation in a test.
+ * @param page - Playwright page.
+ */
+export async function ensureE2ELocale(page: Page) {
+  await page.context().addCookies([
+    { name: "cladle_locale", value: "en", url: E2E_ORIGIN },
+  ]);
+}
+
 /**
  * Broad Playwright URL globs for taxa details can accidentally match animal search URLs that
  * include "sources=taxa" in the query string. Use these predicates instead of fragile path globs.
@@ -110,6 +124,7 @@ export async function mockINaturalistSearch(page: Page) {
 }
 
 export async function mockINaturalistTaxa(page: Page) {
+  await ensureE2ELocale(page);
   await page.route(isINaturalistTaxonDetailUrl, async (route) => {
     const match = route.request().url().match(/\/taxa\/(\d+)\?include_ancestors=true/);
     const id = match?.[1] ?? "41967";

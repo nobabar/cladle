@@ -8,6 +8,14 @@ import { openDB } from "idb";
 import type { Animal } from "~/types/animal";
 import type { Clade } from "~/types/clade";
 
+/**
+ * IndexedDB value for animals/clades: either a legacy single record or a locale bundle
+ * so one cache key (taxon id) can hold multiple API locale variants.
+ */
+export interface LocaleKeyedBundle<T> {
+  locales: Partial<Record<string, T>>;
+};
+
 const DB_NAME = "cladle-cache";
 const DB_VERSION = 1;
 
@@ -55,11 +63,11 @@ export interface CacheEntry<T> {
 interface CladleCacheDB extends DBSchema {
   animals: {
     key: string;
-    value: CacheEntry<Animal>;
+    value: CacheEntry<Animal | LocaleKeyedBundle<Animal>>;
   };
   clades: {
     key: string;
-    value: CacheEntry<Clade>;
+    value: CacheEntry<Clade | LocaleKeyedBundle<Clade>>;
   };
   lca: {
     key: string;
@@ -273,13 +281,13 @@ export const cacheService = createCacheService();
  */
 export const CacheKeys = {
   animal: (animalId: string): string => `animal:${animalId}`,
-
+  cladeByTaxonId: (taxonId: string | number): string => `clade:taxon:${taxonId}`,
   clade: (cladeName: string): string => `clade:${cladeName}`,
 
   /**
    * Sorted IDs so A|B and B|A share one cache entry.
-   * @param animalId1
-   * @param animalId2
+   * @param animalId1 - First animal ID
+   * @param animalId2 - Second animal ID
    * @returns `lca:{id1}:{id2}` with ids ordered lexicographically
    */
   lca: (animalId1: string, animalId2: string): string => {

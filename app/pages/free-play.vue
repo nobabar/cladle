@@ -12,19 +12,7 @@ import { uiIcon } from "~/utils/uiIcons";
 const gameStore = useGameStore();
 const api = useBiologicalAPI();
 const { isDesktop } = useResponsive();
-
-const colorMode = useColorMode();
-
-function toggleColorMode() {
-  colorMode.preference = colorMode.value === "dark" ? "light" : "dark";
-}
-
-const colorModeIcon = computed(() =>
-  colorMode.value === "dark" ? uiIcon.sun : uiIcon.moon);
-
-const colorModeLabel = computed(() => colorMode.value === "dark"
-  ? "Switch to light mode"
-  : "Switch to dark mode");
+const { t } = useI18n();
 
 const treeData = computed(() => gameStore.treeData);
 const guessHistory = computed(() => gameStore.guesses.map(g => g.animal));
@@ -174,7 +162,7 @@ async function startNewGame() {
     // Convert error to GameError
     if (error instanceof Error) {
       gameStore.setError({
-        message: "Failed to start game. Please try again.",
+        message: t("errors.gameStart"),
         code: "GAME_START_ERROR",
         type: "network",
         details: error,
@@ -262,7 +250,7 @@ async function resetGame() {
     // Convert error to GameError
     if (error instanceof Error) {
       gameStore.setError({
-        message: "Failed to start game. Please try again.",
+        message: t("errors.gameStart"),
         code: "GAME_START_ERROR",
         type: "network",
         details: error,
@@ -381,54 +369,31 @@ onMounted(() => {
       <div class="container mx-auto">
         <!-- Header -->
         <header class="mb-4 sm:mb-6 md:mb-8 relative">
-          <!-- Navigation and Color Mode Toggle -->
-          <div class="absolute top-0 right-0 sm:top-2 sm:right-2 flex gap-2">
-            <!-- Daily Puzzle Link -->
-            <UButton
-              to="/"
-              :icon="uiIcon.calendar"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              aria-label="Go to daily puzzle"
-              title="Daily Puzzle"
-              class="min-w-[44px] min-h-[44px] touch-target justify-center items-center
-                notebook-button-secondary"
-            />
-            <!-- Color Mode Toggle -->
-            <UButton
-              :icon="colorModeIcon"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              :aria-label="colorModeLabel"
-              :title="colorModeLabel"
-              class="min-w-[44px] min-h-[44px] touch-target justify-center items-center
-                notebook-button-secondary"
-              @click="toggleColorMode"
-            />
-          </div>
-          <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-2 sm:mb-4">
+          <GameGlobalHeaderControls game-mode="free-play" />
+          <h1
+            class="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-2 sm:mb-4
+              max-sm:pr-14 sm:px-0"
+          >
             Cladle
           </h1>
           <p
             class="text-center text-sm sm:text-base text-[var(--color-ink-subtle)]
               dark:text-[var(--color-ink-subtle)]"
           >
-            Free Play Mode
+            {{ t("freePlay.subtitle") }}
           </p>
           <p
             class="text-center text-xs sm:text-sm text-[var(--color-ink-subtle)]
               dark:text-[var(--color-ink-subtle)] mt-1"
           >
-            Reset anytime to get a new random animal
+            {{ t("freePlay.tagline") }}
           </p>
         </header>
 
         <!-- Loading Indicator (Global) -->
         <GameLoadingIndicator
           v-if="gameStore.isLoading"
-          message="Loading game data..."
+          :message="t('common.loadingGameData')"
           full-screen
         />
 
@@ -453,7 +418,7 @@ onMounted(() => {
             size="md"
             @click="resetGame"
           >
-            New Random Animal
+            {{ t("freePlay.newRandomAnimal") }}
           </UButton>
         </div>
 
@@ -466,7 +431,7 @@ onMounted(() => {
             class="text-xs sm:text-sm text-[var(--color-ink-subtle)]
             dark:text-[var(--color-ink-subtle)]"
           >
-            Guesses remaining: <strong>{{ gameStore.guessesRemaining }}</strong>
+            {{ t("game.guessesRemaining") }}: <strong>{{ gameStore.guessesRemaining }}</strong>
           </p>
         </div>
 
@@ -474,7 +439,7 @@ onMounted(() => {
         <div class="max-w-2xl mx-auto mb-4 sm:mb-6 md:mb-8">
           <GameAnimalSearch
             :disabled="!gameStore.isPlaying"
-            placeholder="Search for an animal..."
+            :placeholder="t('game.searchPlaceholder')"
             :guess-history="guessHistory"
             @select="handleAnimalSelect"
           />
@@ -484,14 +449,14 @@ onMounted(() => {
             class="mt-2 text-xs sm:text-sm text-center text-[var(--color-ink-subtle)]
             dark:text-[var(--color-ink-subtle)]"
           >
-            Start by searching for an animal to see how it relates to the target
+            {{ t("game.firstGuessHint") }}
           </p>
         </div>
 
         <!-- Phylogenetic Tree Visualization -->
         <div class="max-w-6xl mx-auto mt-4 sm:mt-6 md:mt-8 mb-4 sm:mb-6 md:mb-8">
           <h2 class="text-lg sm:text-xl md:text-2xl font-semibold mb-3 sm:mb-4 text-center">
-            Phylogenetic Tree
+            {{ t("game.phylogeneticTree") }}
           </h2>
           <!-- Progressive disclosure: Show hint only when tree is empty -->
           <p
@@ -499,7 +464,7 @@ onMounted(() => {
             class="text-xs sm:text-sm text-center text-[var(--color-ink-subtle)]
             dark:text-[var(--color-ink-subtle)] mb-2"
           >
-            Make your first guess to see the phylogenetic tree
+            {{ t("game.treeEmptyHint") }}
           </p>
           <!-- Tree Rendering Loading Indicator -->
           <div
@@ -508,7 +473,7 @@ onMounted(() => {
             flex items-center justify-center"
           >
             <GameLoadingIndicator
-              message="Updating tree..."
+              :message="t('common.updatingTree')"
               size="md"
             />
           </div>
@@ -529,8 +494,8 @@ onMounted(() => {
             class="mt-2 text-xs sm:text-sm text-center text-[var(--color-ink-subtle)]
             dark:text-[var(--color-ink-subtle)]"
           >
-            <span class="hidden sm:inline">Click on nodes to explore details</span>
-            <span class="sm:hidden">Tap nodes to explore</span>
+            <span class="hidden sm:inline">{{ t("game.treeInteractionHintDesktop") }}</span>
+            <span class="sm:hidden">{{ t("game.treeInteractionHintMobile") }}</span>
           </p>
         </div>
 
@@ -543,7 +508,7 @@ onMounted(() => {
             class="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4
             text-[var(--color-ink)] dark:text-[var(--color-ink)]"
           >
-            Recent Guesses
+            {{ t("game.recentGuesses") }}
           </h2>
           <ul class="space-y-0">
             <li
@@ -564,7 +529,7 @@ onMounted(() => {
                 class="text-xs sm:text-sm text-[var(--color-ink-subtle)]
                 dark:text-[var(--color-ink-subtle)] before:content-['['] after:content-[']']"
               >
-                LCA: {{ guess.lca.clade }}
+                {{ t("game.lcaLabel") }}: {{ guess.lca.clade }}
               </span>
             </li>
           </ul>

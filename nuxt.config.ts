@@ -12,6 +12,7 @@ export default defineNuxtConfig({
     "pinia-plugin-persistedstate/nuxt",
     "@nuxt/test-utils/module",
     "@nuxtjs/color-mode",
+    "@nuxtjs/i18n",
   ],
 
   devtools: {
@@ -125,6 +126,23 @@ export default defineNuxtConfig({
         display: "swap",
         src: "/fonts/lexend-latin-700-normal.woff2",
       },
+    ],
+  },
+
+  i18n: {
+    strategy: "no_prefix",
+    defaultLocale: "en",
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: "cladle_locale",
+      redirectOn: "root",
+      alwaysRedirect: false,
+      fallbackLocale: "en",
+    },
+    langDir: "../app/locales",
+    locales: [
+      { code: "en", name: "English", file: "en.json" },
+      { code: "fr", name: "Francais", file: "fr.json" },
     ],
   },
 

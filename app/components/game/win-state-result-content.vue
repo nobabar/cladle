@@ -33,15 +33,16 @@ const {
   treeWidth,
   treeHeight,
 } = toRefs(props);
+const { t } = useI18n();
 
 const shareButtonLabel = computed(() => {
   if (lastCopyStatus.value === "success") {
-    return "Copied!";
+    return t("common.copied");
   }
   if (lastCopyStatus.value === "error") {
-    return "Copy again";
+    return t("common.copyAgain");
   }
-  return "Share results";
+  return t("winState.shareResults");
 });
 
 const evolHelpId = useId();
@@ -70,7 +71,7 @@ function onNodeClick(node: TreeNode): void {
           v-if="targetAnimal.imageUrl"
           :src="targetAnimal.imageUrl"
           class="win-state__target-image"
-          :alt="`Image of ${targetAnimal.name}`"
+          :alt="t('winState.imageAlt', { name: targetAnimal.name })"
           loading="lazy"
         >
         <div class="win-state__target-names">
@@ -94,7 +95,7 @@ function onNodeClick(node: TreeNode): void {
             target="_blank"
             rel="noopener noreferrer"
             class="win-state__target-link"
-            aria-label="View on iNaturalist"
+            :aria-label="t('winState.viewOnINaturalist')"
           >
             <Icon :name="uiIcon.externalLink" />
             iNaturalist
@@ -105,7 +106,7 @@ function onNodeClick(node: TreeNode): void {
             target="_blank"
             rel="noopener noreferrer"
             class="win-state__target-link"
-            aria-label="View on Wikipedia"
+            :aria-label="t('winState.viewOnWikipedia')"
           >
             <Icon :name="uiIcon.externalLink" />
             Wikipedia
@@ -125,7 +126,7 @@ function onNodeClick(node: TreeNode): void {
             class="win-state__phylo-metrics"
           >
             <p class="win-state__phylo-metrics-line">
-              Tree depth: {{ phyloMetrics.treeDepth }}
+              {{ t("winState.treeDepth") }}: {{ phyloMetrics.treeDepth }}
             </p>
 
             <p
@@ -133,14 +134,14 @@ function onNodeClick(node: TreeNode): void {
               data-testid="win-state-furthest-evolutionary-distance"
             >
               <span class="win-state__phylo-metrics-label">
-                Furthest evolutionary distance: {{ phyloMetrics.furthestEvolutionaryDistance }}
+                {{ t("winState.furthestEvolutionaryDistance") }}: {{ phyloMetrics.furthestEvolutionaryDistance }}
               </span>
               <span class="win-state__help-wrap">
                 <button
                   type="button"
                   class="win-state__help-trigger"
                   :aria-describedby="furthestHelpId"
-                  aria-label="What is furthest evolutionary distance?"
+                  :aria-label="t('winState.furthestEvolutionaryDistanceHelpAria')"
                 >
                   <Icon
                     :name="uiIcon.help"
@@ -153,8 +154,7 @@ function onNodeClick(node: TreeNode): void {
                   role="tooltip"
                   class="win-state__tooltip"
                 >
-                  {{ "Distance from the target to the most distant animal shown in the tree. "
-                    + "Higher means at least one far relationship appears in this tree." }}
+                  {{ t("winState.furthestEvolutionaryDistanceHelp") }}
                 </span>
               </span>
             </p>
@@ -164,14 +164,14 @@ function onNodeClick(node: TreeNode): void {
               class="win-state__phylo-metrics-line win-state__phylo-metrics-line--with-help"
             >
               <span class="win-state__phylo-metrics-label">
-                Evolutionary distance: {{ phyloMetrics.evolutionaryDistance }}
+                {{ t("winState.evolutionaryDistance") }}: {{ phyloMetrics.evolutionaryDistance }}
               </span>
               <span class="win-state__help-wrap">
                 <button
                   type="button"
                   class="win-state__help-trigger"
                   :aria-describedby="evolHelpId"
-                  aria-label="What is evolutionary distance?"
+                  :aria-label="t('winState.evolutionaryDistanceHelpAria')"
                 >
                   <Icon
                     :name="uiIcon.help"
@@ -184,10 +184,7 @@ function onNodeClick(node: TreeNode): void {
                   role="tooltip"
                   class="win-state__tooltip"
                 >
-                  {{ "How close your best guess was on the taxonomy ladder: lower is closer to the "
-                    + "target. When you did not find the target, this counts how many "
-                    + "taxonomic ranks "
-                    + "still separated your closest guess from the target’s deepest level." }}
+                  {{ t("winState.evolutionaryDistanceHelp") }}
                 </span>
               </span>
             </p>
@@ -208,13 +205,13 @@ function onNodeClick(node: TreeNode): void {
               class="win-state__share-button"
               :aria-label="
                 lastCopyStatus === 'success'
-                  ? 'Results copied to clipboard'
-                  : 'Copy results to clipboard'
+                  ? t('winState.resultsCopiedToClipboard')
+                  : t('winState.copyResultsToClipboard')
               "
               :title="
                 lastCopyStatus === 'success'
-                  ? 'Copied!'
-                  : 'Copy results to clipboard'
+                  ? t('common.copied')
+                  : t('winState.copyResultsToClipboard')
               "
               :disabled="lastCopyStatus === 'success'"
               @click="onCopy"
@@ -233,13 +230,13 @@ function onNodeClick(node: TreeNode): void {
 
     <div class="win-state__tree">
       <h3 class="win-state__tree-title">
-        Complete Phylogenetic Tree
+        {{ t("winState.completePhylogeneticTree") }}
       </h3>
       <p
         class="win-state__learning-footnote"
         data-testid="win-state-learning-footnote"
       >
-        Every guess traces a real branch of life, take a moment to see how species connect.
+        {{ t("winState.learningFootnote") }}
       </p>
       <div class="win-state__tree-container">
         <GameTreeVisualization
