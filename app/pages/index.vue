@@ -351,7 +351,7 @@ onMounted(() => {
           />
           <h1
             class="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-2 sm:mb-4
-              max-sm:pl-[5.25rem] max-sm:pr-14 sm:px-0"
+              max-sm:px-[5.25rem] sm:px-0"
           >
             Cladle
           </h1>
