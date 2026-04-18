@@ -1,15 +1,19 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useUserPreferences } from "~/composables/useUserPreferences";
+import type { ColorModeUserPreference } from "~/composables/useUserPreferences";
+import { useResponsive } from "~/composables/useResponsive";
 import { uiIcon } from "~/utils/uiIcons";
 
 const isOpen = defineModel<boolean>("open", { default: false });
 
+const { isMobile } = useResponsive();
+
 const { t } = useI18n();
 const {
   locale,
-  isDarkMode,
-  toggleColorMode,
+  colorModePreference,
+  setColorModePreference,
   updateLocale,
   supportedLocales,
 } = useUserPreferences();
@@ -23,9 +27,34 @@ const languageOptions = computed(() =>
   })),
 );
 
-const colorModeLabel = computed(() => (isDarkMode.value
-  ? t("profile.colorMode.switchToLight")
-  : t("profile.colorMode.switchToDark")));
+const colorModeOptions = computed(() => {
+  const options: {
+    value: ColorModeUserPreference;
+    labelKey: string;
+    ariaKey: string;
+    icons: readonly string[];
+  }[] = [
+    {
+      value: "system",
+      labelKey: "profile.colorMode.system",
+      ariaKey: "profile.colorMode.ariaSystem",
+      icons: [isMobile.value ? uiIcon.phone : uiIcon.computer],
+    },
+    {
+      value: "light",
+      labelKey: "profile.colorMode.light",
+      ariaKey: "profile.colorMode.ariaLight",
+      icons: [uiIcon.sun],
+    },
+    {
+      value: "dark",
+      labelKey: "profile.colorMode.dark",
+      ariaKey: "profile.colorMode.ariaDark",
+      icons: [uiIcon.moon],
+    },
+  ];
+  return options;
+});
 
 const readableFontOptions = [
   {
@@ -49,16 +78,32 @@ const readableFontOptions = [
           <p class="text-sm font-medium">
             {{ t("profile.colorMode.label") }}
           </p>
-          <UButton
-            :icon="isDarkMode ? uiIcon.sun : uiIcon.moon"
-            color="neutral"
-            variant="soft"
-            :aria-label="colorModeLabel"
-            :title="colorModeLabel"
-            @click="toggleColorMode"
-          >
-            {{ colorModeLabel }}
-          </UButton>
+          <div class="flex flex-wrap gap-2">
+            <UButton
+              v-for="option in colorModeOptions"
+              :key="option.value"
+              :variant="colorModePreference === option.value ? 'solid' : 'soft'"
+              color="neutral"
+              :aria-label="t(option.ariaKey)"
+              :title="t(option.ariaKey)"
+              @click="setColorModePreference(option.value)"
+            >
+              <span class="inline-flex items-center gap-2">
+                <span
+                  class="inline-flex items-center gap-0.5 shrink-0"
+                  aria-hidden="true"
+                >
+                  <UIcon
+                    v-for="name in option.icons"
+                    :key="name"
+                    :name="name"
+                    class="size-4"
+                  />
+                </span>
+                {{ t(option.labelKey) }}
+              </span>
+            </UButton>
+          </div>
         </div>
 
         <div class="space-y-2">
