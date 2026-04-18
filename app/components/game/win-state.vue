@@ -13,6 +13,7 @@ const emit = defineEmits<{
 }>();
 
 const gameStore = useGameStore();
+const { t } = useI18n();
 const { isMobile, isTablet, isDesktop } = useResponsive();
 
 const hasEnded = computed(() => gameStore.hasEnded);
@@ -41,35 +42,51 @@ const { copyShareText, isShareReady, lastCopyStatus, copyError } = useSharing();
 
 const winMessage = computed(() => {
   if (!targetAnimal.value) {
-    return "Congratulations! You found the target animal!";
+    return t("winState.winWithoutName");
   }
-  return `Congratulations! You found the ${targetAnimal.value.name}!`;
+  return t("winState.winWithName", { name: targetAnimal.value.name });
 });
 
 const lossMessage = computed(() => {
   if (!targetAnimal.value) {
-    return "Game Over! Better luck next time.";
+    return t("winState.lossWithoutName");
   }
-  return `Game Over! The target was ${targetAnimal.value.name}.`;
+  return t("winState.lossWithName", { name: targetAnimal.value.name });
 });
 
-const resultTitle = computed(() => (isWon.value ? "🎉 You Won!" : "Game Over"));
+const resultTitle = computed(() => (isWon.value
+  ? t("winState.titleWin")
+  : t("winState.titleLoss")));
 
 const resultMessage = computed(() => (isWon.value ? winMessage.value : lossMessage.value));
 
 const resultStats = computed(() => {
   if (isWon.value) {
-    return `Completed in ${guessCount.value} ${guessCount.value === 1 ? "guess" : "guesses"} out of ${maxGuesses.value}.`;
+    const guessLabel = guessCount.value === 1
+      ? t("common.guessSingular")
+      : t("common.guessPlural");
+    return t("winState.resultStatsWon", {
+      guessCount: guessCount.value,
+      guessLabel,
+      maxGuesses: maxGuesses.value,
+    });
   }
-  return `You used all ${maxGuesses.value} guesses. Keep learning and try again!`;
+  return t("winState.resultStatsLoss", { maxGuesses: maxGuesses.value });
 });
 
 const screenReaderAnnouncement = computed(() => {
   if (isWon.value) {
-    return `${winMessage.value} You completed the puzzle in ${guessCount.value} ${guessCount.value === 1 ? "guess" : "guesses"}.`;
+    const guessLabel = guessCount.value === 1
+      ? t("common.guessSingular")
+      : t("common.guessPlural");
+    return t("winState.srWinAnnouncement", {
+      message: winMessage.value,
+      guessCount: guessCount.value,
+      guessLabel,
+    });
   }
   if (isLost.value) {
-    return `${lossMessage.value} You used all ${maxGuesses.value} guesses.`;
+    return t("winState.srLossAnnouncement", { message: lossMessage.value, maxGuesses: maxGuesses.value });
   }
   return "";
 });
@@ -247,7 +264,9 @@ onUnmounted(() => {
     aria-atomic="true"
   >
     {{
-      lastCopyStatus === "success" ? "Copied!" : copyError || "Copy failed"
+      lastCopyStatus === "success"
+        ? t("common.copied")
+        : copyError || t("common.copyFailed")
     }}
   </div>
 
@@ -295,7 +314,7 @@ onUnmounted(() => {
               <button
                 type="button"
                 class="win-state-modal__close"
-                aria-label="Close"
+                :aria-label="t('common.close')"
                 @click="closeMobileModal"
               >
                 <Icon
@@ -338,11 +357,11 @@ onUnmounted(() => {
           v-if="showMobileReopenBar"
           type="button"
           class="win-state-reopen-bar"
-          aria-label="View game result"
+          :aria-label="t('winState.viewGameResult')"
           @click="reopenMobileModal"
         >
           <span class="win-state-reopen-bar__text">
-            {{ isWon ? "You won!" : "Game over" }} - Tap to see result
+            {{ isWon ? t("winState.youWon") : t("winState.gameOver") }} - {{ t("winState.tapToSeeResult") }}
           </span>
         </button>
       </Transition>
@@ -364,7 +383,7 @@ onUnmounted(() => {
       role="complementary"
       aria-labelledby="win-state-panel-title"
       aria-describedby="win-state-panel-description"
-      aria-label="Game result panel"
+      :aria-label="t('winState.gameResultPanel')"
       class="win-state-panel"
       :class="{ 'win-state-panel--collapsed': isPanelCollapsed }"
       tabindex="-1"
@@ -378,13 +397,13 @@ onUnmounted(() => {
             class="win-state-panel__title"
             :class="isWon ? 'win-state-panel__title--win' : 'win-state-panel__title--loss'"
           >
-            {{ isWon ? "🎉 You Won!" : "Game Over" }}
+            {{ isWon ? t("winState.titleWin") : t("winState.titleLoss") }}
           </h2>
           <button
             type="button"
             class="win-state-panel__toggle win-state-panel__toggle--top"
-            aria-label="Hide result panel"
-            title="Hide result panel"
+            :aria-label="t('winState.hideResultPanel')"
+            :title="t('winState.hideResultPanel')"
             @click="togglePanelCollapsed"
           >
             <Icon
@@ -420,8 +439,8 @@ onUnmounted(() => {
         <button
           type="button"
           class="win-state-panel__toggle win-state-panel__toggle--expand"
-          aria-label="Show result panel"
-          title="Show result panel"
+          :aria-label="t('winState.showResultPanel')"
+          :title="t('winState.showResultPanel')"
           @click="togglePanelCollapsed"
         >
           <Icon
@@ -437,7 +456,7 @@ onUnmounted(() => {
             : 'win-state-panel__vertical-status--loss'"
           aria-hidden="true"
         >
-          {{ isWon ? "You Won!" : "Game Over" }}
+          {{ isWon ? t("winState.youWon") : t("winState.gameOver") }}
         </span>
       </div>
     </div>

@@ -1,0 +1,189 @@
+{
+  "common": {
+    "close": "Close",
+    "copied": "Copied!",
+    "copyAgain": "Copy again",
+    "copyFailed": "Copy failed",
+    "guessSingular": "guess",
+    "guessPlural": "guesses",
+    "loadingGameData": "Loading game data...",
+    "updatingTree": "Updating tree...",
+    "dismissError": "Dismiss error",
+    "errorPrefix": "Error:"
+  },
+  "meta": {
+    "title": "Cladle - Phylogenetic Guessing Game",
+    "description": "A web-based phylogenetic guessing game where players guess animals and see evolutionary relationships visualized in a phylogenetic tree."
+  },
+  "header": {
+    "backToToday": "Back to today",
+    "goToFreePlay": "Go to free play mode",
+    "goToDailyPuzzle": "Go to daily puzzle",
+    "freePlay": "Free Play",
+    "dailyPuzzle": "Daily Puzzle",
+    "openGameMenu": "Open game menu",
+    "menuPreferences": "Preferences"
+  },
+  "profile": {
+    "title": "Profile & Preferences",
+    "openPreferences": "Open profile preferences",
+    "colorMode": {
+      "label": "Color mode",
+      "switchToLight": "Switch to light mode",
+      "switchToDark": "Switch to dark mode"
+    },
+    "language": {
+      "label": "Language"
+    }
+  },
+  "daily": {
+    "subtitle": "Daily Puzzle",
+    "tagline": "New puzzle every day"
+  },
+  "freePlay": {
+    "subtitle": "Free Play Mode",
+    "tagline": "Reset anytime to get a new random animal",
+    "newRandomAnimal": "New Random Animal"
+  },
+  "game": {
+    "guessesRemaining": "Guesses remaining",
+    "searchPlaceholder": "Search for an animal...",
+    "searchAriaLabel": "Search for an animal",
+    "clearSearchInput": "Clear input",
+    "searchNoResults": "No animals found matching \"{query}\"",
+    "suggestionAriaLabelSingle": "{count} suggestion available. Use arrow keys to navigate, Enter to select.",
+    "suggestionAriaLabelPlural": "{count} suggestions available. Use arrow keys to navigate, Enter to select.",
+    "firstGuessHint": "Start by searching for an animal to see how it relates to the target",
+    "phylogeneticTree": "Phylogenetic Tree",
+    "treeEmptyHint": "Make your first guess to see the phylogenetic tree",
+    "treeInteractionHintDesktop": "Click on nodes to explore details",
+    "treeInteractionHintMobile": "Tap nodes to explore",
+    "recentGuesses": "Recent Guesses",
+    "lcaLabel": "LCA",
+    "treeAriaRoot": "Phylogenetic tree showing evolutionary relationships",
+    "treeAriaSvg": "Phylogenetic tree visualization",
+    "treeEmptyState": "No tree data available. Make a guess to see the phylogenetic tree.",
+    "treeCopyMermaid": "Copy tree as Mermaid diagram",
+    "treeCopied": "Copied to clipboard",
+    "ariaNodeAnimal": "Animal",
+    "ariaNodeClade": "Clade",
+    "ariaTarget": "target",
+    "ariaUnknownTarget": "unknown",
+    "ariaGuessed": "guessed",
+    "ariaScientificName": "scientific name: {name}",
+    "ariaRank": "rank: {rank}",
+    "searchOutage": "iNaturalist is currently unavailable, so taxonomy and media search is temporarily degraded.",
+    "searchRetry": "Retry",
+    "searchRetryAria": "Retry search",
+    "searchCheckInaturalist": "Check iNaturalist"
+  },
+  "footer": {
+    "ariaNav": "Footer links",
+    "tagline": "A game to learn biodiversity through phylogeny and taxonomy.",
+    "about": "About",
+    "resources": "Resources",
+    "home": "Home",
+    "privacy": "Privacy",
+    "externalLinkSr": "external link"
+  },
+  "informationPanel": {
+    "stickyTabAriaLabel": "Drag to remove post-it or click to close",
+    "postitAriaLabel": "Information post-it",
+    "titleFallback": "Information",
+    "emptyNoNode": "No information available.",
+    "loadingClade": "Loading clade information...",
+    "loadingAnimal": "Loading animal information...",
+    "srOpenedGeneric": "Information post-it opened",
+    "srOpenedWithNode": "{nodeType} information post-it opened: {name}",
+    "nodeTypeAnimal": "Animal",
+    "nodeTypeClade": "Clade",
+    "imageAltClade": "Image of {name} clade showing representative species",
+    "imageAltAnimal": "Image of {name} ({scientificName})",
+    "scientificNameFallback": "animal",
+    "loadCladeFailed": "Could not load clade information.",
+    "loadAnimalFailed": "Could not load animal information.",
+    "noDescription": "No description available."
+  },
+  "history": {
+    "open": "Open puzzle history",
+    "title": "Puzzle history",
+    "description": "View past puzzles.",
+    "viewPuzzle": "View puzzle",
+    "view": "View",
+    "empty": "No past puzzles yet. Complete puzzles to see them here.",
+    "status": {
+      "solved": "Solved",
+      "unsolved": "Unsolved",
+      "inProgress": "In progress"
+    }
+  },
+  "errors": {
+    "gameStart": "Failed to start game. Please try again.",
+    "gameReset": "Failed to reset game. Please try again.",
+    "animalNotFound": "Animal not found. Please try a different name.",
+    "cladeNotFound": "Taxonomic group not found.",
+    "invalidTaxonomy": "Unable to determine evolutionary relationships.",
+    "networkError": "Connection issue. Please check your internet and try again.",
+    "validationError": "Data format issue. This has been logged for investigation.",
+    "apiUnavailable": "Service temporarily unavailable. Cached data will be used when available.",
+    "cacheError": "Local storage issue. Game may have limited functionality.",
+    "shareClipboardFailed": "Couldn't copy results. Please check your browser permissions and try again.",
+    "storageQuotaExceeded": "Device storage is full. You can keep playing, but progress may not be saved. Please free up space if you want progress saved.",
+    "storageWriteFailed": "Could not save progress on this device. You can keep playing in this session. Please check storage or permissions if this continues.",
+    "storageReadFailed": "Could not load saved progress. Please continue - a fresh start will be used for this session.",
+    "timeout": "Request timed out. Please try again.",
+    "notFound": "Resource not found. Please check your input.",
+    "parseError": "Failed to parse response from server.",
+    "offline": "You appear to be offline. Please check your connection.",
+    "common": {
+      "unknown": "An unexpected error occurred. Please try again."
+    }
+  },
+  "date": {
+    "todayPuzzle": "Today's Puzzle",
+    "nextPuzzleSoon": "Next puzzle soon"
+  },
+  "share": {
+    "title": "Cladle",
+    "dailyPuzzleLine": "Daily puzzle: {puzzleDate}",
+    "treeDepthLine": "Tree depth: {treeDepth}",
+    "evolutionaryDistanceLine": "Evolutionary distance: {distance}",
+    "furthestEvolutionaryDistanceLine": "Furthest evolutionary distance: {distance}",
+    "outcomeSolvedLine": "Outcome: Solved in {guessCount} guesses.",
+    "outcomeUnsolvedLine": "Outcome: Did not solve in {guessCount} guesses."
+  },
+  "winState": {
+    "titleWin": "🎉 You Won!",
+    "titleLoss": "Game Over",
+    "youWon": "You won!",
+    "gameOver": "Game over",
+    "tapToSeeResult": "Tap to see result",
+    "viewGameResult": "View game result",
+    "gameResultPanel": "Game result panel",
+    "hideResultPanel": "Hide result panel",
+    "showResultPanel": "Show result panel",
+    "winWithoutName": "Congratulations! You found the target animal!",
+    "winWithName": "Congratulations! You found the {name}!",
+    "lossWithoutName": "Game Over! Better luck next time.",
+    "lossWithName": "Game Over! The target was {name}.",
+    "resultStatsWon": "Completed in {guessCount} {guessLabel} out of {maxGuesses}.",
+    "resultStatsLoss": "You used all {maxGuesses} guesses. Keep learning and try again!",
+    "srWinAnnouncement": "{message} You completed the puzzle in {guessCount} {guessLabel}.",
+    "srLossAnnouncement": "{message} You used all {maxGuesses} guesses.",
+    "shareResults": "Share results",
+    "imageAlt": "Image of {name}",
+    "viewOnINaturalist": "View on iNaturalist",
+    "viewOnWikipedia": "View on Wikipedia",
+    "treeDepth": "Tree depth",
+    "furthestEvolutionaryDistance": "Furthest evolutionary distance",
+    "furthestEvolutionaryDistanceHelpAria": "What is furthest evolutionary distance?",
+    "furthestEvolutionaryDistanceHelp": "Distance from the target to the most distant animal shown in the tree. Higher means at least one far relationship appears in this tree.",
+    "evolutionaryDistance": "Evolutionary distance",
+    "evolutionaryDistanceHelpAria": "What is evolutionary distance?",
+    "evolutionaryDistanceHelp": "How close your best guess was on the taxonomy ladder: lower is closer to the target. When you did not find the target, this counts how many taxonomic ranks still separated your closest guess from the target's deepest level.",
+    "resultsCopiedToClipboard": "Results copied to clipboard",
+    "copyResultsToClipboard": "Copy results to clipboard",
+    "completePhylogeneticTree": "Complete Phylogenetic Tree",
+    "learningFootnote": "Every guess traces a real branch of life, take a moment to see how species connect."
+  }
+}

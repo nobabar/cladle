@@ -27,4 +27,5 @@ export const uiIcon = {
   share: "i-streamline-freehand-share-circles",
   copy: "i-streamline-freehand-copy-paste-clipboard",
   calendar: "i-streamline-freehand-calendar-date",
+  preferences: "i-streamline-freehand-settings-cog-double-1",
 } as const;

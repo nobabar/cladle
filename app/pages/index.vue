@@ -13,65 +13,12 @@ import {
   clearOldHistory,
   savePuzzleToHistory,
 } from "~/utils/puzzleHistory";
-import { uiIcon } from "~/utils/uiIcons";
 
 const gameStore = useGameStore();
 const isDevMode = computed(() => import.meta.dev);
 const api = useBiologicalAPI();
 const { isDesktop } = useResponsive();
-
-const puzzleHistoryRef = ref<{ open: () => void } | null>(null);
-
-const colorMode = useColorMode();
-
-function toggleColorMode() {
-  colorMode.preference = colorMode.value === "dark" ? "light" : "dark";
-}
-
-const colorModeIcon = computed(() =>
-  colorMode.value === "dark" ? uiIcon.sun : uiIcon.moon);
-
-const colorModeLabel = computed(() => colorMode.value === "dark"
-  ? "Switch to light mode"
-  : "Switch to dark mode");
-
-/** Mobile header menu (burger below Tailwind `sm`; same row as icons from `sm` up). */
-const headerMobileMenuItems = computed(() => {
-  const items: {
-    label?: string;
-    icon?: string;
-    onSelect?: (e: Event) => void;
-  }[] = [];
-
-  if (!gameStore.isReplayMode && gameStore.gameMode === "daily") {
-    items.push({
-      label: "Puzzle history",
-      icon: uiIcon.history,
-      onSelect: () => {
-        puzzleHistoryRef.value?.open();
-      },
-    });
-  }
-
-  items.push(
-    {
-      label: "Free play",
-      icon: uiIcon.infinity,
-      onSelect: () => {
-        void navigateTo("/free-play");
-      },
-    },
-    {
-      label: colorModeLabel.value,
-      icon: colorModeIcon.value,
-      onSelect: () => {
-        toggleColorMode();
-      },
-    },
-  );
-
-  return items;
-});
+const { t } = useI18n();
 
 const treeData = computed(() => gameStore.treeData);
 const guessHistory = computed(() => gameStore.guesses.map(g => g.animal));
@@ -222,7 +169,7 @@ async function startNewGame() {
     // Convert error to GameError
     if (error instanceof Error) {
       gameStore.setError({
-        message: "Failed to start game. Please try again.",
+        message: t("errors.gameStart"),
         code: "GAME_START_ERROR",
         type: "network",
         details: error,
@@ -394,96 +341,14 @@ onMounted(() => {
       <div class="container mx-auto">
         <!-- Header -->
         <header class="mb-4 sm:mb-6 md:mb-8 relative">
-          <!-- Notebook-style date in top-left corner (always show calendar date) -->
-          <div
-            v-if="gameStore.puzzleDate"
-            class="absolute top-0 left-0 z-[1] sm:top-5 sm:left-2 flex flex-col gap-1
-              sm:gap-2 items-start"
-          >
-            <GamePuzzleDateDisplay
-              :puzzle-date="gameStore.puzzleDate"
-              format="short"
-            />
-            <GameNextPuzzleTimer
-              :next-puzzle-in="nextPuzzleIn"
-              :show-timer="isSoon"
-            />
-          </div>
-          <!-- Replay mode: back to today's puzzle -->
-          <div
-            v-if="gameStore.isReplayMode"
-            class="absolute top-0 left-0 sm:top-12 sm:left-2"
-          >
-            <UButton
-              variant="ghost"
-              size="sm"
-              :icon="uiIcon.return"
-              aria-label="Back to today's puzzle"
-              class="text-[var(--color-ink-subtle)]"
-              @click="gameStore.exitReplay()"
-            >
-              Back to today
-            </UButton>
-          </div>
-          <!-- Navigation: burger below `sm`; from `sm` up show history + icons in a row -->
-          <div
-            class="absolute top-0 right-0 z-[1] flex items-center gap-0.5
-              sm:top-2 sm:right-2 sm:gap-1"
-          >
-            <UDropdownMenu
-              class="sm:hidden"
-              :items="headerMobileMenuItems"
-              :external-icon="false"
-              :content="{ align: 'start', side: 'bottom', sideOffset: 2 }"
-              :ui="{ item: 'items-center' }"
-            >
-              <template #default="{ open: menuOpen }">
-                <UButton
-                  :icon="uiIcon.menu"
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                  aria-label="Open game menu"
-                  aria-haspopup="menu"
-                  :aria-expanded="menuOpen"
-                  class="min-w-[44px] min-h-[44px] touch-target justify-center items-center
-                    notebook-button-secondary cursor-pointer"
-                />
-              </template>
-            </UDropdownMenu>
-
-            <div class="hidden sm:flex items-center gap-1">
-              <!-- Puzzle history (daily mode only) -->
-              <GamePuzzleHistory
-                v-if="!gameStore.isReplayMode && gameStore.gameMode === 'daily'"
-                ref="puzzleHistoryRef"
-              />
-              <!-- Free Play Button -->
-              <UButton
-                to="/free-play"
-                :icon="uiIcon.infinity"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                aria-label="Go to free play mode"
-                title="Free Play"
-                class="min-w-[44px] min-h-[44px] touch-target justify-center items-center
-                  notebook-button-secondary cursor-pointer"
-              />
-              <!-- Color Mode Toggle -->
-              <UButton
-                :icon="colorModeIcon"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                :aria-label="colorModeLabel"
-                :title="colorModeLabel"
-                class="min-w-[44px] min-h-[44px] touch-target justify-center items-center
-                  notebook-button-secondary cursor-pointer"
-                @click="toggleColorMode"
-              />
-            </div>
-          </div>
+          <GameGlobalHeaderControls
+            game-mode="daily"
+            :is-replay-mode="gameStore.isReplayMode"
+            :puzzle-date="gameStore.puzzleDate"
+            :next-puzzle-in="nextPuzzleIn"
+            :is-soon="isSoon"
+            @exit-replay="gameStore.exitReplay()"
+          />
           <h1
             class="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-2 sm:mb-4
               max-sm:pl-[5.25rem] max-sm:pr-14 sm:px-0"
@@ -494,20 +359,20 @@ onMounted(() => {
             class="text-center text-sm sm:text-base text-[var(--color-ink-subtle)]
               dark:text-[var(--color-ink-subtle)]"
           >
-            Daily Puzzle
+            {{ t("daily.subtitle") }}
           </p>
           <p
             class="text-center text-xs sm:text-sm text-[var(--color-ink-subtle)]
               dark:text-[var(--color-ink-subtle)] mt-1"
           >
-            New puzzle every day
+            {{ t("daily.tagline") }}
           </p>
         </header>
 
         <!-- Loading Indicator (Global) -->
         <GameLoadingIndicator
           v-if="gameStore.isLoading"
-          message="Loading game data..."
+          :message="t('common.loadingGameData')"
           full-screen
         />
 
@@ -531,7 +396,7 @@ onMounted(() => {
             class="text-xs sm:text-sm text-[var(--color-ink-subtle)]
             dark:text-[var(--color-ink-subtle)]"
           >
-            Guesses remaining: <strong>{{ gameStore.guessesRemaining }}</strong>
+            {{ t("game.guessesRemaining") }}: <strong>{{ gameStore.guessesRemaining }}</strong>
           </p>
         </div>
 
@@ -539,7 +404,7 @@ onMounted(() => {
         <div class="max-w-2xl mx-auto mb-4 sm:mb-6 md:mb-8">
           <GameAnimalSearch
             :disabled="!gameStore.isPlaying || gameStore.isReplayMode"
-            placeholder="Search for an animal..."
+            :placeholder="t('game.searchPlaceholder')"
             :guess-history="guessHistory"
             @select="handleAnimalSelect"
           />
@@ -549,14 +414,14 @@ onMounted(() => {
             class="mt-2 text-xs sm:text-sm text-center text-[var(--color-ink-subtle)]
             dark:text-[var(--color-ink-subtle)]"
           >
-            Start by searching for an animal to see how it relates to the target
+            {{ t("game.firstGuessHint") }}
           </p>
         </div>
 
         <!-- Phylogenetic Tree Visualization -->
         <div class="max-w-6xl mx-auto mt-4 sm:mt-6 md:mt-8 mb-4 sm:mb-6 md:mb-8">
           <h2 class="text-lg sm:text-xl md:text-2xl font-semibold mb-3 sm:mb-4 text-center">
-            Phylogenetic Tree
+            {{ t("game.phylogeneticTree") }}
           </h2>
           <!-- Progressive disclosure: Show hint only when tree is empty -->
           <p
@@ -564,7 +429,7 @@ onMounted(() => {
             class="text-xs sm:text-sm text-center text-[var(--color-ink-subtle)]
             dark:text-[var(--color-ink-subtle)] mb-2"
           >
-            Make your first guess to see the phylogenetic tree
+            {{ t("game.treeEmptyHint") }}
           </p>
           <!-- Tree Rendering Loading Indicator -->
           <div
@@ -573,7 +438,7 @@ onMounted(() => {
             flex items-center justify-center"
           >
             <GameLoadingIndicator
-              message="Updating tree..."
+              :message="t('common.updatingTree')"
               size="md"
             />
           </div>
@@ -594,8 +459,8 @@ onMounted(() => {
             class="mt-2 text-xs sm:text-sm text-center text-[var(--color-ink-subtle)]
             dark:text-[var(--color-ink-subtle)]"
           >
-            <span class="hidden sm:inline">Click on nodes to explore details</span>
-            <span class="sm:hidden">Tap nodes to explore</span>
+            <span class="hidden sm:inline">{{ t("game.treeInteractionHintDesktop") }}</span>
+            <span class="sm:hidden">{{ t("game.treeInteractionHintMobile") }}</span>
           </p>
         </div>
 
@@ -608,7 +473,7 @@ onMounted(() => {
             class="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4
             text-[var(--color-ink)] dark:text-[var(--color-ink)]"
           >
-            Recent Guesses
+            {{ t("game.recentGuesses") }}
           </h2>
           <ul class="space-y-0">
             <li
@@ -629,7 +494,7 @@ onMounted(() => {
                 class="text-xs sm:text-sm text-[var(--color-ink-subtle)]
                 dark:text-[var(--color-ink-subtle)] before:content-['['] after:content-[']']"
               >
-                LCA: {{ guess.lca.clade }}
+                {{ t("game.lcaLabel") }}: {{ guess.lca.clade }}
               </span>
             </li>
           </ul>

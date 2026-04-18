@@ -4,17 +4,9 @@ import type { TreeNode } from "~/types/tree";
 import type { Clade } from "~/types/clade";
 import type { Animal } from "~/types/animal";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
+
 import { useResponsive } from "~/composables/useResponsive";
 import { uiIcon } from "~/utils/uiIcons";
-
-interface Props {
-  /** Controls panel visibility */
-  isOpen?: boolean;
-  /** Node data to display */
-  nodeData?: TreeNode | null;
-  /** Which side to anchor the panel: 'right' (default) or 'left' */
-  positionSide?: "left" | "right";
-}
 
 const props = withDefaults(defineProps<Props>(), {
   isOpen: false,
@@ -26,6 +18,17 @@ const emit = defineEmits<{
   "close": [];
   "update:isOpen": [value: boolean];
 }>();
+
+const { t } = useI18n();
+
+interface Props {
+  /** Controls panel visibility */
+  isOpen?: boolean;
+  /** Node data to display */
+  nodeData?: TreeNode | null;
+  /** Which side to anchor the panel: 'right' (default) or 'left' */
+  positionSide?: "left" | "right";
+}
 
 const { isMobile } = useResponsive();
 
@@ -310,12 +313,12 @@ async function fetchCladeInfo(cladeName: string) {
   try {
     const response = await api.fetchCladeData(cladeName);
     if (response.error) {
-      cladeError.value = response.error.message || "Failed to load clade information";
+      cladeError.value = response.error.message || t("informationPanel.loadCladeFailed");
     } else if (response.data) {
       cladeData.value = response.data;
     }
   } catch (err) {
-    cladeError.value = "Failed to load clade information";
+    cladeError.value = t("informationPanel.loadCladeFailed");
     console.error("Error fetching clade data:", err);
   } finally {
     isLoadingClade.value = false;
@@ -330,12 +333,12 @@ async function fetchAnimalInfo(animalId: string) {
   try {
     const response = await api.fetchAnimalData(animalId);
     if (response.error) {
-      animalError.value = response.error.message || "Failed to load animal information";
+      animalError.value = response.error.message || t("informationPanel.loadAnimalFailed");
     } else if (response.data) {
       animalData.value = response.data;
     }
   } catch (err) {
-    animalError.value = "Failed to load animal information";
+    animalError.value = t("informationPanel.loadAnimalFailed");
     console.error("Error fetching animal data:", err);
   } finally {
     isLoadingAnimal.value = false;
@@ -504,10 +507,34 @@ const screenReaderAnnouncement = computed(() => {
     return "";
   }
   if (!props.nodeData) {
-    return "Information post-it opened";
+    return t("informationPanel.srOpenedGeneric");
   }
-  const nodeType = props.nodeData.type === "animal" ? "Animal" : "Clade";
-  return `${nodeType} information post-it opened: ${props.nodeData.name}`;
+  const nodeType = props.nodeData.type === "animal"
+    ? t("informationPanel.nodeTypeAnimal")
+    : t("informationPanel.nodeTypeClade");
+  return t("informationPanel.srOpenedWithNode", {
+    nodeType,
+    name: props.nodeData.name,
+  });
+});
+
+const cladeImageAlt = computed(() => {
+  const name = cladeData.value?.name ?? "";
+  return name
+    ? t("informationPanel.imageAltClade", { name })
+    : "";
+});
+
+const animalImageAlt = computed(() => {
+  if (!animalData.value) {
+    return "";
+  }
+  const scientificName
+    = animalData.value.scientificName || t("informationPanel.scientificNameFallback");
+  return t("informationPanel.imageAltAnimal", {
+    name: animalData.value.name,
+    scientificName,
+  });
 });
 
 /**
@@ -628,7 +655,7 @@ onUnmounted(() => {
           class="information-panel-postit__sticky-tab"
           role="button"
           tabindex="0"
-          aria-label="Drag to remove post-it or click to close"
+          :aria-label="t('informationPanel.stickyTabAriaLabel')"
           @mousedown="handleStickyTabMouseDown"
           @touchstart="handleStickyTabTouchStart"
           @click="handleStickyTabClick"
@@ -644,7 +671,7 @@ onUnmounted(() => {
           role="complementary"
           aria-labelledby="postit-panel-title"
           aria-describedby="postit-panel-description"
-          aria-label="Information post-it"
+          :aria-label="t('informationPanel.postitAriaLabel')"
           class="information-panel-postit"
           :class="{
             'information-panel-postit--dragging': isDragging,
@@ -661,7 +688,7 @@ onUnmounted(() => {
               id="postit-panel-title"
               class="information-panel-postit__title"
             >
-              Information
+              {{ t("informationPanel.titleFallback") }}
             </h2>
           </div>
 
@@ -671,13 +698,13 @@ onUnmounted(() => {
             class="information-panel-postit__content"
           >
             <p v-if="!nodeData" class="information-panel-postit__empty">
-              No information available.
+              {{ t("informationPanel.emptyNoNode") }}
             </p>
             <!-- Clade Information Display -->
             <div v-else-if="nodeData.type === 'clade'">
               <!-- Loading State -->
               <div v-if="isLoadingClade" class="information-panel-postit__loading">
-                <p>Loading clade information...</p>
+                <p>{{ t("informationPanel.loadingClade") }}</p>
               </div>
               <!-- Error State -->
               <div v-else-if="cladeError" class="information-panel-postit__error">
@@ -696,12 +723,20 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Clade Description -->
-                <div
-                  v-if="cladeData.description"
-                  class="information-panel-postit__clade-description"
-                >
-                  <!-- eslint-disable-next-line vue/no-v-html -->
-                  <p v-html="sanitizedCladeDescription" />
+                <div class="information-panel-postit__clade-description-block">
+                  <div
+                    v-if="cladeData.description"
+                    class="information-panel-postit__clade-description"
+                  >
+                    <!-- eslint-disable-next-line vue/no-v-html -->
+                    <p v-html="sanitizedCladeDescription" />
+                  </div>
+                  <p
+                    v-else
+                    class="information-panel-postit__no-description"
+                  >
+                    {{ t("informationPanel.noDescription") }}
+                  </p>
                 </div>
 
                 <!-- Clade Links -->
@@ -715,7 +750,7 @@ onUnmounted(() => {
                     target="_blank"
                     rel="noopener noreferrer"
                     class="information-panel-postit__link"
-                    aria-label="View on iNaturalist"
+                    :aria-label="t('winState.viewOnINaturalist')"
                   >
                     <Icon
                       :name="uiIcon.externalLink"
@@ -733,7 +768,7 @@ onUnmounted(() => {
                     target="_blank"
                     rel="noopener noreferrer"
                     class="information-panel-postit__link"
-                    aria-label="View on Wikipedia"
+                    :aria-label="t('winState.viewOnWikipedia')"
                   >
                     <Icon
                       :name="uiIcon.externalLink"
@@ -745,14 +780,14 @@ onUnmounted(() => {
               </div>
               <!-- Fallback: No clade data loaded yet -->
               <div v-else class="information-panel-postit__empty">
-                <p>Loading clade information...</p>
+                <p>{{ t("informationPanel.loadingClade") }}</p>
               </div>
             </div>
             <!-- Animal Information Display -->
             <div v-else-if="nodeData.type === 'animal'">
               <!-- Loading State -->
               <div v-if="isLoadingAnimal" class="information-panel-postit__loading">
-                <p>Loading animal information...</p>
+                <p>{{ t("informationPanel.loadingAnimal") }}</p>
               </div>
               <!-- Error State -->
               <div v-else-if="animalError" class="information-panel-postit__error">
@@ -774,12 +809,20 @@ onUnmounted(() => {
                 </div>
 
                 <!-- Animal Description (Wikipedia Summary) -->
-                <div
-                  v-if="animalData.description"
-                  class="information-panel-postit__animal-description"
-                >
-                  <!-- eslint-disable-next-line vue/no-v-html -->
-                  <p v-html="sanitizedAnimalDescription" />
+                <div class="information-panel-postit__animal-description-block">
+                  <div
+                    v-if="animalData.description"
+                    class="information-panel-postit__animal-description"
+                  >
+                    <!-- eslint-disable-next-line vue/no-v-html -->
+                    <p v-html="sanitizedAnimalDescription" />
+                  </div>
+                  <p
+                    v-else
+                    class="information-panel-postit__no-description"
+                  >
+                    {{ t("informationPanel.noDescription") }}
+                  </p>
                 </div>
 
                 <!-- Animal Links -->
@@ -793,7 +836,7 @@ onUnmounted(() => {
                     target="_blank"
                     rel="noopener noreferrer"
                     class="information-panel-postit__link"
-                    aria-label="View on iNaturalist"
+                    :aria-label="t('winState.viewOnINaturalist')"
                   >
                     <Icon
                       :name="uiIcon.externalLink"
@@ -811,7 +854,7 @@ onUnmounted(() => {
                     target="_blank"
                     rel="noopener noreferrer"
                     class="information-panel-postit__link"
-                    aria-label="View on Wikipedia"
+                    :aria-label="t('winState.viewOnWikipedia')"
                   >
                     <Icon
                       :name="uiIcon.externalLink"
@@ -823,7 +866,7 @@ onUnmounted(() => {
               </div>
               <!-- Fallback: No animal data loaded yet -->
               <div v-else class="information-panel-postit__empty">
-                <p>Loading animal information...</p>
+                <p>{{ t("informationPanel.loadingAnimal") }}</p>
               </div>
             </div>
           </div>
@@ -861,7 +904,7 @@ onUnmounted(() => {
               <img
                 v-if="nodeData?.type === 'clade' && cladeData?.imageUrl"
                 :src="cladeData.imageUrl"
-                :alt="`Image of ${cladeData.name} clade showing representative species`"
+                :alt="cladeImageAlt"
                 class="information-panel-image-card__image"
                 loading="lazy"
               >
@@ -869,7 +912,7 @@ onUnmounted(() => {
               <img
                 v-else-if="nodeData?.type === 'animal' && animalData?.imageUrl"
                 :src="animalData.imageUrl"
-                :alt="`Image of ${animalData.name} (${animalData.scientificName || 'animal'})`"
+                :alt="animalImageAlt"
                 class="information-panel-image-card__image"
                 loading="lazy"
               >
@@ -1335,9 +1378,27 @@ onUnmounted(() => {
   border-radius: 0.375rem;
 }
 
-/* Clade Description */
-.information-panel-postit__clade-description {
+/* Clade / animal description area */
+.information-panel-postit__clade-description-block,
+.information-panel-postit__animal-description-block {
   margin-top: 0.25rem;
+}
+
+.information-panel-postit__clade-description {
+  margin-top: 0;
+}
+
+.information-panel-postit__no-description {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin: 0;
+  color: var(--color-ink-muted, #4b4333);
+  font-style: italic;
+  text-align: left;
+}
+
+.dark .information-panel-postit__no-description {
+  color: var(--color-ink-muted, #9ca3af);
 }
 
 .information-panel-postit__clade-description p {
@@ -1396,7 +1457,7 @@ onUnmounted(() => {
 }
 
 .information-panel-postit__animal-description {
-  margin-top: 0.25rem;
+  margin-top: 0;
 }
 
 .information-panel-postit__animal-description p {

@@ -186,9 +186,12 @@ test("cross-day rollover resets to a fresh daily puzzle", async ({ page }) => {
   await expect(page.getByRole("combobox", { name: "Search for an animal" })).toBeVisible({
     timeout: 30_000,
   });
-  await expect(page.getByRole("heading", { name: /You Won!/ })).toHaveCount(0);
-  await expect(page.getByText("Start by searching for an animal to see how it relates to the target")).toBeVisible({
-    timeout: 15_000,
-  });
+  // Wait for the post-rollover “fresh puzzle” shell first. This prevents the previous
+  // win screen from briefly remaining in the tree while persisted state rehydrates.
+  const startHint = page.getByText(
+    "Start by searching for an animal to see how it relates to the target",
+  );
+  await expect(startHint).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: /You Won!/ })).toHaveCount(0, { timeout: 10_000 });
   await expect(page.getByText(/Guesses remaining:\s*20/)).toBeVisible();
 });

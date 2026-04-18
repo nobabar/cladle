@@ -32,3 +32,21 @@ export async function openPuzzleHistoryFromDaily(page: Page) {
   await menuButton.click();
   await page.getByRole("menuitem", { name: /^puzzle history$/i }).click();
 }
+
+/**
+ * Free play: daily is a link from `sm` up; below `sm` it is the burger menu item `Daily Puzzle`.
+ * @param page - The page object.
+ */
+export async function goToDailyFromFreePlay(page: Page) {
+  const desktop = page.getByRole("link", { name: "Go to daily puzzle" }).or(
+    page.getByRole("button", { name: "Go to daily puzzle" }),
+  );
+  const menuButton = page.getByRole("button", { name: "Open game menu" });
+  await expect(desktop.or(menuButton)).toBeVisible({ timeout: 30_000 });
+  if (await desktop.isVisible().catch(() => false)) {
+    await desktop.click();
+    return;
+  }
+  await menuButton.click();
+  await page.getByRole("menuitem", { name: /^daily puzzle$/i }).click();
+}

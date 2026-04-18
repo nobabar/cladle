@@ -7,10 +7,11 @@
 export interface Clade {
   name: string;
 
-  /**
-   * e.g. kingdom, phylum, class, order, family, genus, species
-   */
+  /** e.g. kingdom, phylum, class, order, family, genus, species */
   rank: string;
+
+  /** Preferred common name when it differs from {@link name} (iNaturalist `preferred_common_name`). */
+  preferredCommonName?: string;
 
   url?: string;
   wikipediaUrl?: string;

@@ -1,0 +1,189 @@
+{
+  "common": {
+    "close": "Fermer",
+    "copied": "Copié !",
+    "copyAgain": "Copier à nouveau",
+    "copyFailed": "Échec de la copie",
+    "guessSingular": "essai",
+    "guessPlural": "essais",
+    "loadingGameData": "Chargement des données de jeu...",
+    "updatingTree": "Mise à jour de l'arbre...",
+    "dismissError": "Fermer l'erreur",
+    "errorPrefix": "Erreur :"
+  },
+  "meta": {
+    "title": "Cladle - Jeu de devinettes phylogénétiques",
+    "description": "Apprenez la biodiversité en devinant des animaux et en suivant leurs relations évolutives sur un arbre phylogénétique."
+  },
+  "header": {
+    "backToToday": "Retour à aujourd'hui",
+    "goToFreePlay": "Aller au mode libre",
+    "goToDailyPuzzle": "Aller au puzzle du jour",
+    "freePlay": "Mode Libre",
+    "dailyPuzzle": "Puzzle du jour",
+    "openGameMenu": "Ouvrir le menu du jeu",
+    "menuPreferences": "Préférences"
+  },
+  "profile": {
+    "title": "Profil et Préférences",
+    "openPreferences": "Ouvrir le menu des préférences",
+    "colorMode": {
+      "label": "Thème",
+      "switchToLight": "Passer au thème clair",
+      "switchToDark": "Passer au thème sombre"
+    },
+    "language": {
+      "label": "Langue"
+    }
+  },
+  "daily": {
+    "subtitle": "Puzzle du jour",
+    "tagline": "Nouveau puzzle chaque jour"
+  },
+  "freePlay": {
+    "subtitle": "Mode Libre",
+    "tagline": "Réinitialisez à tout moment pour obtenir un nouvel animal aléatoire",
+    "newRandomAnimal": "Nouvel animal aléatoire"
+  },
+  "game": {
+    "guessesRemaining": "Essais restants",
+    "searchPlaceholder": "Rechercher un animal...",
+    "searchAriaLabel": "Rechercher un animal",
+    "clearSearchInput": "Effacer la recherche",
+    "searchNoResults": "Aucun animal trouvé pour \"{query}\"",
+    "suggestionAriaLabelSingle": "{count} suggestion disponible. Utilisez les flèches pour naviguer, Entrée pour sélectionner.",
+    "suggestionAriaLabelPlural": "{count} suggestions disponibles. Utilisez les flèches pour naviguer, Entrée pour sélectionner.",
+    "firstGuessHint": "Commencez par chercher un animal pour voir son lien avec la cible",
+    "phylogeneticTree": "Arbre phylogénétique",
+    "treeEmptyHint": "Faites votre premier essai pour voir l'arbre phylogénétique",
+    "treeInteractionHintDesktop": "Cliquez sur les nœuds pour explorer les détails",
+    "treeInteractionHintMobile": "Touchez les nœuds pour explorer",
+    "recentGuesses": "Essais récents",
+    "lcaLabel": "LCA",
+    "treeAriaRoot": "Arbre phylogénétique montrant les relations évolutives",
+    "treeAriaSvg": "Visualisation de l'arbre phylogénétique",
+    "treeEmptyState": "Aucune donnée d'arbre pour le moment. Faites un essai pour afficher l'arbre phylogénétique.",
+    "treeCopyMermaid": "Copier l'arbre au format Mermaid",
+    "treeCopied": "Copié dans le presse-papiers",
+    "ariaNodeAnimal": "Animal",
+    "ariaNodeClade": "Clade",
+    "ariaTarget": "cible",
+    "ariaUnknownTarget": "inconnu",
+    "ariaGuessed": "essayé",
+    "ariaScientificName": "nom scientifique : {name}",
+    "ariaRank": "rang : {rank}",
+    "searchOutage": "iNaturalist est momentanément indisponible : la recherche taxonomique et les médias sont temporairement dégradés.",
+    "searchRetry": "Réessayer",
+    "searchRetryAria": "Réessayer la recherche",
+    "searchCheckInaturalist": "Visiter iNaturalist"
+  },
+  "footer": {
+    "ariaNav": "Liens de pied de page",
+    "tagline": "Un jeu pour apprendre la biodiversité par la phylogénie et la taxonomie.",
+    "about": "À propos",
+    "resources": "Ressources",
+    "home": "Accueil",
+    "privacy": "Confidentialité",
+    "externalLinkSr": "lien externe"
+  },
+  "informationPanel": {
+    "stickyTabAriaLabel": "Faire glisser pour retirer le post-it ou cliquer pour fermer",
+    "postitAriaLabel": "Post-it d'information",
+    "titleFallback": "Informations",
+    "emptyNoNode": "Aucune information disponible.",
+    "loadingClade": "Chargement des informations sur le clade...",
+    "loadingAnimal": "Chargement des informations sur l'animal...",
+    "srOpenedGeneric": "Post-it d'information ouvert",
+    "srOpenedWithNode": "Post-it d'information ({nodeType}) ouvert : {name}",
+    "nodeTypeAnimal": "Animal",
+    "nodeTypeClade": "Clade",
+    "imageAltClade": "Image du clade {name} montrant des espèces représentatives",
+    "imageAltAnimal": "Image de {name} ({scientificName})",
+    "scientificNameFallback": "animal",
+    "loadCladeFailed": "Impossible de charger les informations sur le clade.",
+    "loadAnimalFailed": "Impossible de charger les informations sur l'animal.",
+    "noDescription": "Aucune description disponible."
+  },
+  "history": {
+    "open": "Ouvrir l'historique des puzzles",
+    "title": "Historique des puzzles",
+    "description": "Voir les puzzles précédents.",
+    "viewPuzzle": "Voir le puzzle",
+    "view": "Voir",
+    "empty": "Aucun puzzle passé pour le moment. Terminez des puzzles pour les voir ici.",
+    "status": {
+      "solved": "Résolu",
+      "unsolved": "Non résolu",
+      "inProgress": "En cours"
+    }
+  },
+  "errors": {
+    "gameStart": "Impossible de démarrer la partie. Veuillez réessayer.",
+    "gameReset": "Impossible de réinitialiser la partie. Veuillez réessayer.",
+    "animalNotFound": "Animal introuvable. Essayez un autre nom.",
+    "cladeNotFound": "Groupe taxonomique introuvable.",
+    "invalidTaxonomy": "Impossible de déterminer les relations évolutives.",
+    "networkError": "Problème de connexion. Vérifiez votre internet et réessayez.",
+    "validationError": "Problème de format des données. Cet incident a été enregistré.",
+    "apiUnavailable": "Service temporairement indisponible. Les données en cache seront utilisées si possible.",
+    "cacheError": "Problème de stockage local. Le jeu peut avoir des fonctionnalités limitées.",
+    "shareClipboardFailed": "Impossible de copier les résultats. Vérifiez les permissions du navigateur et réessayez.",
+    "storageQuotaExceeded": "Le stockage de l'appareil est plein. Vous pouvez continuer à jouer, mais la progression peut ne pas être sauvegardée.",
+    "storageWriteFailed": "Impossible de sauvegarder la progression sur cet appareil. Vous pouvez continuer cette session.",
+    "storageReadFailed": "Impossible de charger la progression sauvegardée. Un nouveau départ sera utilisé pour cette session.",
+    "timeout": "La requête a expiré. Veuillez réessayer.",
+    "notFound": "Ressource introuvable. Vérifiez votre saisie.",
+    "parseError": "Échec d'analyse de la réponse du serveur.",
+    "offline": "Vous semblez hors ligne. Vérifiez votre connexion.",
+    "common": {
+      "unknown": "Une erreur inattendue est survenue. Veuillez réessayer."
+    }
+  },
+  "date": {
+    "todayPuzzle": "Puzzle du jour",
+    "nextPuzzleSoon": "Prochain puzzle bientôt"
+  },
+  "share": {
+    "title": "Cladle",
+    "dailyPuzzleLine": "Puzzle du jour : {puzzleDate}",
+    "treeDepthLine": "Profondeur de l'arbre : {treeDepth}",
+    "evolutionaryDistanceLine": "Distance évolutive : {distance}",
+    "furthestEvolutionaryDistanceLine": "Distance évolutive maximale : {distance}",
+    "outcomeSolvedLine": "Résultat : Résolu en {guessCount} essais.",
+    "outcomeUnsolvedLine": "Résultat : Non résolu en {guessCount} essais."
+  },
+  "winState": {
+    "titleWin": "🎉 Victoire !",
+    "titleLoss": "Partie terminée",
+    "youWon": "Victoire !",
+    "gameOver": "Partie terminée",
+    "tapToSeeResult": "Touchez pour voir le résultat",
+    "viewGameResult": "Voir le résultat de la partie",
+    "gameResultPanel": "Panneau de résultat de partie",
+    "hideResultPanel": "Masquer le panneau de résultat",
+    "showResultPanel": "Afficher le panneau de résultat",
+    "winWithoutName": "Félicitations ! Vous avez trouvé l'animal cible !",
+    "winWithName": "Félicitations ! Vous avez trouvé {name} !",
+    "lossWithoutName": "Partie terminée ! Bonne chance la prochaine fois.",
+    "lossWithName": "Partie terminée ! La cible était {name}.",
+    "resultStatsWon": "Complété en {guessCount} {guessLabel} sur {maxGuesses}.",
+    "resultStatsLoss": "Vous avez utilisé les {maxGuesses} essais. Continuez à apprendre et réessayez !",
+    "srWinAnnouncement": "{message} Vous avez complété le puzzle en {guessCount} {guessLabel}.",
+    "srLossAnnouncement": "{message} Vous avez utilisé les {maxGuesses} essais.",
+    "shareResults": "Partager les résultats",
+    "imageAlt": "Image de {name}",
+    "viewOnINaturalist": "Voir sur iNaturalist",
+    "viewOnWikipedia": "Voir sur Wikipedia",
+    "treeDepth": "Profondeur de l'arbre",
+    "furthestEvolutionaryDistance": "Distance évolutive maximale",
+    "furthestEvolutionaryDistanceHelpAria": "Qu'est-ce que la distance évolutive maximale ?",
+    "furthestEvolutionaryDistanceHelp": "Distance entre la cible et l'animal le plus éloigné affiché dans l'arbre. Plus elle est élevée, plus au moins une relation lointaine apparaît.",
+    "evolutionaryDistance": "Distance évolutive",
+    "evolutionaryDistanceHelpAria": "Qu'est-ce que la distance évolutive ?",
+    "evolutionaryDistanceHelp": "Indique à quel point votre meilleur essai était proche sur l'échelle taxonomique : plus bas signifie plus proche de la cible.",
+    "resultsCopiedToClipboard": "Résultats copiés dans le presse-papiers",
+    "copyResultsToClipboard": "Copier les résultats dans le presse-papiers",
+    "completePhylogeneticTree": "Arbre phylogénétique complet",
+    "learningFootnote": "Chaque essai suit une branche réelle du vivant, prenez un moment pour voir comment les espèces se connectent."
+  }
+}

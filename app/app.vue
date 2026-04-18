@@ -1,4 +1,11 @@
 <script setup lang="ts">
+import { computed } from "vue";
+
+const { t } = useI18n();
+
+const title = computed(() => t("meta.title"));
+const description = computed(() => t("meta.description"));
+
 useHead({
   meta: [
     { name: "viewport", content: "width=device-width, initial-scale=1" },
@@ -6,13 +13,7 @@ useHead({
   link: [
     { rel: "icon", href: "/favicon.ico" },
   ],
-  htmlAttrs: {
-    lang: "en",
-  },
 });
-
-const title = "Cladle - Phylogenetic Guessing Game";
-const description = "A web-based phylogenetic guessing game where players guess animals and see evolutionary relationships visualized in a phylogenetic tree.";
 
 useSeoMeta({
   title,

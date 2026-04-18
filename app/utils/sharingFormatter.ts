@@ -3,6 +3,23 @@ import type { GameMode, GameStatus, GuessEntry } from "~/stores/gameStore";
 import type { TreeData } from "~/types/tree";
 import { calculateLCA } from "~/utils/lcaCalculator";
 
+function t(key: string, fallback: string, params: Record<string, string | number> = {}): string {
+  try {
+    const nuxtApp = useNuxtApp() as {
+      $i18n?: { t?: (k: string, p?: Record<string, string | number>) => string };
+    };
+    const i18nT = nuxtApp.$i18n?.t;
+    if (typeof i18nT === "function") {
+      const translated = i18nT(key, params) as string;
+      return translated || fallback;
+    }
+  } catch {
+    // Utility can be called in non-app contexts.
+  }
+
+  return fallback.replace(/\{(\w+)\}/g, (_, k: string) => String(params[k] ?? ""));
+}
+
 /**
  * Phylogenetic metrics for a completed puzzle.
  * Number values only; shareable copy formatting is handled elsewhere.
@@ -183,20 +200,20 @@ export function buildShareableText(snapshot: ShareableGameSnapshot): string | nu
   }
 
   const lines: string[] = [];
-  lines.push("Cladle");
+  lines.push(t("share.title", "Cladle"));
 
   if (gameMode === "daily" && puzzleDate) {
-    lines.push(`Daily puzzle: ${puzzleDate}`);
+    lines.push(t("share.dailyPuzzleLine", "Daily puzzle: {puzzleDate}", { puzzleDate }));
   }
 
-  lines.push(`Tree depth: ${metrics.treeDepth}`);
-  lines.push(`Evolutionary distance: ${metrics.evolutionaryDistance}`);
-  lines.push(`Furthest evolutionary distance: ${metrics.furthestEvolutionaryDistance}`);
+  lines.push(t("share.treeDepthLine", "Tree depth: {treeDepth}", { treeDepth: metrics.treeDepth }));
+  lines.push(t("share.evolutionaryDistanceLine", "Evolutionary distance: {distance}", { distance: metrics.evolutionaryDistance }));
+  lines.push(t("share.furthestEvolutionaryDistanceLine", "Furthest evolutionary distance: {distance}", { distance: metrics.furthestEvolutionaryDistance }));
 
   if (status === "won") {
-    lines.push(`Outcome: Solved in ${guesses.length} guesses.`);
+    lines.push(t("share.outcomeSolvedLine", "Outcome: Solved in {guessCount} guesses.", { guessCount: guesses.length }));
   } else {
-    lines.push(`Outcome: Did not solve in ${guesses.length} guesses.`);
+    lines.push(t("share.outcomeUnsolvedLine", "Outcome: Did not solve in {guessCount} guesses.", { guessCount: guesses.length }));
   }
 
   return lines.join("\n");

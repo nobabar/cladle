@@ -8,6 +8,7 @@ import type { Clade } from "~/types/clade";
 import type { ApiError, ApiResponse } from "~/types/api";
 import type { BiologicalAPIClient } from "~/composables/useBiologicalAPI";
 import { CacheKeys, cacheService, TTL_VALUES } from "~/services/cacheService";
+import type { LocaleKeyedBundle } from "~/services/cacheService";
 import {
   validateAnimalData,
   validateCladeData,
@@ -16,6 +17,12 @@ import {
   getUserFriendlyError,
   mapHttpStatusToErrorCode,
 } from "~/utils/errorMessages";
+import type { TaxonDescriptionContext } from "~/utils/taxonDescription";
+import { cleanTaxonWikiSummary } from "~/utils/taxonDescription";
+import {
+  resolveWikipediaArticleUrlForLocale,
+  resolveWikipediaDescriptionForLocale,
+} from "~/utils/wikipediaResolve";
 
 const INATURALIST_BASE_URL = "https://api.inaturalist.org/v1";
 // ~1 request / second to respect iNaturalist API recommended practices.
@@ -113,9 +120,211 @@ class INaturalistAPIClient implements BiologicalAPIClient {
   private rateLimiter: RateLimiter;
   private searchHealthWindowMs = 2 * 60 * 1000; // 2 minutes
   private searchHealthSamples: SearchHealthSample[] = [];
+  /** When set (e.g. Vitest), overrides Nuxt i18n for `locale=` and cache keys. */
+  private readonly forcedLocale: string | undefined;
 
-  constructor() {
+  constructor(forcedLocale?: string) {
     this.rateLimiter = new RateLimiter();
+    this.forcedLocale = forcedLocale;
+  }
+
+  private getActiveLocale(): string | null {
+    if (this.forcedLocale !== undefined) {
+      return this.forcedLocale;
+    }
+    try {
+      const nuxtApp = useNuxtApp() as { $i18n?: { locale?: string | { value?: string } } };
+      const locale = nuxtApp.$i18n?.locale;
+      if (typeof locale === "string") return locale;
+      if (locale && typeof locale.value === "string") return locale.value;
+    } catch {
+      // No active Nuxt app (tests / isolated calls).
+    }
+    return null;
+  }
+
+  private withLocaleParams(url: string): string {
+    const nextUrl = new URL(url);
+    const locale = this.getActiveLocale() ?? "en";
+    nextUrl.searchParams.set("locale", locale);
+    return nextUrl.toString();
+  }
+
+  private normalizeLocaleCacheKey(): string {
+    return this.getActiveLocale() ?? "en";
+  }
+
+  /**
+   * Set `locale` query param explicitly (does not depend on current UI locale).
+   * @param url - URL to set the locale query param on
+   * @param locale - App locale (`fr`, `en`, …)
+   * @returns URL with the locale query param set
+   */
+  private withExplicitLocale(url: string, locale: string): string {
+    const nextUrl = new URL(url);
+    nextUrl.searchParams.set("locale", locale);
+    return nextUrl.toString();
+  }
+
+  /**
+   * Non-English UI: when the localized iNaturalist taxon has no `wikipedia_url`, fetch the English
+   * taxon and bridge via Wikipedia langlinks + REST. If the localized summary already cleans to a
+   * usable paragraph but the URL is missing, only fills `wikipedia_url`. If the summary is empty
+   * or junk after cleaning, replaces both URL and summary from the resolved target-language article.
+   * When a URL exists but the summary is unusable, this does nothing — {@link enrichEntityWikipediaRestIfNeeded} runs after mapping.
+   * @param id - iNaturalist taxon ID
+   * @param primary - iNaturalist taxon fields for the requested locale
+   * @param localeKey - App locale (`fr`, `en`, …)
+   * @returns Merged wiki fields to apply on the primary taxon
+   */
+  private async hydrateTaxonWikipediaFromEnglishInatIfNeeded(
+    id: string,
+    primary: INaturalistTaxon,
+    localeKey: string,
+  ): Promise<INaturalistTaxon> {
+    if (localeKey === "en") {
+      return primary;
+    }
+
+    const ctx: TaxonDescriptionContext = {
+      scientificName: primary.name,
+      commonName: primary.preferred_common_name || primary.name,
+    };
+    const primaryClean = cleanTaxonWikiSummary(primary.wikipedia_summary, ctx);
+    const missingUrl = !primary.wikipedia_url?.trim();
+
+    if (!missingUrl) {
+      return primary;
+    }
+
+    const enUrl = this.withExplicitLocale(`${INATURALIST_BASE_URL}/taxa/${id}`, "en");
+    let englishTaxon: INaturalistTaxon | null = null;
+    try {
+      const enResponse = await this.makeRequest<INaturalistResponse>(enUrl);
+      englishTaxon = enResponse.results?.[0] ?? null;
+    } catch {
+      return primary;
+    }
+
+    const enWiki = englishTaxon?.wikipedia_url?.trim();
+    if (!englishTaxon || !enWiki) {
+      return primary;
+    }
+
+    if (primaryClean && missingUrl) {
+      const localizedUrl = (await resolveWikipediaArticleUrlForLocale(enWiki, localeKey)) ?? enWiki;
+      return {
+        ...primary,
+        /* eslint-disable camelcase -- iNaturalist taxon JSON field names */
+        wikipedia_url: localizedUrl,
+        /* eslint-enable camelcase */
+      };
+    }
+
+    const resolved = await resolveWikipediaDescriptionForLocale(enWiki, localeKey);
+    if (resolved) {
+      return {
+        ...primary,
+        /* eslint-disable camelcase -- iNaturalist taxon JSON field names */
+        wikipedia_url: resolved.articleUrl,
+        wikipedia_summary: resolved.descriptionHtml,
+        /* eslint-enable camelcase */
+      };
+    }
+
+    if (missingUrl) {
+      const fallbackUrl = (await resolveWikipediaArticleUrlForLocale(enWiki, localeKey)) ?? enWiki;
+      return {
+        ...primary,
+        /* eslint-disable camelcase -- iNaturalist taxon JSON field names */
+        wikipedia_url: fallbackUrl,
+        /* eslint-enable camelcase */
+      };
+    }
+
+    return primary;
+  }
+
+  /**
+   * After mapping, if `description` is still empty: resolve the target-language Wikipedia article
+   * from `wikipediaUrl` (langlinks + REST `extract`). Updates `description` and canonical
+   * `wikipediaUrl` when successful. If REST returns no extract (e.g. disambiguation), still tries to
+   * set a localized article URL via langlinks, or keeps the canonical REST `articleUrl` when the
+   * extract was filtered by {@link cleanTaxonWikiSummary}.
+   * @param entity - Entity to enrich with Wikipedia information
+   * @param localeKey - App locale (`fr`, `en`, …)
+   * @param ctx - Taxon description context
+   * @returns Enriched entity with Wikipedia information
+   */
+  private async enrichEntityWikipediaRestIfNeeded<
+    T extends { description?: string; wikipediaUrl?: string },
+  >(
+    entity: T,
+    localeKey: string,
+    ctx: TaxonDescriptionContext,
+  ): Promise<T> {
+    if (cleanTaxonWikiSummary(entity.description, ctx)) {
+      return entity;
+    }
+    if (!entity.wikipediaUrl) {
+      return entity;
+    }
+
+    const resolved = await resolveWikipediaDescriptionForLocale(entity.wikipediaUrl, localeKey);
+    if (!resolved) {
+      const urlOnly = await resolveWikipediaArticleUrlForLocale(entity.wikipediaUrl, localeKey);
+      if (urlOnly) {
+        return { ...entity, wikipediaUrl: urlOnly };
+      }
+      return entity;
+    }
+
+    const cleaned = cleanTaxonWikiSummary(resolved.descriptionHtml, ctx);
+    if (!cleaned) {
+      return {
+        ...entity,
+        wikipediaUrl: resolved.articleUrl,
+      };
+    }
+
+    return {
+      ...entity,
+      description: cleaned,
+      wikipediaUrl: resolved.articleUrl,
+    };
+  }
+
+  private isLocaleKeyedBundle(raw: unknown): raw is LocaleKeyedBundle<Animal | Clade> {
+    if (typeof raw !== "object" || raw === null || !("locales" in raw)) {
+      return false;
+    }
+    const loc = (raw as { locales: unknown }).locales;
+    return typeof loc === "object" && loc !== null && !Array.isArray(loc);
+  }
+
+  private toAnimalBundle(raw: unknown): LocaleKeyedBundle<Animal> {
+    if (this.isLocaleKeyedBundle(raw)) {
+      return { locales: { ...(raw.locales as Partial<Record<string, Animal>>) } };
+    }
+    if (raw && typeof raw === "object" && "id" in raw) {
+      return { locales: { en: raw as Animal } };
+    }
+    return { locales: {} };
+  }
+
+  private toCladeBundle(raw: unknown): LocaleKeyedBundle<Clade> {
+    if (this.isLocaleKeyedBundle(raw)) {
+      return { locales: { ...(raw.locales as Partial<Record<string, Clade>>) } };
+    }
+    if (raw && typeof raw === "object" && "name" in raw) {
+      return { locales: { en: raw as Clade } };
+    }
+    return { locales: {} };
+  }
+
+  private pickLocalized<T>(bundle: LocaleKeyedBundle<T>, localeKey: string): T | null {
+    const hit = bundle.locales[localeKey];
+    return hit !== undefined ? hit : null;
   }
 
   /**
@@ -126,16 +335,32 @@ class INaturalistAPIClient implements BiologicalAPIClient {
    */
   async fetchAnimalData(id: string): Promise<ApiResponse<Animal>> {
     const cacheKey = CacheKeys.animal(id);
+    const localeKey = this.normalizeLocaleCacheKey();
 
-    // 1. Check cache first (instant load if available)
-    const cached = await cacheService.get<Animal>("animals", cacheKey);
-    if (cached) {
-      return { data: cached, error: null };
+    const cachedRaw = await cacheService.get<Animal | LocaleKeyedBundle<Animal>>(
+      "animals",
+      cacheKey,
+    );
+    if (cachedRaw !== null) {
+      const bundle = this.toAnimalBundle(cachedRaw);
+      const hit = this.pickLocalized(bundle, localeKey);
+      if (hit) {
+        const ctx: TaxonDescriptionContext = {
+          scientificName: hit.scientificName,
+          commonName: hit.name,
+        };
+        const description = cleanTaxonWikiSummary(hit.description, ctx);
+        let data: Animal = { ...hit, description };
+        if (!description && hit.wikipediaUrl) {
+          data = await this.enrichEntityWikipediaRestIfNeeded(data, localeKey, ctx);
+        }
+        return { data, error: null };
+      }
     }
 
     // 2. Cache miss - fetch from API
     // Include ancestor information to build taxonomy
-    const url = `${INATURALIST_BASE_URL}/taxa/${id}?include_ancestors=true`;
+    const url = this.withLocaleParams(`${INATURALIST_BASE_URL}/taxa/${id}?include_ancestors=true`);
 
     try {
       const response = await this.makeRequest<INaturalistResponse>(url);
@@ -148,7 +373,12 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       }
 
       const taxon = response.results[0]!;
-      const mappedAnimal = await this.mapToAnimal(taxon);
+      const mergedTaxon = await this.hydrateTaxonWikipediaFromEnglishInatIfNeeded(
+        id,
+        taxon,
+        localeKey,
+      );
+      const mappedAnimal = await this.mapToAnimal(mergedTaxon);
 
       const validation = validateAnimalData(mappedAnimal);
 
@@ -166,15 +396,22 @@ class INaturalistAPIClient implements BiologicalAPIClient {
         );
       }
 
-      // 3. Cache the validated result (only cache valid data)
-      await cacheService.set(
+      let data = validation.data!;
+      data = await this.enrichEntityWikipediaRestIfNeeded(data, localeKey, {
+        scientificName: data.scientificName,
+        commonName: data.name,
+      });
+
+      // 3. Cache the validated result per locale under one taxon key
+      const cachedAgain = await cacheService.get<Animal | LocaleKeyedBundle<Animal>>(
         "animals",
         cacheKey,
-        validation.data!,
-        TTL_VALUES.ANIMAL,
       );
+      const bundle = this.toAnimalBundle(cachedAgain);
+      bundle.locales[localeKey] = data;
+      await cacheService.set("animals", cacheKey, bundle, TTL_VALUES.ANIMAL);
 
-      return { data: validation.data, error: null };
+      return { data, error: null };
     } catch (error) {
       return this.handleError(error, url);
     }
@@ -200,7 +437,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
     // Caveat: /search doesn't support the same filters (rank/taxon_id) we used before, so we
     // post-filter results client-side to keep only Animalia + species/subspecies taxa.
     // Try to use iconic_taxa filter if supported by the search endpoint
-    const url = `${INATURALIST_BASE_URL}/search?q=${encodeURIComponent(trimmedQuery)}&sources=taxa&per_page=${limit * 3}`;
+    const url = this.withLocaleParams(`${INATURALIST_BASE_URL}/search?q=${encodeURIComponent(trimmedQuery)}&sources=taxa&per_page=${limit * 3}`);
 
     try {
       const response = await this.makeRequest<INaturalistSearchResponse>(url);
@@ -310,7 +547,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
 
       if (allCandidates.length < 5 && response.results.length === limit * 3) {
         try {
-          const nextPageUrl = `${INATURALIST_BASE_URL}/search?q=${encodeURIComponent(trimmedQuery)}&sources=taxa&per_page=${limit * 3}&page=2`;
+          const nextPageUrl = this.withLocaleParams(`${INATURALIST_BASE_URL}/search?q=${encodeURIComponent(trimmedQuery)}&sources=taxa&per_page=${limit * 3}&page=2`);
           const nextPageResponse = await this.makeRequest<INaturalistSearchResponse>(nextPageUrl);
 
           if (nextPageResponse.results && nextPageResponse.results.length > 0) {
@@ -400,16 +637,9 @@ class INaturalistAPIClient implements BiologicalAPIClient {
    * @returns Promise resolving to ApiResponse with Clade data or error
    */
   async fetchCladeData(name: string): Promise<ApiResponse<Clade>> {
-    const cacheKey = CacheKeys.clade(name);
+    const localeKey = this.normalizeLocaleCacheKey();
 
-    // 1. Check cache first (instant load if available)
-    const cached = await cacheService.get<Clade>("clades", cacheKey);
-    if (cached) {
-      return { data: cached, error: null };
-    }
-
-    // 2. Cache miss - first search for the clade by name to get the ID
-    const searchUrl = `${INATURALIST_BASE_URL}/taxa?q=${encodeURIComponent(name)}`;
+    const searchUrl = this.withLocaleParams(`${INATURALIST_BASE_URL}/taxa?q=${encodeURIComponent(name)}`);
 
     try {
       const searchResponse = await this.makeRequest<INaturalistResponse>(searchUrl);
@@ -421,10 +651,31 @@ class INaturalistAPIClient implements BiologicalAPIClient {
         );
       }
 
-      // 3. Get the taxon ID from search results and fetch full taxon details
-      // This ensures we get wikipedia_summary and other complete data
       const taxonId = searchResponse.results[0]!.id;
-      const detailUrl = `${INATURALIST_BASE_URL}/taxa/${taxonId}`;
+      const cacheKey = CacheKeys.cladeByTaxonId(taxonId);
+
+      const cachedRaw = await cacheService.get<Clade | LocaleKeyedBundle<Clade>>(
+        "clades",
+        cacheKey,
+      );
+      if (cachedRaw !== null) {
+        const bundle = this.toCladeBundle(cachedRaw);
+        const hit = this.pickLocalized(bundle, localeKey);
+        if (hit) {
+          const ctx: TaxonDescriptionContext = {
+            scientificName: hit.name,
+            commonName: hit.preferredCommonName,
+          };
+          const description = cleanTaxonWikiSummary(hit.description, ctx);
+          let data: Clade = { ...hit, description };
+          if (!description && hit.wikipediaUrl) {
+            data = await this.enrichEntityWikipediaRestIfNeeded(data, localeKey, ctx);
+          }
+          return { data, error: null };
+        }
+      }
+
+      const detailUrl = this.withLocaleParams(`${INATURALIST_BASE_URL}/taxa/${taxonId}`);
       const detailResponse = await this.makeRequest<INaturalistResponse>(detailUrl);
 
       if (!detailResponse.results || detailResponse.results.length === 0) {
@@ -435,7 +686,12 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       }
 
       const taxon = detailResponse.results[0]!;
-      const mappedClade = this.mapToClade(taxon);
+      const mergedTaxon = await this.hydrateTaxonWikipediaFromEnglishInatIfNeeded(
+        String(taxonId),
+        taxon,
+        localeKey,
+      );
+      const mappedClade = this.mapToClade(mergedTaxon);
 
       const validation = validateCladeData(mappedClade);
 
@@ -453,15 +709,21 @@ class INaturalistAPIClient implements BiologicalAPIClient {
         );
       }
 
-      // 3. Cache the validated result (only cache valid data)
-      await cacheService.set(
+      let data = validation.data!;
+      data = await this.enrichEntityWikipediaRestIfNeeded(data, localeKey, {
+        scientificName: data.name,
+        commonName: data.preferredCommonName,
+      });
+
+      const cachedAgain = await cacheService.get<Clade | LocaleKeyedBundle<Clade>>(
         "clades",
         cacheKey,
-        validation.data!,
-        TTL_VALUES.CLADE,
       );
+      const bundle = this.toCladeBundle(cachedAgain);
+      bundle.locales[localeKey] = data;
+      await cacheService.set("clades", cacheKey, bundle, TTL_VALUES.CLADE);
 
-      return { data: validation.data, error: null };
+      return { data, error: null };
     } catch (error) {
       return this.handleError(error, searchUrl);
     }
@@ -652,7 +914,10 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       url: `https://www.inaturalist.org/taxa/${taxon.id}`,
       wikipediaUrl: taxon.wikipedia_url,
       imageUrl: taxon.default_photo?.medium_url,
-      description: taxon.wikipedia_summary,
+      description: cleanTaxonWikiSummary(taxon.wikipedia_summary, {
+        scientificName,
+        commonName: name,
+      }),
     };
   }
 
@@ -675,7 +940,10 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       url: `https://www.inaturalist.org/taxa/${taxon.id}`,
       wikipediaUrl: taxon.wikipedia_url,
       imageUrl: taxon.default_photo?.medium_url,
-      description: taxon.wikipedia_summary,
+      description: cleanTaxonWikiSummary(taxon.wikipedia_summary, {
+        scientificName,
+        commonName: name,
+      }),
     };
   }
 
@@ -685,13 +953,19 @@ class INaturalistAPIClient implements BiologicalAPIClient {
    * @returns Clade object with mapped fields
    */
   private mapToClade(taxon: INaturalistTaxon): Clade {
+    const displayName = taxon.preferred_common_name || taxon.name;
+    const preferredCommonName = displayName !== taxon.name ? displayName : undefined;
     return {
       name: taxon.name,
       rank: taxon.rank,
+      preferredCommonName,
       url: `https://www.inaturalist.org/taxa/${taxon.id}`,
       wikipediaUrl: taxon.wikipedia_url,
       imageUrl: taxon.default_photo?.medium_url,
-      description: taxon.wikipedia_summary,
+      description: cleanTaxonWikiSummary(taxon.wikipedia_summary, {
+        scientificName: taxon.name,
+        commonName: preferredCommonName,
+      }),
     };
   }
 
@@ -753,7 +1027,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
     try {
       // iNaturalist API supports fetching multiple taxa by ID using comma-separated IDs
       const idsParam = ancestorIds.join(",");
-      const url = `${INATURALIST_BASE_URL}/taxa/${idsParam}`;
+      const url = this.withLocaleParams(`${INATURALIST_BASE_URL}/taxa/${idsParam}`);
 
       const response = await this.makeRequest<INaturalistResponse>(url);
 
@@ -917,10 +1191,12 @@ class INaturalistAPIClient implements BiologicalAPIClient {
 /**
  * Create API Client Factory Function
  * Allows for dependency injection and testing
+ * @param forcedLocale - When set (e.g. `"fr"`), bypasses Nuxt and uses this locale for iNaturalist
+ *   `locale=` and IndexedDB locale keys — intended for Vitest only.
  * @returns New BiologicalAPIClient instance
  */
-export function createApiClient(): BiologicalAPIClient {
-  return new INaturalistAPIClient();
+export function createApiClient(forcedLocale?: string): BiologicalAPIClient {
+  return new INaturalistAPIClient(forcedLocale);
 }
 
 /**
