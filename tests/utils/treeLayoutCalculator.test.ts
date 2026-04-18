@@ -4,6 +4,7 @@ import {
   getViewBoxFromDimensions,
 
 } from "~/utils/treeLayoutCalculator";
+import { getTreeNodeBoxWidth } from "~/utils/treeNodeWidth";
 import type { TreeData, TreeNode } from "~/types/tree";
 import type { Animal } from "~/types/animal";
 
@@ -369,6 +370,83 @@ describe("calculateTreeLayout", () => {
 
       expect(result.nodes.size).toBe(20); // 1 root + 3 clades + 15 animals + 1 target
       expect(calculationTime).toBeLessThan(500);
+    });
+  });
+
+  describe("variable-width labels", () => {
+    it("should space sibling leaves so long names do not overlap", () => {
+      const longA
+        = "Lézard vert oriental with extra words to force a wide box";
+      const longB
+        = "Lézard des palissades with different long text for width";
+
+      const parent: TreeNode = {
+        id: "clade-squamata",
+        type: "clade",
+        name: "Squamata",
+        cladeData: { name: "Squamata", rank: "order" },
+        children: [],
+      };
+
+      const leaf1: TreeNode = {
+        id: "animal-a",
+        type: "animal",
+        name: longA,
+        data: {
+          id: "a",
+          name: longA,
+          scientificName: "A",
+          taxonomy: [],
+        } as Animal,
+        children: [],
+        parent,
+      };
+
+      const leaf2: TreeNode = {
+        id: "animal-b",
+        type: "animal",
+        name: longB,
+        data: {
+          id: "b",
+          name: longB,
+          scientificName: "B",
+          taxonomy: [],
+        } as Animal,
+        children: [],
+        parent,
+      };
+
+      parent.children = [leaf1, leaf2];
+
+      const root: TreeNode = {
+        id: "root",
+        type: "clade",
+        name: "Chordata",
+        cladeData: { name: "Chordata", rank: "phylum" },
+        children: [parent],
+      };
+      parent.parent = root;
+
+      const treeData: TreeData = {
+        root,
+        target: leaf1,
+        nodes: [root, parent, leaf1, leaf2],
+        guesses: [],
+      };
+
+      const result = calculateTreeLayout(treeData, 800);
+      const pos1 = result.nodes.get("animal-a")?.position;
+      const pos2 = result.nodes.get("animal-b")?.position;
+
+      expect(pos1).toBeDefined();
+      expect(pos2).toBeDefined();
+
+      const centerDist = Math.abs(pos1!.x - pos2!.x);
+      const w1 = getTreeNodeBoxWidth(leaf1, true);
+      const w2 = getTreeNodeBoxWidth(leaf2, true);
+      const minNeeded = w1 / 2 + w2 / 2 + 12;
+
+      expect(centerDist).toBeGreaterThanOrEqual(minNeeded - 1);
     });
   });
 
