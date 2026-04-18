@@ -13,6 +13,8 @@ export default defineConfig({
   use: {
     baseURL: BASE_URL,
     trace: "on-first-retry",
+    // Match default app locale so selectors and copy stay stable (i18n cookie + browser language).
+    locale: "en-US",
   },
   webServer: {
     command: `pnpm dev --port ${PORT} --host 127.0.0.1`,

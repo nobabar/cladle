@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { goToFreePlayFromDaily, openPuzzleHistoryFromDaily } from "./helpers/daily-header";
+import { goToDailyFromFreePlay, goToFreePlayFromDaily, openPuzzleHistoryFromDaily } from "./helpers/daily-header";
 import { getTodayUtcDate, mockINaturalist } from "./helpers/inaturalist";
 
 test.beforeEach(async ({ page }) => {
@@ -93,10 +93,10 @@ test("replay mode from history and return to today", async ({ page }) => {
   await openPuzzleHistoryFromDaily(page);
   await page.getByRole("button", { name: "View puzzle" }).click();
 
-  await expect(page.getByRole("button", { name: "Back to today's puzzle" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Back to today" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Search for an animal" })).toBeDisabled();
 
-  await page.getByRole("button", { name: "Back to today's puzzle" }).dispatchEvent("click");
+  await page.getByRole("button", { name: "Back to today" }).dispatchEvent("click");
   await expect(page.getByRole("combobox", { name: "Search for an animal" })).toBeEnabled();
 });
 
@@ -142,7 +142,7 @@ test("persistence across mode switch keeps each mode state", async ({ page }) =>
   await page.getByRole("option", { name: /Gray Wolf/i }).click();
   await expect(page.locator(".notebook-guess-history").getByText("Gray Wolf", { exact: true })).toBeVisible();
 
-  await page.getByRole("link", { name: "Go to daily puzzle" }).click();
+  await goToDailyFromFreePlay(page);
   await expect(page).toHaveURL(/\/$/);
   await expect(page.locator(".notebook-guess-history").getByText("Lion", { exact: true })).toBeVisible();
   await expect(page.locator(".notebook-guess-history").getByText("Gray Wolf", { exact: true })).toHaveCount(0);

@@ -49,7 +49,9 @@ test("API outage shows dedicated iNaturalist message after repeated failures", a
   await searchInput.fill("bear");
   await bearReq;
   await expect(
-    searchShell.getByText(/iNaturalist is currently unavailable, so taxonomy\/media search is temporarily degraded/),
+    searchShell.getByText(
+      /iNaturalist is currently unavailable, so taxonomy and media search is temporarily degraded/,
+    ),
   ).toBeVisible({
     timeout: 60_000,
   });
