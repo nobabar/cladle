@@ -29,8 +29,12 @@
     "openPreferences": "Ouvrir le menu des préférences",
     "colorMode": {
       "label": "Thème",
-      "switchToLight": "Passer au thème clair",
-      "switchToDark": "Passer au thème sombre"
+      "system": "Système",
+      "light": "Clair",
+      "dark": "Sombre",
+      "ariaSystem": "Thème : suivre le mode clair ou sombre de l’appareil",
+      "ariaLight": "Thème : clair",
+      "ariaDark": "Thème : sombre"
     },
     "language": {
       "label": "Langue"

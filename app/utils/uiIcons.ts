@@ -28,4 +28,6 @@ export const uiIcon = {
   copy: "i-streamline-freehand-copy-paste-clipboard",
   calendar: "i-streamline-freehand-calendar-date",
   preferences: "i-streamline-freehand-settings-cog-double-1",
+  computer: "i-streamline-freehand-laptop-computer-smiley",
+  phone: "i-streamline-freehand-mobile-phone-smartphone",
 } as const;

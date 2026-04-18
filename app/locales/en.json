@@ -29,8 +29,12 @@
     "openPreferences": "Open profile preferences",
     "colorMode": {
       "label": "Color mode",
-      "switchToLight": "Switch to light mode",
-      "switchToDark": "Switch to dark mode"
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark",
+      "ariaSystem": "Color mode: match device light or dark setting",
+      "ariaLight": "Color mode: light",
+      "ariaDark": "Color mode: dark"
     },
     "language": {
       "label": "Language"
