@@ -16,6 +16,22 @@ export interface ErrorMessageMap {
   [code: string]: string;
 }
 
+const DEFAULT_ERROR_FALLBACK = "An unexpected error occurred. Please try again.";
+
+function translateErrorKey(key: string, fallback: string): string {
+  try {
+    const nuxtApp = useNuxtApp() as { $i18n?: { t?: (k: string) => string } };
+    const i18nT = nuxtApp.$i18n?.t;
+    if (typeof i18nT === "function") {
+      const translated = i18nT(key) as string;
+      return translated || fallback;
+    }
+  } catch {
+    // Nuxt app may be unavailable in isolated utility calls.
+  }
+  return fallback;
+}
+
 /**
  * Game Error Type
  * Represents errors that occur during game operations
@@ -44,12 +60,31 @@ export const ERROR_MESSAGES: ErrorMessageMap = {
   STORAGE_WRITE_FAILED:
     "Could not save progress on this device. You can keep playing in this session. Please check storage or permissions if this continues.",
   STORAGE_READ_FAILED:
-    "Could not load saved progress. Please continue — a fresh start will be used for this session.",
+    "Could not load saved progress. Please continue - a fresh start will be used for this session.",
   UNKNOWN_ERROR: "An unexpected error occurred. Please try again.",
   TIMEOUT: "Request timed out. Please try again.",
   NOT_FOUND: "Resource not found. Please check your input.",
   PARSE_ERROR: "Failed to parse response from server.",
   OFFLINE: "You appear to be offline. Please check your connection.",
+};
+
+const ERROR_MESSAGE_KEYS: ErrorMessageMap = {
+  ANIMAL_NOT_FOUND: "errors.animalNotFound",
+  CLADE_NOT_FOUND: "errors.cladeNotFound",
+  INVALID_TAXONOMY: "errors.invalidTaxonomy",
+  NETWORK_ERROR: "errors.networkError",
+  VALIDATION_ERROR: "errors.validationError",
+  API_UNAVAILABLE: "errors.apiUnavailable",
+  CACHE_ERROR: "errors.cacheError",
+  SHARE_CLIPBOARD_FAILED: "errors.shareClipboardFailed",
+  STORAGE_QUOTA_EXCEEDED: "errors.storageQuotaExceeded",
+  STORAGE_WRITE_FAILED: "errors.storageWriteFailed",
+  STORAGE_READ_FAILED: "errors.storageReadFailed",
+  UNKNOWN_ERROR: "errors.common.unknown",
+  TIMEOUT: "errors.timeout",
+  NOT_FOUND: "errors.notFound",
+  PARSE_ERROR: "errors.parseError",
+  OFFLINE: "errors.offline",
 };
 
 /**
@@ -64,10 +99,13 @@ export function getUserFriendlyError(
   defaultMessage?: string,
 ): string {
   if (code && ERROR_MESSAGES[code]) {
-    return ERROR_MESSAGES[code];
+    return translateErrorKey(
+      ERROR_MESSAGE_KEYS[code] || "",
+      defaultMessage || ERROR_MESSAGES[code],
+    );
   }
 
-  return defaultMessage || ERROR_MESSAGES.UNKNOWN_ERROR || "An unexpected error occurred. Please try again.";
+  return translateErrorKey("errors.common.unknown", defaultMessage || DEFAULT_ERROR_FALLBACK);
 }
 
 /**

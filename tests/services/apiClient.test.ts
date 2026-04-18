@@ -112,7 +112,7 @@ describe("api client", () => {
       expect(result.data?.scientificName).toBe("Tiger");
       expect(result.data?.imageUrl).toBe("https://example.com/tiger.jpg");
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        "https://api.inaturalist.org/v1/taxa/42?include_ancestors=true",
+        "https://api.inaturalist.org/v1/taxa/42?include_ancestors=true&locale=en",
         expect.any(Object),
       );
     });
@@ -1213,17 +1213,23 @@ describe("api client", () => {
           ok: true,
           status: 200,
           json: async () => mockDetailResponse,
+        } as Response)
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => mockSearchResponse,
         } as Response);
 
-      // Act - First request (cache miss)
+      // Act - First request (cache miss: search + detail)
       const result1 = await client.fetchCladeData("Mammalia");
 
-      // Second request (cache hit)
+      // Second request: search again for taxon id, then detail from IndexedDB bundle
       const result2 = await client.fetchCladeData("Mammalia");
 
       // Assert
       expect(result1.data).toEqual(result2.data);
-      expect(globalThis.fetch).toHaveBeenCalledTimes(2); // Search + detail (only on first request)
+      // First request: search + detail; second: search only (no detail fetch)
+      expect(globalThis.fetch).toHaveBeenCalledTimes(3);
       expect(result2.data?.name).toBe("Mammalia");
     });
 

@@ -9,17 +9,6 @@ import { treeToMermaid } from "~/utils/mermaidExporter";
 import { uiIcon } from "~/utils/uiIcons";
 import { DEFAULT_ROUGHNESS, resolveColor, useRoughSvg } from "~/composables/useRoughSvg";
 
-interface Props {
-  /** Tree data structure to visualize */
-  treeData?: TreeData | null;
-  /** Whether to show the target animal (default: false for game) */
-  showTarget?: boolean;
-  /** Width of the visualization container */
-  width?: number;
-  /** Height of the visualization container */
-  height?: number;
-}
-
 const props = withDefaults(defineProps<Props>(), {
   treeData: null,
   showTarget: false,
@@ -30,6 +19,19 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   nodeClick: [node: TreeNode];
 }>();
+
+const { t } = useI18n();
+
+interface Props {
+  /** Tree data structure to visualize */
+  treeData?: TreeData | null;
+  /** Whether to show the target animal (default: false for game) */
+  showTarget?: boolean;
+  /** Width of the visualization container */
+  width?: number;
+  /** Height of the visualization container */
+  height?: number;
+}
 
 const layoutConfig: TreeLayoutConfig = {
   horizontalSpacing: 150,
@@ -571,33 +573,33 @@ function updateNodeTabIndices(): void {
 function getNodeAriaLabel(node: TreeNode): string {
   const parts: string[] = [];
   if (node.type === "animal") {
-    parts.push("Animal");
+    parts.push(t("game.ariaNodeAnimal"));
     if (node.isTarget) {
-      parts.push("target");
+      parts.push(t("game.ariaTarget"));
       // In production, don't reveal the target animal name in aria-label
       if (isDevMode.value) {
         parts.push(node.name);
       } else {
-        parts.push("unknown");
+        parts.push(t("game.ariaUnknownTarget"));
       }
     } else {
       parts.push(node.name);
     }
     if (node.isGuess) {
-      parts.push("guessed");
+      parts.push(t("game.ariaGuessed"));
     }
     // Only include scientific name if not target in production
     if (node.data?.scientificName && (isDevMode.value || !node.isTarget)) {
-      parts.push(`scientific name: ${node.data.scientificName}`);
+      parts.push(t("game.ariaScientificName", { name: node.data.scientificName }));
     }
   } else {
-    parts.push("Clade");
+    parts.push(t("game.ariaNodeClade"));
     if (node.isLCA) {
-      parts.push("Last Common Ancestor");
+      parts.push(t("game.lcaLabel"));
     }
     parts.push(node.name);
     if (node.cladeData?.rank) {
-      parts.push(`rank: ${node.cladeData.rank}`);
+      parts.push(t("game.ariaRank", { rank: node.cladeData.rank }));
     }
   }
   return parts.join(", ");
@@ -802,7 +804,7 @@ async function copyTreeAsMermaid(): Promise<void> {
     class="tree-visualization"
     :class="{ 'tree-visualization--empty': !hasTreeData }"
     role="tree"
-    aria-label="Phylogenetic tree showing evolutionary relationships"
+    :aria-label="t('game.treeAriaRoot')"
     tabindex="0"
     @keydown="handleKeyDown"
   >
@@ -811,8 +813,8 @@ async function copyTreeAsMermaid(): Promise<void> {
       v-if="hasTreeData && isDevMode"
       type="button"
       class="tree-visualization__copy-button"
-      :aria-label="isCopied ? 'Copied to clipboard' : 'Copy tree as Mermaid diagram'"
-      :title="isCopied ? 'Copied to clipboard' : 'Copy tree as Mermaid diagram'"
+      :aria-label="isCopied ? t('game.treeCopied') : t('game.treeCopyMermaid')"
+      :title="isCopied ? t('game.treeCopied') : t('game.treeCopyMermaid')"
       @click="copyTreeAsMermaid"
     >
       <Icon
@@ -824,7 +826,7 @@ async function copyTreeAsMermaid(): Promise<void> {
     <!-- Empty State -->
     <div v-if="!hasTreeData" class="tree-visualization__empty">
       <p class="tree-visualization__empty-text">
-        No tree data available. Make a guess to see the phylogenetic tree.
+        {{ t("game.treeEmptyState") }}
       </p>
     </div>
 
@@ -837,7 +839,7 @@ async function copyTreeAsMermaid(): Promise<void> {
       :viewBox="svgViewBox"
       class="tree-visualization__svg"
       xmlns="http://www.w3.org/2000/svg"
-      aria-label="Phylogenetic tree visualization"
+      :aria-label="t('game.treeAriaSvg')"
     >
       <g ref="edgesGroupRef" class="tree-edges-rough" />
 

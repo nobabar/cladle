@@ -22,6 +22,8 @@ const emit = defineEmits<{
   (e: "dismiss"): void;
 }>();
 
+const { t } = useI18n();
+
 function dismiss() {
   emit("dismiss");
 }
@@ -90,7 +92,7 @@ const errorColorClasses = computed(() => {
           {{ errorIcon }}
         </span>
         <span class="flex-1">
-          <span class="sr-only">Error: </span>{{ error.message }}
+          <span class="sr-only">{{ t("common.errorPrefix") }} </span>{{ error.message }}
         </span>
         <UButton
           v-if="dismissible"
@@ -98,7 +100,7 @@ const errorColorClasses = computed(() => {
           variant="ghost"
           size="xs"
           :icon="uiIcon.close"
-          aria-label="Dismiss error"
+          :aria-label="t('common.dismissError')"
           class="flex-shrink-0 ml-2 min-w-[24px] min-h-[24px] notebook-button-secondary"
           @click="dismiss"
         />

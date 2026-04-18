@@ -23,7 +23,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   animals: undefined,
-  placeholder: "Search for an animal...",
+  placeholder: undefined,
   minChars: 2,
   maxSuggestions: 20,
   disabled: false,
@@ -39,6 +39,7 @@ interface Emits {
 }
 
 const api = useBiologicalAPI();
+const { t } = useI18n();
 
 const searchQuery = ref("");
 const isOpen = ref(false);
@@ -55,6 +56,7 @@ const isSearching = ref(false);
 const isSubmitting = ref(false);
 const outageMessage = ref<string | null>(null);
 const outageStatusUrl = "https://www.inaturalist.org/";
+const resolvedPlaceholder = computed(() => props.placeholder || t("game.searchPlaceholder"));
 
 defineShortcuts({
   "/": {
@@ -161,7 +163,7 @@ async function selectAnimal(animal: Animal) {
     isSubmitting.value = false;
     validationError.value = {
       type: "invalid",
-      message: "An unexpected error occurred. Please try again.",
+      message: t("errors.common.unknown"),
       details: error,
     };
     emit("validationError", validationError.value);
@@ -363,9 +365,7 @@ async function searchAnimalsFromAPI(query: string) {
       && details?.provider === "iNaturalist"
       && details?.outageLikely === true;
 
-    outageMessage.value = isINaturalistOutage
-      ? "iNaturalist is currently unavailable, so taxonomy/media search is temporarily degraded."
-      : null;
+    outageMessage.value = isINaturalistOutage ? t("game.searchOutage") : null;
 
     if (result.data) {
       apiAnimals.value = result.data;
@@ -436,12 +436,12 @@ onUnmounted(() => {
       <UInput
         ref="inputRef"
         :model-value="searchQuery"
-        :placeholder="placeholder"
+        :placeholder="resolvedPlaceholder"
         :disabled="disabled || isSubmitting"
         :loading="isSearching"
         :ui="{ trailing: 'pe-1' }"
         role="combobox"
-        aria-label="Search for an animal"
+        :aria-label="t('game.searchAriaLabel')"
         :aria-expanded="isOpen ? 'true' : 'false'"
         aria-haspopup="listbox"
         aria-autocomplete="list"
@@ -468,7 +468,7 @@ onUnmounted(() => {
             variant="link"
             size="sm"
             :icon="uiIcon.circleX"
-            aria-label="Clear input"
+            :aria-label="t('game.clearSearchInput')"
             class="min-w-[44px] min-h-[44px] touch-target flex items-center justify-center"
             @click="clearInput"
           />
@@ -511,10 +511,10 @@ onUnmounted(() => {
                 variant="soft"
                 color="neutral"
                 :icon="uiIcon.refresh"
-                aria-label="Retry search"
+                :aria-label="t('game.searchRetryAria')"
                 @click="retrySearch"
               >
-                Retry
+                {{ t("game.searchRetry") }}
               </UButton>
               <a
                 :href="outageStatusUrl"
@@ -522,7 +522,7 @@ onUnmounted(() => {
                 rel="noopener noreferrer"
                 class="text-xs underline underline-offset-2 text-[var(--color-ink-subtle)]"
               >
-                Check iNaturalist
+                {{ t("game.searchCheckInaturalist") }}
               </a>
             </div>
           </div>
@@ -543,9 +543,12 @@ onUnmounted(() => {
           ref="suggestionsRef"
           role="listbox"
           :aria-label="
-            `${filteredSuggestions.length} ${
-              filteredSuggestions.length === 1 ? 'suggestion' : 'suggestions'
-            } available. Use arrow keys to navigate, Enter to select.`
+            t(
+              filteredSuggestions.length === 1
+                ? 'game.suggestionAriaLabelSingle'
+                : 'game.suggestionAriaLabelPlural',
+              { count: filteredSuggestions.length },
+            )
           "
           class="
             animal-search__dropdown-panel
@@ -655,7 +658,7 @@ onUnmounted(() => {
             p-4 text-center text-[var(--color-ink-subtle)] dark:text-[var(--color-ink-subtle)]
           "
         >
-          No animals found matching "{{ searchQuery }}"
+          {{ t("game.searchNoResults", { query: searchQuery }) }}
         </div>
       </Transition>
     </div>

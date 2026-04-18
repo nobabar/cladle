@@ -15,6 +15,7 @@ const props = withDefaults(
 );
 
 const gameStore = useGameStore();
+const { t } = useI18n();
 
 const isOpen = ref(false);
 const history = ref<PuzzleHistoryEntry[]>([]);
@@ -39,9 +40,9 @@ function selectEntry(entry: PuzzleHistoryEntry) {
 }
 
 function statusLabel(status: string) {
-  if (status === "won") return "Solved";
-  if (status === "lost") return "Unsolved";
-  return "In progress";
+  if (status === "won") return t("history.status.solved");
+  if (status === "lost") return t("history.status.unsolved");
+  return t("history.status.inProgress");
 }
 
 defineExpose({ open });
@@ -55,8 +56,8 @@ defineExpose({ open });
       color="neutral"
       variant="ghost"
       size="sm"
-      aria-label="Open puzzle history"
-      title="Puzzle history"
+      :aria-label="t('history.open')"
+      :title="t('history.title')"
       class="min-w-[44px] min-h-[44px] touch-target justify-center items-center
         notebook-button-secondary cursor-pointer"
       @click="open"
@@ -68,13 +69,13 @@ defineExpose({ open });
             class="text-lg font-semibold mb-2 text-[var(--color-ink)]
             dark:text-[var(--color-ink)]"
           >
-            Puzzle history
+            {{ t("history.title") }}
           </h2>
           <p
             class="text-sm text-[var(--color-ink-subtle)]
             dark:text-[var(--color-ink-subtle)] mb-4"
           >
-            View past puzzles.
+            {{ t("history.description") }}
           </p>
           <ul
             v-if="sortedHistory.length > 0"
@@ -99,15 +100,15 @@ defineExpose({ open });
                 size="xs"
                 color="neutral"
                 variant="soft"
-                aria-label="View puzzle"
+                :aria-label="t('history.viewPuzzle')"
                 @click="selectEntry(entry)"
               >
-                View
+                {{ t("history.view") }}
               </UButton>
             </li>
           </ul>
           <p v-else class="text-sm text-[var(--color-ink-subtle)]">
-            No past puzzles yet. Complete puzzles to see them here.
+            {{ t("history.empty") }}
           </p>
           <div class="mt-4 flex justify-end">
             <UButton
@@ -115,7 +116,7 @@ defineExpose({ open });
               variant="ghost"
               @click="close"
             >
-              Close
+              {{ t("common.close") }}
             </UButton>
           </div>
         </div>
