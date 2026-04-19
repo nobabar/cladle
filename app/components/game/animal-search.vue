@@ -2,9 +2,9 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { Animal } from "~/types/animal";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
+import { useUiIcons } from "~/composables/useUiIcons";
 import { validateAnimalGuess } from "~/utils/animalValidator";
 import type { ValidationError } from "~/utils/animalValidator";
-import { uiIcon } from "~/utils/uiIcons";
 
 interface Props {
   /** Optional list of animals to search through (if not provided, uses API) */
@@ -40,6 +40,7 @@ interface Emits {
 
 const api = useBiologicalAPI();
 const { t } = useI18n();
+const uiIcon = useUiIcons();
 
 const searchQuery = ref("");
 const isOpen = ref(false);

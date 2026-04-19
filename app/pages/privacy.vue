@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { uiIcon } from "~/utils/uiIcons";
+import { useUiIcons } from "~/composables/useUiIcons";
 
 useSeoMeta({
   title: "Privacy - Cladle",
@@ -10,6 +10,8 @@ useSeoMeta({
 const isEmailVisible = ref(false);
 const emailAddress = computed(() => ["baptiste.rousseau", "etik.com"].join("@"));
 const emailHref = computed(() => `mailto:${emailAddress.value}`);
+
+const uiIcon = useUiIcons();
 
 function revealEmail() {
   isEmailVisible.value = true;

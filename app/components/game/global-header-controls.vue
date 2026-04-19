@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { uiIcon } from "~/utils/uiIcons";
+import { useUiIcons } from "~/composables/useUiIcons";
 
 interface Props {
   gameMode: "daily" | "free-play";
@@ -22,6 +22,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const icons = useUiIcons();
 const isProfileModalOpen = ref(false);
 
 /** Ref to open puzzle history modal from the mobile menu. */
@@ -36,6 +37,7 @@ function openProfileModal() {
  * Preferences replaces a standalone theme toggle (theme + language live in the modal).
  */
 const headerMobileMenuItems = computed(() => {
+  const i = icons.value;
   const items: {
     label?: string;
     icon?: string;
@@ -45,7 +47,7 @@ const headerMobileMenuItems = computed(() => {
   if (props.gameMode === "daily" && !props.isReplayMode) {
     items.push({
       label: t("history.title"),
-      icon: uiIcon.history,
+      icon: i.history,
       onSelect: () => {
         puzzleHistoryRef.value?.open();
       },
@@ -55,7 +57,7 @@ const headerMobileMenuItems = computed(() => {
   if (props.gameMode === "daily") {
     items.push({
       label: t("header.freePlay"),
-      icon: uiIcon.infinity,
+      icon: i.infinity,
       onSelect: () => {
         void navigateTo("/free-play");
       },
@@ -63,7 +65,7 @@ const headerMobileMenuItems = computed(() => {
   } else {
     items.push({
       label: t("header.dailyPuzzle"),
-      icon: uiIcon.calendar,
+      icon: i.calendar,
       onSelect: () => {
         void navigateTo("/");
       },
@@ -72,7 +74,7 @@ const headerMobileMenuItems = computed(() => {
 
   items.push({
     label: t("header.menuPreferences"),
-    icon: uiIcon.preferences,
+    icon: i.preferences,
     onSelect: () => {
       openProfileModal();
     },
@@ -107,7 +109,7 @@ const headerMobileMenuItems = computed(() => {
       <UButton
         variant="ghost"
         size="sm"
-        :icon="uiIcon.return"
+        :icon="icons.return"
         :aria-label="t('header.backToToday')"
         class="text-[var(--color-ink-subtle)]"
         @click="emit('exitReplay')"
@@ -130,7 +132,7 @@ const headerMobileMenuItems = computed(() => {
       >
         <template #default="{ open: menuOpen }">
           <UButton
-            :icon="uiIcon.menu"
+            :icon="icons.menu"
             color="neutral"
             variant="ghost"
             size="sm"
@@ -152,7 +154,7 @@ const headerMobileMenuItems = computed(() => {
         <UButton
           v-if="props.gameMode === 'daily'"
           to="/free-play"
-          :icon="uiIcon.infinity"
+          :icon="icons.infinity"
           color="neutral"
           variant="ghost"
           size="sm"
@@ -165,7 +167,7 @@ const headerMobileMenuItems = computed(() => {
         <UButton
           v-if="props.gameMode === 'free-play'"
           to="/"
-          :icon="uiIcon.calendar"
+          :icon="icons.calendar"
           color="neutral"
           variant="ghost"
           size="sm"
@@ -176,7 +178,7 @@ const headerMobileMenuItems = computed(() => {
         />
 
         <UButton
-          :icon="uiIcon.preferences"
+          :icon="icons.preferences"
           color="neutral"
           variant="ghost"
           size="sm"

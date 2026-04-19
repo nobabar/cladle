@@ -7,8 +7,8 @@ import {
 } from "~/utils/treeLayoutCalculator";
 import { getTreeNodeBoxWidth } from "~/utils/treeNodeWidth";
 import { treeToMermaid } from "~/utils/mermaidExporter";
-import { uiIcon } from "~/utils/uiIcons";
 import { DEFAULT_ROUGHNESS, resolveColor, useRoughSvg } from "~/composables/useRoughSvg";
+import { useUiIcons } from "~/composables/useUiIcons";
 
 const props = withDefaults(defineProps<Props>(), {
   treeData: null,
@@ -22,6 +22,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const uiIcon = useUiIcons();
 
 interface Props {
   /** Tree data structure to visualize */

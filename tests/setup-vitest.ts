@@ -1,5 +1,17 @@
+import { ref } from "vue";
 import { vi } from "vitest";
 import en from "~/locales/en.json";
+
+/**
+ * Nuxt provides `useCookie` etc.; Vitest does not. Stub reading-font preference so
+ * `useUiIcons` (explicitly imported in SFCs) runs without Nuxt.
+ */
+vi.mock("~/composables/useReadableFont", () => ({
+  useReadableFont: () => ({
+    readableFontPreference: ref<"on" | "off">("off"),
+    setReadableFontPreference: vi.fn(),
+  }),
+}));
 
 // JSDOM has no Canvas 2D implementation; `treeNodeWidth` uses measureText. Without this,
 // every getContext("2d") logs: "Not implemented: HTMLCanvasElement's getContext()..."

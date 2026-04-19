@@ -6,7 +6,7 @@ import type { Animal } from "~/types/animal";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 
 import { useResponsive } from "~/composables/useResponsive";
-import { uiIcon } from "~/utils/uiIcons";
+import { useUiIcons } from "~/composables/useUiIcons";
 
 const props = withDefaults(defineProps<Props>(), {
   isOpen: false,
@@ -20,6 +20,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const uiIcon = useUiIcons();
 
 interface Props {
   /** Controls panel visibility */

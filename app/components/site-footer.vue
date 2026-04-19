@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { uiIcon } from "~/utils/uiIcons";
+import { useUiIcons } from "~/composables/useUiIcons";
 
 const { t } = useI18n();
+const uiIcon = useUiIcons();
 
 const taxonomyResources = [
   {

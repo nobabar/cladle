@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useUiIcons } from "~/composables/useUiIcons";
 import { loadPuzzleHistory } from "~/utils/puzzleHistory";
 import { formatPuzzleDate } from "~/utils/dateUtils";
 import { useGameStore } from "~/stores/gameStore";
 import type { PuzzleHistoryEntry } from "~/types/puzzleHistory";
-import { uiIcon } from "~/utils/uiIcons";
 
 const props = withDefaults(
   defineProps<{
@@ -16,6 +16,7 @@ const props = withDefaults(
 
 const gameStore = useGameStore();
 const { t } = useI18n();
+const uiIcon = useUiIcons();
 
 const isOpen = ref(false);
 const history = ref<PuzzleHistoryEntry[]>([]);
