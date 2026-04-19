@@ -75,7 +75,7 @@ test("daily persistence survives refresh and resets with new day", async ({ page
   });
 
   await page.reload();
-  await expect(page.getByText("Start by searching for an animal to see how it relates to the target")).toBeVisible({
+  await expect(page.getByText("Start by searching for an animal to see how it relates to the mystery animal")).toBeVisible({
     timeout: 15_000,
   });
   await expect(page.getByText(/Guesses remaining:\s*20/)).toBeVisible();
@@ -157,7 +157,7 @@ test("loss path from incorrect guess", async ({ page }) => {
   await page.getByRole("option", { name: /Lion/i }).click();
 
   await expect(page.getByRole("heading", { name: "Game Over" })).toBeVisible();
-  await expect(page.getByText("Game Over! The target was Tiger.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Game Over! The mystery animal was the Tiger.", { exact: true })).toBeVisible();
 });
 
 test("cross-day rollover resets to a fresh daily puzzle", async ({ page }) => {
@@ -189,7 +189,7 @@ test("cross-day rollover resets to a fresh daily puzzle", async ({ page }) => {
   // Wait for the post-rollover “fresh puzzle” shell first. This prevents the previous
   // win screen from briefly remaining in the tree while persisted state rehydrates.
   const startHint = page.getByText(
-    "Start by searching for an animal to see how it relates to the target",
+    "Start by searching for an animal to see how it relates to the mystery animal",
   );
   await expect(startHint).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("heading", { name: /You Won!/ })).toHaveCount(0, { timeout: 10_000 });

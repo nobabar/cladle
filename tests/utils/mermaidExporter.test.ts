@@ -58,7 +58,7 @@ describe("mermaidExporter", () => {
       expect(result).toContain("graph TD");
       expect(result).toContain("Animalia");
       expect(result).toContain("Lion");
-      expect(result).toContain("(Target)");
+      expect(result).toContain("(Mystery)");
       expect(result).toContain("-->");
     });
 
@@ -146,7 +146,7 @@ describe("mermaidExporter", () => {
       expect(result).toContain("Panthera");
       expect(result).toContain("Lion");
       expect(result).toContain("Tiger");
-      expect(result).toContain("(Target)");
+      expect(result).toContain("(Mystery)");
       expect(result).toContain("(Guess)");
       expect(result).toContain("(LCA)");
       expect(result).toContain("-->");
@@ -241,13 +241,13 @@ describe("mermaidExporter", () => {
         guesses: [],
       };
 
-      // Pass isDevMode: true to see target animal names and (Target) indicator in tests
+      // Pass isDevMode: true to see mystery animal names and (Mystery) indicator in tests
       const result = treeToMermaid(treeData, true);
 
       expect(result).toContain("%% Styling:");
       expect(result).toContain("🐾");
       expect(result).toContain("🌳");
-      expect(result).toContain("(Target)");
+      expect(result).toContain("(Mystery)");
       expect(result).toContain("(Guess)");
       expect(result).toContain("(LCA)");
     });

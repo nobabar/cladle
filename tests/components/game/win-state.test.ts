@@ -369,7 +369,7 @@ describe("winState Component", () => {
       await nextTick();
 
       expect(wrapper.text()).toContain("Game Over");
-      expect(wrapper.text()).toContain("The target was Tiger");
+      expect(wrapper.text()).toContain("The mystery animal was the Tiger");
     });
 
     it("should display encouraging message when lost", async () => {
