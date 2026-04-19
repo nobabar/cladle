@@ -35,6 +35,21 @@ const {
 } = toRefs(props);
 const { t } = useI18n();
 
+/** Overrides default tooltip (single-line, fixed height) for multi-line help in metrics. */
+const helpTooltipUi = {
+  content:
+    "h-auto min-h-0 max-w-[min(240px,70vw)] whitespace-normal items-start gap-0 py-1.5 shadow-md",
+  text: "block whitespace-normal text-xs leading-snug",
+};
+
+/** Absolute strategy keeps the bubble inside the modal stack (fixed would use the viewport). */
+const helpTooltipContent = {
+  side: "top" as const,
+  sideOffset: 6,
+  collisionPadding: 12,
+  positionStrategy: "absolute" as const,
+};
+
 const shareButtonLabel = computed(() => {
   if (lastCopyStatus.value === "success") {
     return t("common.copied");
@@ -44,9 +59,6 @@ const shareButtonLabel = computed(() => {
   }
   return t("winState.shareResults");
 });
-
-const evolHelpId = useId();
-const furthestHelpId = useId();
 
 function onCopy(): void {
   emit("copy");
@@ -134,13 +146,20 @@ function onNodeClick(node: TreeNode): void {
               data-testid="win-state-furthest-evolutionary-distance"
             >
               <span class="win-state__phylo-metrics-label">
-                {{ t("winState.furthestEvolutionaryDistance") }}: {{ phyloMetrics.furthestEvolutionaryDistance }}
+                {{ t("winState.furthestEvolutionaryDistance") }}:
+                {{ phyloMetrics.furthestEvolutionaryDistance }}
               </span>
-              <span class="win-state__help-wrap">
+              <UTooltip
+                :text="t('winState.furthestEvolutionaryDistanceHelp')"
+                :delay-duration="0"
+                :content="helpTooltipContent"
+                :portal="false"
+                class="inline-flex shrink-0"
+                :ui="helpTooltipUi"
+              >
                 <button
                   type="button"
                   class="win-state__help-trigger"
-                  :aria-describedby="furthestHelpId"
                   :aria-label="t('winState.furthestEvolutionaryDistanceHelpAria')"
                 >
                   <Icon
@@ -149,14 +168,7 @@ function onNodeClick(node: TreeNode): void {
                     aria-hidden="true"
                   />
                 </button>
-                <span
-                  :id="furthestHelpId"
-                  role="tooltip"
-                  class="win-state__tooltip"
-                >
-                  {{ t("winState.furthestEvolutionaryDistanceHelp") }}
-                </span>
-              </span>
+              </UTooltip>
             </p>
 
             <p
@@ -166,11 +178,17 @@ function onNodeClick(node: TreeNode): void {
               <span class="win-state__phylo-metrics-label">
                 {{ t("winState.evolutionaryDistance") }}: {{ phyloMetrics.evolutionaryDistance }}
               </span>
-              <span class="win-state__help-wrap">
+              <UTooltip
+                :text="t('winState.evolutionaryDistanceHelp')"
+                :delay-duration="0"
+                :content="helpTooltipContent"
+                :portal="false"
+                class="inline-flex shrink-0"
+                :ui="helpTooltipUi"
+              >
                 <button
                   type="button"
                   class="win-state__help-trigger"
-                  :aria-describedby="evolHelpId"
                   :aria-label="t('winState.evolutionaryDistanceHelpAria')"
                 >
                   <Icon
@@ -179,14 +197,7 @@ function onNodeClick(node: TreeNode): void {
                     aria-hidden="true"
                   />
                 </button>
-                <span
-                  :id="evolHelpId"
-                  role="tooltip"
-                  class="win-state__tooltip"
-                >
-                  {{ t("winState.evolutionaryDistanceHelp") }}
-                </span>
-              </span>
+              </UTooltip>
             </p>
           </div>
 
@@ -381,6 +392,8 @@ function onNodeClick(node: TreeNode): void {
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
+  position: relative;
+  z-index: 0;
 }
 
 .win-state__phylo-metrics {
@@ -392,6 +405,8 @@ function onNodeClick(node: TreeNode): void {
   color: var(--color-ink-subtle, #6b7280);
   flex: 1;
   min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .dark .win-state__phylo-metrics {
@@ -411,13 +426,6 @@ function onNodeClick(node: TreeNode): void {
 
 .win-state__phylo-metrics-label {
   flex: 0 1 auto;
-}
-
-.win-state__help-wrap {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
 }
 
 .win-state__help-trigger {
@@ -443,41 +451,9 @@ function onNodeClick(node: TreeNode): void {
   height: 1rem;
 }
 
-.win-state__tooltip {
-  position: absolute;
-  z-index: 80;
-  left: 50%;
-  bottom: calc(100% + 0.35rem);
-  width: min(240px, 70vw);
-  transform: translateX(-50%);
-  padding: 0.5rem 0.65rem;
-  font-size: 0.75rem;
-  line-height: 1.35;
-  color: var(--color-ink, #111827);
-  background: var(--color-paper, #fdfbf5);
-  border: 1px solid var(--color-border-subtle, #e2d6c3);
-  border-radius: 0.375rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 0.15s ease, visibility 0.15s ease;
-}
-
-.dark .win-state__tooltip {
-  color: #f9fafb;
-  background: var(--color-ink, #1f2937);
-  border-color: #374151;
-}
-
-.win-state__help-wrap:hover .win-state__tooltip,
-.win-state__help-wrap:focus-within .win-state__tooltip {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-}
-
 .win-state__share-button {
+  position: relative;
+  z-index: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
