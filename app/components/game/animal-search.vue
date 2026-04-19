@@ -228,6 +228,29 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
+/**
+ * Only sync list highlight from hover on real hover-capable, fine-pointer devices.
+ * Avoids touch / WebKit "stuck pointer" firing hover over the dropdown under the input.
+ * @param event - Pointer enter event on a suggestion row.
+ * @returns Whether hover-driven highlight updates are allowed for this pointer.
+ */
+function shouldSyncHighlightFromPointerHover(event: PointerEvent): boolean {
+  if (event.pointerType === "touch") {
+    return false;
+  }
+  if (typeof window === "undefined" || !window.matchMedia) {
+    return true;
+  }
+  return window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+}
+
+function onSuggestionPointerEnter(index: number, event: PointerEvent) {
+  if (!shouldSyncHighlightFromPointerHover(event)) {
+    return;
+  }
+  highlightedIndex.value = index;
+}
+
 function scrollToHighlighted() {
   nextTick(() => {
     if (suggestionsRef.value && highlightedIndex.value >= 0) {
@@ -585,7 +608,7 @@ onUnmounted(() => {
             ]"
             tabindex="-1"
             @click="selectAnimal(animal)"
-            @mouseenter="highlightedIndex = index"
+            @pointerenter="onSuggestionPointerEnter(index, $event)"
           >
             <div class="flex flex-col">
               <span class="font-medium text-gray-900 dark:text-gray-100">
