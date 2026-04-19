@@ -529,12 +529,12 @@ function getNodeAriaLabel(node: TreeNode): string {
   if (node.type === "animal") {
     parts.push(t("game.ariaNodeAnimal"));
     if (node.isTarget) {
-      parts.push(t("game.ariaTarget"));
+      parts.push(t("game.ariaMystery"));
       // In production, don't reveal the target animal name in aria-label
       if (isDevMode.value) {
         parts.push(node.name);
       } else {
-        parts.push(t("game.ariaUnknownTarget"));
+        parts.push(t("game.ariaUnknownMystery"));
       }
     } else {
       parts.push(node.name);

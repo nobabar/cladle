@@ -48,7 +48,7 @@ function getNodeLabel(node: TreeNode, isDevMode: boolean = false): string {
 
   // Add special indicators - in production, don't reveal target indicator
   if (node.isTarget && isDevMode) {
-    parts.push("(Target)");
+    parts.push("(Mystery)");
   }
   if (node.isGuess) {
     parts.push("(Guess)");
@@ -126,7 +126,7 @@ export function treeToMermaid(treeData: TreeData | null, isDevMode: boolean = fa
   lines.push("    %% 🐾 = Animal node");
   lines.push("    %% 🌳 = Clade node");
   if (isDevMode) {
-    lines.push("    %% (Target) = Target animal");
+    lines.push("    %% (Mystery) = Mystery animal");
   }
   lines.push("    %% (Guess) = Guessed animal");
   lines.push("    %% (LCA) = Last Common Ancestor");
