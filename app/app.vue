@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useReadableFont } from "~/composables/useReadableFont";
 
 /** Initialize reading-comfort cookie → `<html class="font-readable">` sync (see useReadableFont). */
 useReadableFont();

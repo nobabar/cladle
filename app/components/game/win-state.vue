@@ -5,8 +5,8 @@ import type { TreeNode } from "~/types/tree";
 import { useGameStore } from "~/stores/gameStore";
 import { useResponsive } from "~/composables/useResponsive";
 import { useSharing } from "~/composables/useSharing";
+import { useUiIcons } from "~/composables/useUiIcons";
 import { calculatePhylogeneticMetrics } from "~/utils/sharingFormatter";
-import { uiIcon } from "~/utils/uiIcons";
 
 const emit = defineEmits<{
   nodeClick: [node: TreeNode];
@@ -14,6 +14,7 @@ const emit = defineEmits<{
 
 const gameStore = useGameStore();
 const { t } = useI18n();
+const uiIcon = useUiIcons();
 const { isMobile, isTablet, isDesktop } = useResponsive();
 
 const hasEnded = computed(() => gameStore.hasEnded);

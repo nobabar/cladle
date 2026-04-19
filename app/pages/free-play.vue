@@ -7,12 +7,13 @@ import { DEFAULT_MAX_GUESSES, useGameStore } from "~/stores/gameStore";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 import { apiErrorToGameError } from "~/utils/errorMessages";
 import { selectRandomTargetAnimal } from "~/utils/puzzleSelector";
-import { uiIcon } from "~/utils/uiIcons";
+import { useUiIcons } from "~/composables/useUiIcons";
 
 const gameStore = useGameStore();
 const api = useBiologicalAPI();
 const { isDesktop } = useResponsive();
 const { t } = useI18n();
+const uiIcon = useUiIcons();
 
 const treeData = computed(() => gameStore.treeData);
 const guessHistory = computed(() => gameStore.guesses.map(g => g.animal));

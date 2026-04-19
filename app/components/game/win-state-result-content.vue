@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, toRefs, useId } from "vue";
+import { computed, toRefs } from "vue";
+import { useUiIcons } from "~/composables/useUiIcons";
 import type { Animal } from "~/types/animal";
 import type { TreeData, TreeNode } from "~/types/tree";
 import type { PhylogeneticMetrics } from "~/utils/sharingFormatter";
-import { uiIcon } from "~/utils/uiIcons";
 
 const props = defineProps<{
   isWon: boolean;
@@ -34,6 +34,7 @@ const {
   treeHeight,
 } = toRefs(props);
 const { t } = useI18n();
+const uiIcon = useUiIcons();
 
 /** Overrides default tooltip (single-line, fixed height) for multi-line help in metrics. */
 const helpTooltipUi = {

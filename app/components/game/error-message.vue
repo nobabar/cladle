@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useUiIcons } from "~/composables/useUiIcons";
 import type { GameError } from "~/utils/errorMessages";
-import { uiIcon } from "~/utils/uiIcons";
 
 interface Props {
   /** Error to display */
@@ -23,6 +23,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const uiIcon = useUiIcons();
 
 function dismiss() {
   emit("dismiss");

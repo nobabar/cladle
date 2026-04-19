@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useReadableFont } from "~/composables/useReadableFont";
+import { useUiIcons } from "~/composables/useUiIcons";
 import { useUserPreferences } from "~/composables/useUserPreferences";
 import type { ColorModeUserPreference } from "~/composables/useUserPreferences";
 import { useResponsive } from "~/composables/useResponsive";
-import { uiIcon } from "~/utils/uiIcons";
 
 const isOpen = defineModel<boolean>("open", { default: false });
 
@@ -19,6 +20,7 @@ const {
 } = useUserPreferences();
 
 const { readableFontPreference, setReadableFontPreference } = useReadableFont();
+const icons = useUiIcons();
 
 const languageOptions = computed(() =>
   supportedLocales.map(option => ({
@@ -28,6 +30,7 @@ const languageOptions = computed(() =>
 );
 
 const colorModeOptions = computed(() => {
+  const i = icons.value;
   const options: {
     value: ColorModeUserPreference;
     labelKey: string;
@@ -38,19 +41,19 @@ const colorModeOptions = computed(() => {
       value: "system",
       labelKey: "profile.colorMode.system",
       ariaKey: "profile.colorMode.ariaSystem",
-      icons: [isMobile.value ? uiIcon.phone : uiIcon.computer],
+      icons: [isMobile.value ? i.phone : i.computer],
     },
     {
       value: "light",
       labelKey: "profile.colorMode.light",
       ariaKey: "profile.colorMode.ariaLight",
-      icons: [uiIcon.sun],
+      icons: [i.sun],
     },
     {
       value: "dark",
       labelKey: "profile.colorMode.dark",
       ariaKey: "profile.colorMode.ariaDark",
-      icons: [uiIcon.moon],
+      icons: [i.moon],
     },
   ];
   return options;

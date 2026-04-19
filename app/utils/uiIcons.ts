@@ -1,13 +1,12 @@
 /**
  * App icon names for `<Icon>`, `<UIcon>`, and `UButton` `:icon`.
  *
- * **Local hand-drawn SVGs** (`app/assets/icons/cladle/*.svg`, `fill="currentColor"`) are
- * registered by `@nuxt/icon` as `i-cladle-*` (see `nuxt.config.ts` → `icon.customCollections`).
+ * **Hand-drawn:** local cladle SVGs + Streamline Freehand (Iconify).
+ * **Lucide:** used when reading-comfort font is on (`useUiIcons()`), matching pre–1e1eb35 names.
  *
- * Other glyphs use Streamline Freehand via Iconify.
  * @see https://icon-sets.iconify.design/streamline-freehand/ — CC BY 4.0
  */
-export const uiIcon = {
+export const uiIconHandDrawn = {
   sun: "i-cladle-sun",
   moon: "i-cladle-moon",
   chevronRight: "i-cladle-arrow-single-right",
@@ -31,3 +30,33 @@ export const uiIcon = {
   computer: "i-streamline-freehand-laptop-computer-smiley",
   phone: "i-streamline-freehand-mobile-phone-smartphone",
 } as const;
+
+/** Lucide set (Iconify `i-lucide-*`) */
+export const uiIconLucide = {
+  sun: "i-lucide-sun",
+  moon: "i-lucide-moon",
+  chevronRight: "i-lucide-chevron-right",
+  chevronLeft: "i-lucide-chevron-left",
+
+  return: "i-lucide-arrow-left",
+  history: "i-lucide-history",
+  infinity: "i-lucide-infinity",
+  menu: "i-lucide-menu",
+  circleX: "i-lucide-circle-x",
+  refresh: "i-lucide-refresh-cw",
+  mail: "i-lucide-mail",
+  externalLink: "i-lucide-external-link",
+  close: "i-lucide-x",
+  help: "i-lucide-help-circle",
+  check: "i-lucide-check",
+  share: "i-lucide-share-2",
+  copy: "i-lucide-copy",
+  calendar: "i-lucide-calendar",
+  preferences: "i-lucide-settings",
+  computer: "i-lucide-monitor",
+  phone: "i-lucide-smartphone",
+} as const;
+
+export type UiIconSet = typeof uiIconHandDrawn;
+
+export const uiIcon = uiIconHandDrawn;
