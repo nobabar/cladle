@@ -23,7 +23,7 @@ export const uiIcon = {
   externalLink: "i-streamline-freehand-share-forward",
   close: "i-streamline-freehand-form-validation-remove-square",
   help: "i-streamline-freehand-help-question-circle",
-  check: "i-streamline-freehand-form-validation-check-square-1",
+  check: "i-streamline-freehand-form-validation-check-double",
   share: "i-streamline-freehand-share-circles",
   copy: "i-streamline-freehand-copy-paste-clipboard",
   calendar: "i-streamline-freehand-calendar-date",

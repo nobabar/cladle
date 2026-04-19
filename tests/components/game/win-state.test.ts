@@ -33,6 +33,12 @@ const IconStub = {
   props: ["name"],
 };
 
+// Nuxt UI: not registered in Vitest
+const UTooltipStub = {
+  name: "UTooltip",
+  template: "<div class=\"u-tooltip-stub\"><slot /></div>",
+};
+
 // Helper function to mount with stubs
 function mountWithStubs(component: any, options: any = {}) {
   return mount(component, {
@@ -44,6 +50,7 @@ function mountWithStubs(component: any, options: any = {}) {
         Teleport: true,
         GameTreeVisualization: GameTreeVisualizationStub,
         Icon: IconStub,
+        UTooltip: UTooltipStub,
         ...options.global?.stubs,
       },
     },
