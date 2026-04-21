@@ -320,6 +320,25 @@ describe("animalSearch", () => {
       expect(options.length).toBe(2); // African Elephant and African Lion
     });
 
+    it("should filter out already guessed animals from suggestions", async () => {
+      const wrapper = mountWithStubs(AnimalSearch, {
+        props: {
+          animals: mockAnimals,
+          guessHistory: [mockAnimals[0]!], // African Elephant already guessed
+        },
+      });
+
+      const input = wrapper.find("input");
+      await input.setValue("African");
+      await nextTick();
+
+      const suggestions = wrapper.find("[role=\"listbox\"]");
+      const options = suggestions.findAll("[role=\"option\"]");
+      expect(options.length).toBe(1);
+      expect(options[0]!.text()).toContain("African Lion");
+      expect(options[0]!.text()).not.toContain("African Elephant");
+    });
+
     it("should limit suggestions to maxSuggestions", async () => {
       // Create more animals to test limiting
       const manyAnimals: Animal[] = [

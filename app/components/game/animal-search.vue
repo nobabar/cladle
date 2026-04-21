@@ -78,6 +78,7 @@ defineShortcuts({
 });
 
 const useApi = computed(() => !props.animals);
+const guessedAnimalIds = computed(() => new Set((props.guessHistory || []).map(animal => animal.id)));
 
 /**
  * Filtered suggestions based on search query
@@ -92,6 +93,9 @@ const filteredSuggestions = computed(() => {
   const query = trimmedQuery.toLowerCase();
   const matches = animalsToSearch
     .filter((animal) => {
+      if (guessedAnimalIds.value.has(animal.id)) {
+        return false;
+      }
       const name = animal.name.toLowerCase();
       const scientificName = animal.scientificName.toLowerCase();
       return name.includes(query) || scientificName.includes(query);
