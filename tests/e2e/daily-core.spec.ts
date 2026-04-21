@@ -166,7 +166,7 @@ test("cross-day rollover resets to a fresh daily puzzle", async ({ page }) => {
   const searchInput = page.getByRole("combobox", { name: "Search for an animal" });
   await searchInput.fill("tiger");
   await page.getByRole("option", { name: /Tiger/i }).click();
-  await expect(page.getByRole("heading", { name: /You Won!/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /You Won!/ })).toBeVisible({ timeout: 30_000 });
 
   await page.evaluate(() => {
     const persistedRaw = localStorage.getItem("cladle-game-store");

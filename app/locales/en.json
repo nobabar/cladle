@@ -94,6 +94,7 @@
     "about": "About",
     "resources": "Resources",
     "home": "Home",
+    "help": "How to play",
     "privacy": "Privacy",
     "externalLinkSr": "external link"
   },
@@ -152,7 +153,28 @@
   },
   "date": {
     "todayPuzzle": "Today's Puzzle",
-    "nextPuzzleSoon": "Next puzzle soon"
+    "nextPuzzleSoon": "Next puzzle soon",
+    "nextPuzzleCountdown": "Next puzzle in {time}"
+  },
+  "help": {
+    "metaTitle": "Cladle - How to play",
+    "metaDescription": "Learn how Cladle works: guessing the mystery animal, daily puzzles, free play, reading the tree, and what taxonomy and phylogeny mean here.",
+    "backLink": "Back to home",
+    "title": "How to play",
+    "lead": "Cladle is a guessing game built on real taxonomy. You try to name a hidden animal in as few tries as possible; after each guess, the game shows how your species fits next to the mystery animal on a branching tree.",
+    "roundTitle": "How a round works",
+    "roundP1": "Use the search bar to pick a specie and submit it. A wrong guess still teaches you something as your animal is added to the tree beside the mystery animal. Shared branches show how “close” you are in an evolutionary sense, using ranks such as class, order, or family.",
+    "roundP2": "You have up to {maxGuesses} guesses. Win by submitting the mystery animal before you use them all.",
+    "dailyTitle": "Daily puzzle",
+    "dailyP1": "Each day, a new animal is selected for everyone to guess. The puzzle rolls over at 00:00 UTC. On your local clock, this happens at {localMidnightUtc}.",
+    "freePlayTitle": "Free play",
+    "freePlayP1": "Free play is for practice. Whenever you reset, you get a new random mystery animal with no waiting. Handy when you do not want to wait for the next daily puzzle.",
+    "treeTitle": "Reading the tree",
+    "treeP1": "Tips (or leaves) of the tree are species you have guessed (and the mystery animal once you have found it). Intermediate nodes are clades. They are named groups that regroup the species you have guessed.",
+    "treeP2": "Clades are calculated from the LCA (last common ancestor) between your guesses and the mystery animal, they mark a shared ancestor for the animals grouped there. They show which part of the tree your guesses have narrowed the answer to.",
+    "termsTitle": "Taxonomy and phylogeny",
+    "termsTaxonomyP": "Taxonomy is the naming and ranking system for living things. This system include taxon of multiple levels, including kingdom, phylum, class, order, family, genus, and species. Cladle uses those ranks to compare your guesses with the mystery animal and to label clades.",
+    "termsPhylogenyP": "Phylogeny is the evolutionary “family tree” of species, it describes who split from whom over time. The in-game tree is a simplified picture of relatedness. Nearby tips usually share a more recent common ancestry than distant ones."
   },
   "share": {
     "title": "Cladle",

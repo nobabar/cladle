@@ -11,6 +11,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  formatNextUtcMidnightInLocal,
   formatPuzzleDate,
   formatTimeUntilNextPuzzle,
   getCurrentDateUTC,
@@ -222,6 +223,19 @@ describe("dateUtils", () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date(Date.UTC(2026, 1, 11, 23, 59, 59, 999)));
       expect(formatTimeUntilNextPuzzle()).toBe("Next puzzle soon");
+      vi.useRealTimers();
+    });
+  });
+
+  describe("formatNextUtcMidnightInLocal", () => {
+    it("formats local clock time for 00:00 UTC (no calendar date)", () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(Date.UTC(2026, 1, 11, 15, 0, 0)));
+      const s = formatNextUtcMidnightInLocal("en");
+      expect(s).not.toMatch(/20\d{2}/);
+      expect(s).toMatch(/\d{1,2}:\d{2}/);
+      expect(s.length).toBeGreaterThan(4);
+      expect(s.length).toBeLessThan(48);
       vi.useRealTimers();
     });
   });

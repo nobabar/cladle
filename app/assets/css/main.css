@@ -106,6 +106,8 @@
 /* Color mode support: light (default) and dark */
 :root {
   color-scheme: light;
+  /* Nuxt UI `UMain` uses min-h-[calc(100vh-var(--ui-header-height))]; define when no app header */
+  --ui-header-height: 0px;
 }
 
 /*
@@ -352,6 +354,16 @@ html {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/*
+ * Document pages (help, privacy): `overflow-x: auto` on `.notebook-sheet` / `.container`
+ * forces `overflow-y` to compute to `auto` in browsers, so the sheet becomes a nested
+ * vertical scroll area. Restore window scrolling for long copy.
+ */
+.notebook-layout--document .notebook-sheet,
+.notebook-layout--document .notebook-sheet .container {
+  overflow: visible;
 }
 
 /* Notebook-style layout shell */

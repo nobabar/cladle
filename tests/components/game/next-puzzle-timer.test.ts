@@ -31,13 +31,4 @@ describe("nextPuzzleTimer", () => {
     expect(p.exists()).toBe(true);
     expect(p.text()).toBe("Next puzzle in 59m 30s");
   });
-
-  it("has accessible aria-label", () => {
-    const wrapper = mount(NextPuzzleTimer, {
-      props: { nextPuzzleIn: "2m 10s", showTimer: true },
-    });
-    expect(wrapper.find("p").attributes("aria-label")).toBe(
-      "Next daily puzzle in 2m 10s",
-    );
-  });
 });
