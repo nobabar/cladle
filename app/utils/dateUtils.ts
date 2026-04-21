@@ -199,3 +199,23 @@ export function formatTimeUntilNextPuzzle(now: Date = new Date()): string {
   }
   return `${seconds}s`;
 }
+
+/**
+ * Local clock time (and short zone name) for when it is 00:00 UTC—same wall time each day
+ * except across daylight-saving changes. Uses the next UTC midnight as a reference instant.
+ *
+ * @param locale - BCP 47 language tag (e.g. from vue-i18n: `en`, `fr`)
+ * @param now - Current time
+ * @returns e.g. "1:00 AM GMT+1"
+ */
+export function formatNextUtcMidnightInLocal(locale: string, now: Date = new Date()): string {
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth();
+  const d = now.getUTCDate();
+  const nextUtcMidnight = new Date(Date.UTC(y, m, d + 1, 0, 0, 0, 0));
+  return new Intl.DateTimeFormat(locale || "en", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  }).format(nextUtcMidnight);
+}

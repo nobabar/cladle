@@ -1,7 +1,16 @@
 <script setup lang="ts">
+import { computed } from "vue";
+
+const { t } = useI18n();
+
+const title = computed(() => t("help.metaTitle"));
+const description = computed(() => t("help.metaDescription"));
+
 useSeoMeta({
-  title: "Privacy - Cladle",
-  description: "How Cladle handles data and player privacy.",
+  title,
+  description,
+  ogTitle: title,
+  ogDescription: description,
 });
 
 /**
@@ -21,8 +30,8 @@ function closeDocumentOverlay() {
     >
       <DailyGamePage />
     </div>
-    <DocumentOverlay labelled-by="privacy-document-title" @close="closeDocumentOverlay">
-      <PrivacyDocument />
+    <DocumentOverlay labelled-by="help-document-title" @close="closeDocumentOverlay">
+      <HelpDocument />
     </DocumentOverlay>
   </div>
 </template>

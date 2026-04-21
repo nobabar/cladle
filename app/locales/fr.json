@@ -94,6 +94,7 @@
     "about": "À propos",
     "resources": "Ressources",
     "home": "Accueil",
+    "help": "Comment jouer",
     "privacy": "Confidentialité",
     "externalLinkSr": "lien externe"
   },
@@ -152,7 +153,28 @@
   },
   "date": {
     "todayPuzzle": "Puzzle du jour",
-    "nextPuzzleSoon": "Prochain puzzle bientôt"
+    "nextPuzzleSoon": "Prochain puzzle bientôt",
+    "nextPuzzleCountdown": "Prochain puzzle dans {time}"
+  },
+  "help": {
+    "metaTitle": "Cladle - Comment jouer",
+    "metaDescription": "Comprendre Cladle : trouver l’animal mystère, puzzle du jour, mode libre, lecture de l’arbre, taxonomie et phylogénie.",
+    "backLink": "Retour à l’accueil",
+    "title": "Comment jouer",
+    "lead": "Cladle est un jeu de devinettes fondé sur la taxonomie. Vous devez trouver un animal mystère en aussi peu d’essais que possible. Après chaque proposition, le jeu montre comment cette espèce se place relativement à l’animal mystère sur un arbre phylogénétique.",
+    "roundTitle": "Déroulement d’une partie",
+    "roundP1": "Utilisez la barre de recherche pour choisir une espèce. Chaque essai est ajouté à l’arbre aux cotés de l’animal mystère. Les branches communes indiquent à quel point vous êtes « proches » au sens évolutif, grâce aux rangs (classe, ordre, famille, etc.).",
+    "roundP2": "Vous avez {maxGuesses} essais par puzzle. Gagnez en trouvant l’animal mystère avant de les épuiser.",
+    "dailyTitle": "Puzzle du jour",
+    "dailyP1": "Chaque jour, tous les joueur·euse·s cherchent le même animal mystère. À 00:00 UTC, une nouvelle journée de puzzle commence ; à l’heure de votre appareil, cela correspond à {localMidnightUtc}.",
+    "freePlayTitle": "Mode libre",
+    "freePlayP1": "Le mode libre sert à s’entraîner. À chaque réinitialisation, un nouvel animal mystère est tiré au hasard, sans attente. Pratique si vous ne voulez pas attendre le prochain puzzle quotidien.",
+    "treeTitle": "Lire l’arbre",
+    "treeP1": "Les extrémités (ou feuilles) de l’arbre sont les espèces que vous avez essayées (ainsi que l’animal mystère une fois trouvé). Les embranchements sont des clades. Ce sont des groupes qui contiennent ces espèces.",
+    "treeP2": "Ces clades sont calculés à partir des ancêtres communs les plus récents (LCA) entre vos propositions et l’animal mystère, ils indiquent un ancêtre commmun partagé par tous les animaux de ce clade. Ils montrent dans quelle partie de l’arbre vos essais ont circonscrit la réponse.",
+    "termsTitle": "Taxonomie et phylogénie",
+    "termsTaxonomyP": "La taxonomie est le système de noms et de rangs qui permet de classer les espèces du vivant. Elle inclut des taxons de plusieurs niveaux, par exemple règne, embranchement, classe, ordre, famille, genre et espèce. Cladle s’en sert pour comparer vos propositions à l’animal mystère et pour étiqueter les clades.",
+    "termsPhylogenyP": "La phylogénie est l’« arbre généalogique » évolutif des espèces, elle décrit qui s’est séparé de qui au fil du temps. L’arbre du jeu en donne une image simplifiée. Des extrémités proches partagent en général une parenté plus récente que des extrémités éloignées."
   },
   "share": {
     "title": "Cladle",
