@@ -41,6 +41,34 @@ describe("gameStore", () => {
     taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Ursidae", "Ursus", "Ursus arctos"],
   };
 
+  const shoebill: Animal = {
+    id: "100",
+    name: "Shoebill",
+    scientificName: "Balaeniceps rex",
+    taxonomy: ["Animalia", "Chordata", "Aves", "Pelecaniformes", "Balaenicipitidae", "Balaeniceps", "Balaeniceps rex"],
+  };
+
+  const greatBlueHeron: Animal = {
+    id: "101",
+    name: "Great Blue Heron",
+    scientificName: "Ardea herodias",
+    taxonomy: ["Animalia", "Chordata", "Aves", "Pelecaniformes", "Ardeidae", "Ardea", "Ardea herodias"],
+  };
+
+  const greyHeron: Animal = {
+    id: "102",
+    name: "Grey Heron",
+    scientificName: "Ardea cinerea",
+    taxonomy: ["Animalia", "Chordata", "Aves", "Pelecaniformes", "Ardeidae", "Ardea", "Ardea cinerea"],
+  };
+
+  const greenHeron: Animal = {
+    id: "103",
+    name: "Green Heron",
+    scientificName: "Butorides virescens",
+    taxonomy: ["Animalia", "Chordata", "Aves", "Pelecaniformes", "Ardeidae", "Butorides", "Butorides virescens"],
+  };
+
   beforeEach(() => {
     setActivePinia(createPinia());
   });
@@ -338,6 +366,35 @@ describe("gameStore", () => {
           expect(child.parent).toBe(node);
         }
       }
+    });
+
+    it("keeps deeper guess clades connected when a broader clade is added later", () => {
+      const store = getGameStore();
+      store.startGame(shoebill, 10);
+
+      // First create Ardea from two Ardea species guesses
+      store.processGuess(greatBlueHeron);
+      store.processGuess(greyHeron);
+
+      // Then add a non-Ardea heron, which introduces Ardeidae
+      store.processGuess(greenHeron);
+
+      const ardeaNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Ardea" && n.isLCA);
+      const ardeidaeNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Ardeidae" && n.isLCA);
+
+      const greatBlueNode = store.treeData?.nodes.find((n: TreeNode) => n.id === `animal-${greatBlueHeron.id}`);
+      const greyNode = store.treeData?.nodes.find((n: TreeNode) => n.id === `animal-${greyHeron.id}`);
+      const greenNode = store.treeData?.nodes.find((n: TreeNode) => n.id === `animal-${greenHeron.id}`);
+
+      expect(ardeaNode).toBeDefined();
+      expect(ardeidaeNode).toBeDefined();
+
+      // Ardea should keep its species instead of becoming orphaned
+      expect(ardeaNode?.children.some((c: TreeNode) => c.id === greatBlueNode?.id)).toBe(true);
+      expect(ardeaNode?.children.some((c: TreeNode) => c.id === greyNode?.id)).toBe(true);
+
+      // The newly added non-Ardea species should be under Ardeidae
+      expect(greenNode?.parent?.id).toBe(ardeidaeNode?.id);
     });
   });
 

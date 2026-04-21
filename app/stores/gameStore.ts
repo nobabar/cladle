@@ -1051,6 +1051,22 @@ export const useGameStore = defineStore("game", {
         // Move the related guess to the more specific LCA if we found the node
         // Only move if it's not already under this LCA
         if (relatedGuessNode && relatedGuessNode.parent?.id !== relatedLCANode.id) {
+          // Preserve existing more specific parent clades for this guess
+          const currentParentName = relatedGuessNode.parent?.name;
+          if (currentParentName) {
+            const currentParentDepth = this.getCladeDepthInTaxonomy(otherGuess, currentParentName);
+            if (currentParentDepth > relatedLCA.depth) {
+              continue;
+            }
+          }
+
+          // Keep existing deeper groupings intact
+          if (
+            relatedGuessNode.parent?.isLCA
+            && this.isDescendantOf(relatedGuessNode.parent, relatedLCANode)
+          ) {
+            continue;
+          }
           this.moveNodeToLCANode(relatedGuessNode, relatedLCANode);
         }
       }
@@ -1179,6 +1195,36 @@ export const useGameStore = defineStore("game", {
      */
     moveTargetToLCANode(targetNode: TreeNode, lcaNode: TreeNode): void {
       this.moveNodeToLCANode(targetNode, lcaNode);
+    },
+
+    /**
+     * Check whether a node is inside another node's descendant chain.
+     * @param node - Potential descendant
+     * @param ancestor - Potential ancestor
+     * @returns True when ancestor is found in node.parent chain
+     */
+    isDescendantOf(node: TreeNode, ancestor: TreeNode): boolean {
+      let current = node.parent;
+      while (current) {
+        if (current.id === ancestor.id) {
+          return true;
+        }
+        current = current.parent;
+      }
+      return false;
+    },
+
+    /**
+     * Find clade depth in an animal taxonomy using normalized comparison.
+     * @param animal - Animal to inspect
+     * @param cladeName - Clade name to search
+     * @returns Taxonomy depth, or -1 when absent
+     */
+    getCladeDepthInTaxonomy(animal: Animal, cladeName: string): number {
+      const normalizedTarget = this.normalizeCladeName(cladeName);
+      return animal.taxonomy.findIndex(
+        taxon => this.normalizeCladeName(taxon) === normalizedTarget,
+      );
     },
 
     /**
