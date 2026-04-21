@@ -3,6 +3,21 @@ import { useUiIcons } from "~/composables/useUiIcons";
 
 const { t } = useI18n();
 const uiIcon = useUiIcons();
+const route = useRoute();
+
+function onHomeClick(event: MouseEvent) {
+  if (route.path !== "/") {
+    return;
+  }
+
+  // Keep native behaviors for modified/new-tab clicks.
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+    return;
+  }
+
+  event.preventDefault();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
 
 const taxonomyResources = [
   {
@@ -44,8 +59,17 @@ const taxonomyResources = [
             </p>
             <ul class="flex flex-col gap-0.5 sm:gap-1">
               <li>
-                <NuxtLink to="/" class="site-footer-link">
+                <NuxtLink
+                  to="/"
+                  class="site-footer-link"
+                  @click="onHomeClick"
+                >
                   {{ t("footer.home") }}
+                </NuxtLink>
+              </li>
+              <li>
+                <NuxtLink to="/help" class="site-footer-link">
+                  {{ t("footer.help") }}
                 </NuxtLink>
               </li>
               <li>

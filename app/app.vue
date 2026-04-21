@@ -31,9 +31,9 @@ useSeoMeta({
 <template>
   <UApp>
     <div class="min-h-screen flex flex-col">
-      <UMain class="flex-1">
+      <main class="min-h-0 w-full flex-1">
         <NuxtPage />
-      </UMain>
+      </main>
       <SiteFooter />
     </div>
   </UApp>
