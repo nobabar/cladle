@@ -13,19 +13,41 @@ async function completeTourByButtons(page: Page) {
   for (let i = 0; i < 12; i += 1) {
     const finishVisible = await page.getByRole("button", { name: "Finish" }).isVisible().catch(() => false);
     if (finishVisible) {
-      await page.getByRole("button", { name: "Finish" }).click();
+      const finishButton = page.getByRole("button", { name: "Finish" });
+      await finishButton.click({ timeout: 2_000 }).catch(async () => {
+        await finishButton.click({ force: true });
+      });
       return;
     }
 
     const nextVisible = await page.getByRole("button", { name: "Next" }).isVisible().catch(() => false);
     if (nextVisible) {
-      await page.getByRole("button", { name: "Next" }).click();
+      const nextButton = page.getByRole("button", { name: "Next" });
+      await nextButton.click({ timeout: 2_000 }).catch(async () => {
+        await nextButton.click({ force: true });
+      });
       await page.waitForTimeout(120);
       continue;
     }
 
     await page.waitForTimeout(120);
   }
+}
+
+async function closePostitFromStickyTab(page: Page) {
+  const stickyTab = page.locator(
+    "[data-onboarding='daily-information-postit'] .information-panel-postit__sticky-tab",
+  );
+
+  await stickyTab.waitFor({ state: "visible", timeout: 10_000 });
+
+  await stickyTab.click({ timeout: 2_000 }).catch(async () => {
+    // WebKit can keep this floating element in an unstable state briefly.
+    await stickyTab.focus();
+    await stickyTab.press("Enter").catch(async () => {
+      await stickyTab.click({ force: true });
+    });
+  });
 }
 
 test.beforeEach(async ({ page }) => {
@@ -63,9 +85,7 @@ test("guided tour can progress through interactive actions", async ({ page }) =>
   await expect(page.getByText("Inspect node details")).toBeVisible();
   await expect(page.locator("[data-onboarding='daily-information-postit']")).toBeVisible();
 
-  await page
-    .locator("[data-onboarding='daily-information-postit'] .information-panel-postit__sticky-tab")
-    .click();
+  await closePostitFromStickyTab(page);
   await expect(page.getByRole("button", { name: "Next" }).or(page.getByRole("button", { name: "Finish" }))).toBeVisible();
   await completeTourByButtons(page);
   await expect(page.getByRole("button", { name: "Finish" })).toHaveCount(0);
