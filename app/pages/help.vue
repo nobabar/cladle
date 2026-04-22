@@ -20,6 +20,10 @@ useSeoMeta({
 function closeDocumentOverlay() {
   navigateTo("/", { replace: true });
 }
+
+function startTourFromHelp() {
+  navigateTo({ path: "/", query: { startTour: "1" } }, { replace: true });
+}
 </script>
 
 <template>
@@ -31,7 +35,7 @@ function closeDocumentOverlay() {
       <DailyGamePage />
     </div>
     <DocumentOverlay labelled-by="help-document-title" @close="closeDocumentOverlay">
-      <HelpDocument />
+      <HelpDocument @start-tour="startTourFromHelp" />
     </DocumentOverlay>
   </div>
 </template>

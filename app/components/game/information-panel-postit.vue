@@ -42,12 +42,13 @@ const stickyTabRef = ref<HTMLElement | null>(null);
 let previousFocusElement: HTMLElement | null = null;
 
 const isDragging = ref(false);
-const hasDragged = ref(false);
 const dragStartX = ref(0);
 const dragStartY = ref(0);
 const dragOffsetX = ref(0);
 const dragOffsetY = ref(0);
 const isClosingViaDrag = ref(false);
+const activePointerId = ref<number | null>(null);
+const ignoreNextStickyTabClick = ref(false);
 
 const frontElement = ref<"postit" | "image">("postit");
 
@@ -70,19 +71,19 @@ function handleClickOutside(event: MouseEvent) {
 function closePanel() {
   emit("close");
   emit("update:isOpen", false);
+  window.dispatchEvent(new CustomEvent("cladle:onboarding:postit-closed"));
 }
 
 /**
- * Handle sticky tab click (only if not dragged)
+ * Handle sticky tab click
  * @param _event - Mouse event
  */
 function handleStickyTabClick(_event: MouseEvent) {
-  // Only close if it wasn't a drag operation
-  if (!hasDragged.value) {
-    closePanel();
+  if (ignoreNextStickyTabClick.value) {
+    ignoreNextStickyTabClick.value = false;
+    return;
   }
-  // Reset drag state
-  hasDragged.value = false;
+  closePanel();
 }
 
 /**
@@ -92,12 +93,6 @@ function handleStickyTabClick(_event: MouseEvent) {
 function handlePostitClick(event: MouseEvent) {
   // Don't switch if clicking on sticky tab
   if ((event.target as HTMLElement).closest(".information-panel-postit__sticky-tab")) {
-    return;
-  }
-  // Don't switch if we just dragged (check if mouse moved significantly)
-  if (hasDragged.value) {
-    // Reset hasDragged for next interaction
-    hasDragged.value = false;
     return;
   }
   // Only switch if post-it is currently behind
@@ -112,12 +107,6 @@ function handlePostitClick(event: MouseEvent) {
  * @param event - Mouse event
  */
 function handleImageCardClick(event: MouseEvent) {
-  // Don't switch if we just dragged (check if mouse moved significantly)
-  if (hasDragged.value) {
-    // Reset hasDragged for next interaction
-    hasDragged.value = false;
-    return;
-  }
   // Only switch if image is currently behind
   if (frontElement.value === "postit") {
     event.stopPropagation();
@@ -125,11 +114,12 @@ function handleImageCardClick(event: MouseEvent) {
   }
 }
 
-function handleStickyTabMouseDown(event: MouseEvent) {
+function handleStickyTabPointerDown(event: PointerEvent) {
   if (!containerRef.value) return;
+  if (event.button !== 0 && event.pointerType !== "touch") return;
 
+  activePointerId.value = event.pointerId;
   isDragging.value = true;
-  hasDragged.value = false;
   dragStartX.value = event.clientX;
   dragStartY.value = event.clientY;
 
@@ -137,108 +127,68 @@ function handleStickyTabMouseDown(event: MouseEvent) {
   dragOffsetX.value = event.clientX - rect.left;
   dragOffsetY.value = event.clientY - rect.top;
 
+  const stickyTab = event.currentTarget as HTMLElement | null;
+  stickyTab?.setPointerCapture(event.pointerId);
   event.preventDefault();
 }
 
-function handleMouseMove(event: MouseEvent) {
+function handleStickyTabPointerMove(event: PointerEvent) {
   if (!isDragging.value || !containerRef.value) return;
+  if (activePointerId.value !== event.pointerId) return;
 
   const deltaX = event.clientX - dragStartX.value;
   const deltaY = event.clientY - dragStartY.value;
   const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-  // Mark as dragged if moved more than 5px
-  if (distance > 5) {
-    hasDragged.value = true;
-  }
-
-  // Update position of entire container
   containerRef.value.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
   containerRef.value.style.opacity = String(1 - distance / 200);
-}
-
-function handleMouseUp(event: MouseEvent) {
-  if (!isDragging.value || !containerRef.value) return;
-
-  const deltaX = event.clientX - dragStartX.value;
-  const deltaY = event.clientY - dragStartY.value;
-  const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-  // If dragged far enough (more than 100px), remove the post-it
-  if (distance > 100) {
-    isClosingViaDrag.value = true;
-    closePanel();
-  } else {
-    // Snap back to original position
-    containerRef.value.style.transform = "";
-    containerRef.value.style.opacity = "";
-  }
-
-  isDragging.value = false;
-  // Reset hasDragged immediately - click handlers will check distance themselves
-  hasDragged.value = false;
-}
-
-function handleStickyTabTouchStart(event: TouchEvent) {
-  if (!containerRef.value || event.touches.length === 0) return;
-
-  const touch = event.touches[0];
-  if (!touch) return;
-
-  isDragging.value = true;
-  hasDragged.value = false;
-  dragStartX.value = touch.clientX;
-  dragStartY.value = touch.clientY;
-
-  const rect = containerRef.value.getBoundingClientRect();
-  dragOffsetX.value = touch.clientX - rect.left;
-  dragOffsetY.value = touch.clientY - rect.top;
-
   event.preventDefault();
 }
 
-function handleTouchMove(event: TouchEvent) {
-  if (!isDragging.value || !containerRef.value || event.touches.length === 0) return;
+function completeStickyTabDrag(clientX: number, clientY: number) {
+  if (!containerRef.value) return;
 
-  const touch = event.touches[0];
-  if (!touch) return;
-
-  const deltaX = touch.clientX - dragStartX.value;
-  const deltaY = touch.clientY - dragStartY.value;
-  const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-  // Mark as dragged if moved more than 5px
-  if (distance > 5) {
-    hasDragged.value = true;
+  const deltaX = clientX - dragStartX.value;
+  const deltaY = clientY - dragStartY.value;
+  if (Math.abs(deltaX) > 0 || Math.abs(deltaY) > 0) {
+    isClosingViaDrag.value = true;
   }
+  closePanel();
 
-  containerRef.value.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-  containerRef.value.style.opacity = String(1 - distance / 200);
+  // Pointer gestures synthesize a click afterwards; ignore it because the
+  // close/snap-back decision has already been made during pointerup.
+  ignoreNextStickyTabClick.value = true;
 }
 
-function handleTouchEnd(event: TouchEvent) {
-  if (!isDragging.value || !containerRef.value || event.changedTouches.length === 0) return;
+function handleStickyTabPointerUp(event: PointerEvent) {
+  if (!isDragging.value) return;
+  if (activePointerId.value !== event.pointerId) return;
 
-  const touch = event.changedTouches[0];
-  if (!touch) return;
+  completeStickyTabDrag(event.clientX, event.clientY);
+  isDragging.value = false;
+  activePointerId.value = null;
 
-  const deltaX = touch.clientX - dragStartX.value;
-  const deltaY = touch.clientY - dragStartY.value;
-  const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+  const stickyTab = event.currentTarget as HTMLElement | null;
+  if (stickyTab?.hasPointerCapture(event.pointerId)) {
+    stickyTab.releasePointerCapture(event.pointerId);
+  }
+}
 
-  if (distance > 100) {
-    isClosingViaDrag.value = true;
-    closePanel();
-  } else {
+function handleStickyTabPointerCancel(event: PointerEvent) {
+  if (activePointerId.value !== event.pointerId) return;
+
+  isDragging.value = false;
+  activePointerId.value = null;
+  ignoreNextStickyTabClick.value = false;
+  if (containerRef.value) {
     containerRef.value.style.transform = "";
     containerRef.value.style.opacity = "";
   }
 
-  isDragging.value = false;
-  // Reset hasDragged after a short delay to allow click handlers to check it
-  setTimeout(() => {
-    hasDragged.value = false;
-  }, 10);
+  const stickyTab = event.currentTarget as HTMLElement | null;
+  if (stickyTab?.hasPointerCapture(event.pointerId)) {
+    stickyTab.releasePointerCapture(event.pointerId);
+  }
 }
 
 /**
@@ -545,7 +495,6 @@ watch(() => props.isOpen, (newValue) => {
   if (newValue) {
     // Reset drag state when opening
     isDragging.value = false;
-    hasDragged.value = false;
     isClosingViaDrag.value = false;
     // Reset transform in case it was left from previous close
     if (containerRef.value) {
@@ -562,7 +511,6 @@ watch(() => props.isOpen, (newValue) => {
   } else {
     // Reset drag state and transform when closing
     isDragging.value = false;
-    hasDragged.value = false;
     frontElement.value = "postit"; // Reset to default when closing
 
     // If closing via drag, preserve transform during transition
@@ -599,10 +547,6 @@ onMounted(() => {
   if (typeof window !== "undefined") {
     window.addEventListener("keydown", handleEscape);
     window.addEventListener("keydown", handleTabKey);
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-    window.addEventListener("touchmove", handleTouchMove);
-    window.addEventListener("touchend", handleTouchEnd);
     document.addEventListener("click", handleClickOutside, true);
   }
 });
@@ -611,10 +555,6 @@ onUnmounted(() => {
   if (typeof window !== "undefined") {
     window.removeEventListener("keydown", handleEscape);
     window.removeEventListener("keydown", handleTabKey);
-    window.removeEventListener("mousemove", handleMouseMove);
-    window.removeEventListener("mouseup", handleMouseUp);
-    window.removeEventListener("touchmove", handleTouchMove);
-    window.removeEventListener("touchend", handleTouchEnd);
     document.removeEventListener("click", handleClickOutside, true);
   }
 });
@@ -644,6 +584,7 @@ onUnmounted(() => {
       <div
         v-if="isOpen"
         ref="containerRef"
+        data-onboarding="daily-information-postit"
         class="information-panel-container"
         :class="{
           'information-panel-container--dragging': isDragging,
@@ -657,8 +598,10 @@ onUnmounted(() => {
           role="button"
           tabindex="0"
           :aria-label="t('informationPanel.stickyTabAriaLabel')"
-          @mousedown="handleStickyTabMouseDown"
-          @touchstart="handleStickyTabTouchStart"
+          @pointerdown="handleStickyTabPointerDown"
+          @pointermove="handleStickyTabPointerMove"
+          @pointerup="handleStickyTabPointerUp"
+          @pointercancel="handleStickyTabPointerCancel"
           @click="handleStickyTabClick"
           @keydown.enter="closePanel"
           @keydown.space.prevent="closePanel"
@@ -1074,6 +1017,7 @@ onUnmounted(() => {
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 2px 2px 0 0;
   cursor: grab;
+  touch-action: none;
   display: flex;
   align-items: center;
   justify-content: center;
