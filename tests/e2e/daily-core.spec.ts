@@ -75,10 +75,11 @@ test("daily persistence survives refresh and resets with new day", async ({ page
   });
 
   await page.reload();
+  await expect(page.getByText(/Guesses remaining:\s*20/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("combobox", { name: "Search for an animal" })).toHaveCount(1);
   await expect(page.getByRole("combobox", { name: "Search for an animal" })).toBeEnabled({ timeout: 15_000 });
   await expect(page.locator(".notebook-guess-history")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /You Won!|Game Over/ })).toHaveCount(0);
-  await expect(page.getByText(/Guesses remaining:\s*20/)).toBeVisible();
 });
 
 test("loss path from incorrect guess", async ({ page }) => {

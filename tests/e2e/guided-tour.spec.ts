@@ -28,22 +28,14 @@ async function completeTourByButtons(page: Page) {
     const finishVisible = await page.getByRole("button", { name: "Finish" }).isVisible().catch(() => false);
     if (finishVisible) {
       const finishButton = page.getByRole("button", { name: "Finish" });
-      await finishButton.click({ timeout: 2_000 }).catch(async () => {
-        if (!page.isClosed()) {
-          await finishButton.click({ force: true });
-        }
-      });
+      await finishButton.dispatchEvent("click").catch(() => {});
       return;
     }
 
     const nextVisible = await page.getByRole("button", { name: "Next" }).isVisible().catch(() => false);
     if (nextVisible) {
       const nextButton = page.getByRole("button", { name: "Next" });
-      await nextButton.click({ timeout: 2_000 }).catch(async () => {
-        if (!page.isClosed()) {
-          await nextButton.click({ force: true });
-        }
-      });
+      await nextButton.dispatchEvent("click").catch(() => {});
       await page.waitForTimeout(120);
       continue;
     }
