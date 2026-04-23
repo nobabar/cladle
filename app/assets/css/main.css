@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
+@import "driver.js/dist/driver.css";
 
 @theme static {
   /* Typography tokens (UX type scale) */
@@ -590,4 +591,86 @@ html {
 .notebook-error-message {
   border-radius: 2px;
   box-shadow: none;
+}
+
+/* Driver.js onboarding styling aligned with notebook theme */
+.driver-popover {
+  background: var(--color-paper, #FDFBF5) !important;
+  color: var(--color-ink, #2C2416) !important;
+  border: 1px solid var(--color-border-subtle, #E2D6C3) !important;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.driver-popover * {
+  font-family: var(--font-sans, "Indie Flower", "Lexend", system-ui, sans-serif) !important;
+}
+
+.driver-popover-title {
+  color: var(--color-ink, #2C2416) !important;
+  font-size: var(--text-h3, 1.25rem) !important;
+  line-height: var(--leading-h3, 1.4) !important;
+}
+
+.driver-popover-description {
+  color: var(--color-ink-muted, #4B4333) !important;
+  font-size: var(--text-body, 1rem) !important;
+  line-height: var(--leading-body, 1.6) !important;
+}
+
+.driver-popover-progress-text {
+  color: var(--color-ink-subtle, #6B7280) !important;
+}
+
+.driver-popover-next-btn,
+.driver-popover-prev-btn,
+.driver-popover-close-btn {
+  background: var(--color-primary-soft, #D4DECC) !important;
+  color: var(--color-ink, #2C2416) !important;
+  border: 1px solid var(--color-border-subtle, #E2D6C3) !important;
+  text-shadow: none !important;
+  font-size: var(--text-sm, 0.875rem) !important;
+  line-height: var(--leading-sm, 1.5) !important;
+}
+
+.driver-popover-next-btn:hover,
+.driver-popover-prev-btn:hover,
+.driver-popover-close-btn:hover {
+  background: var(--color-primary, #8B9A7A);
+  color: #fff;
+}
+
+.driver-popover-footer button,
+.driver-popover-navigation-btns button {
+  text-shadow: none !important;
+  font-family: var(--font-sans, "Indie Flower", "Lexend", system-ui, sans-serif) !important;
+}
+
+.driver-popover-arrow {
+  border-color: var(--color-paper, #FDFBF5) !important;
+}
+
+.onboarding-entry-card {
+  animation: onboarding-slide-in-left 260ms ease-out;
+}
+
+/*
+ * Bottom-only hitbox expansion for onboarding search step.
+ * Keeps normal page flow by canceling added space with a matching negative margin.
+ */
+.onboarding-search-hitbox {
+  --onboarding-search-extra: 0px;
+  padding-bottom: var(--onboarding-search-extra);
+  margin-bottom: calc(var(--onboarding-search-extra) * -1);
+}
+
+@keyframes onboarding-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }

@@ -68,7 +68,11 @@ const taxonomyResources = [
                 </NuxtLink>
               </li>
               <li>
-                <NuxtLink to="/help" class="site-footer-link">
+                <NuxtLink
+                  to="/help"
+                  class="site-footer-link"
+                  data-onboarding="footer-help-link"
+                >
                   {{ t("footer.help") }}
                 </NuxtLink>
               </li>

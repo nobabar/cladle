@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch, watchEffect } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, watchEffect } from "vue";
 import type { Animal } from "~/types/animal";
 import type { TreeNode } from "~/types/tree";
 import { useDailyPuzzleTime } from "~/composables/useDailyPuzzleTime";
 import { useResponsive } from "~/composables/useResponsive";
 import { DEFAULT_MAX_GUESSES, useGameStore } from "~/stores/gameStore";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
+import { useOnboardingTour } from "~/composables/useOnboardingTour";
 import { apiErrorToGameError } from "~/utils/errorMessages";
 import { selectTargetAnimalWithDifficulty } from "~/utils/puzzleSelector";
 import {
@@ -15,10 +16,27 @@ import {
 } from "~/utils/puzzleHistory";
 
 const gameStore = useGameStore();
+const route = useRoute();
+const router = useRouter();
 const isDevMode = computed(() => import.meta.dev);
 const api = useBiologicalAPI();
 const { isDesktop } = useResponsive();
 const { t } = useI18n();
+
+const { hasCompletedOnboarding, startDailyTour, markOnboardingAsCompleted } = useOnboardingTour();
+const showOnboardingPrompt = ref(false);
+const ONBOARDING_PROMPT_DELAY_MS = 2000;
+let onboardingPromptTimer: ReturnType<typeof setTimeout> | null = null;
+
+function handleStartOnboarding() {
+  showOnboardingPrompt.value = false;
+  startDailyTour();
+}
+
+function handleSkipOnboarding() {
+  showOnboardingPrompt.value = false;
+  markOnboardingAsCompleted();
+}
 
 const treeData = computed(() => gameStore.treeData);
 const guessHistory = computed(() => gameStore.guesses.map(g => g.animal));
@@ -37,6 +55,7 @@ function handleAnimalSelect(animal: Animal) {
 
     // Animal already has full taxonomy data from validation
     gameStore.processGuess(animal);
+    window.dispatchEvent(new CustomEvent("cladle:onboarding:guess-submitted"));
 
     // Clear tree rendering state after a short delay to allow animation
     setTimeout(() => {
@@ -327,12 +346,64 @@ onMounted(() => {
   // Wait for next tick to ensure persist plugin has restored state
   nextTick(() => {
     checkAndInitializeDailyPuzzle();
+    if (route.query.startTour === "1") {
+      showOnboardingPrompt.value = false;
+      startDailyTour();
+      const nextQuery = { ...route.query };
+      delete nextQuery.startTour;
+      void router.replace({ query: nextQuery });
+      return;
+    }
+    if (!hasCompletedOnboarding.value) {
+      onboardingPromptTimer = setTimeout(() => {
+        showOnboardingPrompt.value = true;
+      }, ONBOARDING_PROMPT_DELAY_MS);
+    }
   });
+});
+
+onBeforeUnmount(() => {
+  if (onboardingPromptTimer) {
+    clearTimeout(onboardingPromptTimer);
+    onboardingPromptTimer = null;
+  }
 });
 </script>
 
 <template>
   <div class="notebook-layout">
+    <div
+      v-if="showOnboardingPrompt"
+      class="onboarding-entry-card fixed z-[1200] left-4 right-4 bottom-16 sm:bottom-6 sm:right-auto
+        sm:max-w-sm sm:w-auto
+        bg-[var(--color-paper)] border border-[var(--color-border-subtle)] rounded-lg
+        shadow-lg p-4"
+    >
+      <h2 class="text-base sm:text-lg font-semibold text-[var(--color-ink)] mb-2">
+        {{ t("onboarding.prompt.title") }}
+      </h2>
+      <p class="text-sm text-[var(--color-ink-muted)] mb-3">
+        {{ t("onboarding.prompt.body") }}
+      </p>
+      <div class="flex items-center gap-2 justify-end">
+        <UButton
+          variant="ghost"
+          color="neutral"
+          size="sm"
+          @click="handleSkipOnboarding"
+        >
+          {{ t("onboarding.prompt.skip") }}
+        </UButton>
+        <UButton
+          color="primary"
+          size="sm"
+          @click="handleStartOnboarding"
+        >
+          {{ t("onboarding.prompt.start") }}
+        </UButton>
+      </div>
+    </div>
+
     <!-- Notebook-style layout shell: desk background, paper sheet, and pattern -->
     <div class="notebook-sheet">
       <!-- Holes in margin area -->
@@ -342,6 +413,7 @@ onMounted(() => {
         <!-- Header -->
         <header class="mb-4 sm:mb-6 md:mb-8 relative">
           <GameGlobalHeaderControls
+            data-onboarding="daily-header"
             game-mode="daily"
             :is-replay-mode="gameStore.isReplayMode"
             :puzzle-date="gameStore.puzzleDate"
@@ -401,7 +473,10 @@ onMounted(() => {
         </div>
 
         <!-- Animal Search Component -->
-        <div class="max-w-2xl mx-auto mb-4 sm:mb-6 md:mb-8">
+        <div
+          data-onboarding="daily-search"
+          class="max-w-2xl mx-auto mb-4 sm:mb-6 md:mb-8"
+        >
           <GameAnimalSearch
             :disabled="!gameStore.isPlaying || gameStore.isReplayMode"
             :placeholder="t('game.searchPlaceholder')"
@@ -419,7 +494,10 @@ onMounted(() => {
         </div>
 
         <!-- Phylogenetic Tree Visualization -->
-        <div class="max-w-6xl mx-auto mt-4 sm:mt-6 md:mt-8 mb-4 sm:mb-6 md:mb-8">
+        <div
+          data-onboarding="daily-tree"
+          class="max-w-6xl mx-auto mt-4 sm:mt-6 md:mt-8 mb-4 sm:mb-6 md:mb-8"
+        >
           <h2 class="text-lg sm:text-xl md:text-2xl font-semibold mb-3 sm:mb-4 text-center">
             {{ t("game.phylogeneticTree") }}
           </h2>

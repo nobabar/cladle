@@ -92,10 +92,12 @@ const headerMobileMenuItems = computed(() => {
       class="absolute top-0 left-0 z-[1] sm:top-5 sm:left-2 flex flex-col gap-1
         sm:gap-2 items-start"
     >
-      <GamePuzzleDateDisplay
-        :puzzle-date="props.puzzleDate"
-        format="short"
-      />
+      <div data-onboarding="daily-date">
+        <GamePuzzleDateDisplay
+          :puzzle-date="props.puzzleDate"
+          format="short"
+        />
+      </div>
       <GameNextPuzzleTimer
         :next-puzzle-in="props.nextPuzzleIn"
         :show-timer="props.isSoon"
@@ -178,6 +180,7 @@ const headerMobileMenuItems = computed(() => {
         />
 
         <UButton
+          data-onboarding="daily-preferences"
           :icon="icons.preferences"
           color="neutral"
           variant="ghost"

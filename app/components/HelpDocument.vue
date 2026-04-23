@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useUiIcons } from "~/composables/useUiIcons";
 import { DEFAULT_MAX_GUESSES } from "~/stores/gameStore";
 import { formatNextUtcMidnightInLocal } from "~/utils/dateUtils";
 
+const emit = defineEmits<{
+  startTour: [];
+}>();
 const { t, locale } = useI18n();
-
+const icons = useUiIcons();
 const localMidnightUtc = computed(() => formatNextUtcMidnightInLocal(locale.value));
 
 const maxGuesses = DEFAULT_MAX_GUESSES;
@@ -13,12 +17,22 @@ const maxGuesses = DEFAULT_MAX_GUESSES;
 <template>
   <div class="container mx-auto max-w-3xl">
     <header class="mb-6 sm:mb-8">
-      <h1
-        id="help-document-title"
-        class="text-2xl sm:text-3xl md:text-4xl font-bold text-[var(--color-ink)] mb-3"
-      >
-        {{ t("help.title") }}
-      </h1>
+      <div class="flex items-center justify-between">
+        <h1
+          id="help-document-title"
+          class="text-2xl sm:text-3xl md:text-4xl font-bold text-[var(--color-ink)] mb-3"
+        >
+          {{ t("help.title") }}
+        </h1>
+        <UButton
+          :icon="icons.help"
+          color="primary"
+          size="sm"
+          @click="emit('startTour')"
+        >
+          {{ t("onboarding.startTour") }}
+        </UButton>
+      </div>
       <p class="text-sm sm:text-base text-[var(--color-ink-subtle)]">
         {{ t("help.lead") }}
       </p>
