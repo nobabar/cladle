@@ -11,11 +11,27 @@ async function startGuidedTourFromHelp(page: Page) {
 
 async function completeTourByButtons(page: Page) {
   for (let i = 0; i < 12; i += 1) {
+    if (page.isClosed()) {
+      return;
+    }
+
+    const tourGone = await page
+      .getByRole("button", { name: "Next" })
+      .or(page.getByRole("button", { name: "Finish" }))
+      .count()
+      .then(count => count === 0)
+      .catch(() => true);
+    if (tourGone) {
+      return;
+    }
+
     const finishVisible = await page.getByRole("button", { name: "Finish" }).isVisible().catch(() => false);
     if (finishVisible) {
       const finishButton = page.getByRole("button", { name: "Finish" });
       await finishButton.click({ timeout: 2_000 }).catch(async () => {
-        await finishButton.click({ force: true });
+        if (!page.isClosed()) {
+          await finishButton.click({ force: true });
+        }
       });
       return;
     }
@@ -24,7 +40,9 @@ async function completeTourByButtons(page: Page) {
     if (nextVisible) {
       const nextButton = page.getByRole("button", { name: "Next" });
       await nextButton.click({ timeout: 2_000 }).catch(async () => {
-        await nextButton.click({ force: true });
+        if (!page.isClosed()) {
+          await nextButton.click({ force: true });
+        }
       });
       await page.waitForTimeout(120);
       continue;

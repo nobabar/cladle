@@ -75,9 +75,9 @@ test("daily persistence survives refresh and resets with new day", async ({ page
   });
 
   await page.reload();
-  await expect(page.getByText("Start by searching for an animal to see how it relates to the mystery animal")).toBeVisible({
-    timeout: 15_000,
-  });
+  await expect(page.getByRole("combobox", { name: "Search for an animal" })).toBeEnabled({ timeout: 15_000 });
+  await expect(page.locator(".notebook-guess-history")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /You Won!|Game Over/ })).toHaveCount(0);
   await expect(page.getByText(/Guesses remaining:\s*20/)).toBeVisible();
 });
 
@@ -186,12 +186,8 @@ test("cross-day rollover resets to a fresh daily puzzle", async ({ page }) => {
   await expect(page.getByRole("combobox", { name: "Search for an animal" })).toBeVisible({
     timeout: 30_000,
   });
-  // Wait for the post-rollover “fresh puzzle” shell first. This prevents the previous
-  // win screen from briefly remaining in the tree while persisted state rehydrates.
-  const startHint = page.getByText(
-    "Start by searching for an animal to see how it relates to the mystery animal",
-  );
-  await expect(startHint).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("combobox", { name: "Search for an animal" })).toBeEnabled({ timeout: 30_000 });
+  await expect(page.locator(".notebook-guess-history")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /You Won!/ })).toHaveCount(0, { timeout: 10_000 });
   await expect(page.getByText(/Guesses remaining:\s*20/)).toBeVisible();
 });
