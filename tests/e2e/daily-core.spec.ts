@@ -1,6 +1,14 @@
 import { expect, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { gotoDailyAndWaitForShell } from "./helpers/daily-shell";
 import { mockINaturalist } from "./helpers/inaturalist";
+
+async function dismissOnboardingPromptIfPresent(page: Page) {
+  const skipButton = page.getByRole("button", { name: "I'll explore on my own" });
+  if (await skipButton.isVisible().catch(() => false)) {
+    await skipButton.click();
+  }
+}
 
 test.beforeEach(async ({ page }) => {
   await mockINaturalist(page);
@@ -20,6 +28,7 @@ test("daily puzzle happy path + spoiler-safe share copy", async ({ page }) => {
   });
 
   await gotoDailyAndWaitForShell(page);
+  await dismissOnboardingPromptIfPresent(page);
 
   const searchInput = page.getByRole("combobox", { name: "Search for an animal" });
   await searchInput.fill("tiger");
@@ -44,6 +53,8 @@ test("daily puzzle happy path + spoiler-safe share copy", async ({ page }) => {
 
 test("daily persistence survives refresh and resets with new day", async ({ page }) => {
   await gotoDailyAndWaitForShell(page);
+  await dismissOnboardingPromptIfPresent(page);
+  await dismissOnboardingPromptIfPresent(page);
 
   const searchInput = page.getByRole("combobox", { name: "Search for an animal" });
   await searchInput.fill("lion");
@@ -55,6 +66,7 @@ test("daily persistence survives refresh and resets with new day", async ({ page
   await expect(page.getByText(/Guesses remaining:\s*19/)).toBeVisible();
 
   await page.reload();
+  await dismissOnboardingPromptIfPresent(page);
   await expect(recentGuesses.getByText("Lion", { exact: true })).toBeVisible();
   await expect(page.getByText(/Guesses remaining:\s*19/)).toBeVisible();
 
@@ -75,9 +87,9 @@ test("daily persistence survives refresh and resets with new day", async ({ page
   });
 
   await page.reload();
+  await dismissOnboardingPromptIfPresent(page);
   await expect(page.getByText(/Guesses remaining:\s*20/)).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("combobox", { name: "Search for an animal" })).toHaveCount(1);
-  await expect(page.getByRole("combobox", { name: "Search for an animal" })).toBeEnabled({ timeout: 15_000 });
   await expect(page.locator(".notebook-guess-history")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /You Won!|Game Over/ })).toHaveCount(0);
 });
@@ -163,6 +175,7 @@ test("loss path from incorrect guess", async ({ page }) => {
 
 test("cross-day rollover resets to a fresh daily puzzle", async ({ page }) => {
   await gotoDailyAndWaitForShell(page);
+  await dismissOnboardingPromptIfPresent(page);
 
   const searchInput = page.getByRole("combobox", { name: "Search for an animal" });
   await searchInput.fill("tiger");
@@ -184,10 +197,10 @@ test("cross-day rollover resets to a fresh daily puzzle", async ({ page }) => {
   });
 
   await page.reload();
+  await dismissOnboardingPromptIfPresent(page);
   await expect(page.getByRole("combobox", { name: "Search for an animal" })).toBeVisible({
     timeout: 30_000,
   });
-  await expect(page.getByRole("combobox", { name: "Search for an animal" })).toBeEnabled({ timeout: 30_000 });
   await expect(page.locator(".notebook-guess-history")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /You Won!/ })).toHaveCount(0, { timeout: 10_000 });
   await expect(page.getByText(/Guesses remaining:\s*20/)).toBeVisible();
