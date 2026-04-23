@@ -176,6 +176,30 @@
     "termsTaxonomyP": "La taxonomie est le système de noms et de rangs qui permet de classer les espèces du vivant. Elle inclut des taxons de plusieurs niveaux, par exemple règne, embranchement, classe, ordre, famille, genre et espèce. Cladle s’en sert pour comparer vos propositions à l’animal mystère et pour étiqueter les clades.",
     "termsPhylogenyP": "La phylogénie est l’« arbre généalogique » évolutif des espèces, elle décrit qui s’est séparé de qui au fil du temps. L’arbre du jeu en donne une image simplifiée. Des extrémités proches partagent en général une parenté plus récente que des extrémités éloignées."
   },
+  "onboarding": {
+    "startTour": "Lancer la visite guidée",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "done": "Terminer",
+    "prompt": {
+      "title": "Besoin d'une visite rapide ?",
+      "body": "Suivez un court guidage de l'interface de Cladle et des actions principales.",
+      "start": "Démarrer la visite guidée",
+      "skip": "Je vais explorer par moi-même"
+    },
+    "daily": {
+      "dateTitle": "Puzzle du jour",
+      "dateBody": "Cladle est un défi quotidien : il vous faudra trouver un nouvel animal mystère chaque jour.",
+      "searchTitle": "Chercher et proposer un animal",
+      "searchBody": "Saisissez le nom d'un animal puis validez (clic sur une suggestion ou touche Entrée).",
+      "treeTitle": "Lire l'arbre",
+      "treeBody": "Après chaque essai, l'arbre se met à jour pour montrer la proximité de votre proposition avec l'animal mystère. Cliquez sur un nœud pour consulter ses détails.",
+      "postitTitle": "Consulter les détails d'un nœud",
+      "postitBody": "Ce post-it affiche plus de contexte, des détails taxonomiques et des liens utiles. Fermez-le via le bout de scotch.",
+      "helpTitle": "Besoin de plus d'explications ?",
+      "helpBody": "La page d'aide explique en détail les règles, les notions de taxonomie et la lecture de l'arbre."
+    }
+  },
   "share": {
     "title": "Cladle",
     "dailyPuzzleLine": "Puzzle du jour : {puzzleDate}",

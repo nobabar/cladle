@@ -176,6 +176,30 @@
     "termsTaxonomyP": "Taxonomy is the naming and ranking system for living things. This system include taxon of multiple levels, including kingdom, phylum, class, order, family, genus, and species. Cladle uses those ranks to compare your guesses with the mystery animal and to label clades.",
     "termsPhylogenyP": "Phylogeny is the evolutionary “family tree” of species, it describes who split from whom over time. The in-game tree is a simplified picture of relatedness. Nearby tips usually share a more recent common ancestry than distant ones."
   },
+  "onboarding": {
+    "startTour": "Start guided tour",
+    "next": "Next",
+    "previous": "Previous",
+    "done": "Finish",
+    "prompt": {
+      "title": "Need a quick tour?",
+      "body": "Get a short walkthrough of Cladle and its main actions.",
+      "start": "Start onboarding",
+      "skip": "I'll explore on my own"
+    },
+    "daily": {
+      "dateTitle": "Daily puzzle",
+      "dateBody": "Cladle is a daily challenge: a new animal is selected for everyone to guess every day.",
+      "searchTitle": "Search and submit a guess",
+      "searchBody": "Type an animal name and submit a guess (click a suggestion or press Enter).",
+      "treeTitle": "Read the tree clues",
+      "treeBody": "After each guess, this tree updates to show how close your species is to the mystery animal. Click a node to inspect it.",
+      "postitTitle": "Inspect node details",
+      "postitBody": "This post-it shows extra context, taxonomy details, and useful links. Close it with the sticky tab.",
+      "helpTitle": "Need more guidance?",
+      "helpBody": "The Help page includes a detailed explanation of game rules, taxonomy concepts, and how to read the tree."
+    }
+  },
   "share": {
     "title": "Cladle",
     "dailyPuzzleLine": "Daily puzzle: {puzzleDate}",

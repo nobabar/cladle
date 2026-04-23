@@ -1,6 +1,14 @@
 import { expect, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { gotoDailyAndWaitForShell } from "./helpers/daily-shell";
 import { mockINaturalist } from "./helpers/inaturalist";
+
+async function dismissOnboardingPromptIfPresent(page: Page) {
+  const skipButton = page.getByRole("button", { name: "I'll explore on my own" });
+  if (await skipButton.isVisible().catch(() => false)) {
+    await skipButton.click();
+  }
+}
 
 test.beforeEach(async ({ page }) => {
   await mockINaturalist(page);
@@ -8,6 +16,7 @@ test.beforeEach(async ({ page }) => {
 
 test("help opens as slide-over with daily game behind, closes to home", async ({ page }) => {
   await gotoDailyAndWaitForShell(page);
+  await dismissOnboardingPromptIfPresent(page);
 
   await page.getByRole("navigation", { name: "Footer links" }).getByRole("link", { name: "How to play" }).click();
 
@@ -23,6 +32,7 @@ test("help opens as slide-over with daily game behind, closes to home", async ({
 
 test("privacy opens as slide-over and closes to home", async ({ page }) => {
   await gotoDailyAndWaitForShell(page);
+  await dismissOnboardingPromptIfPresent(page);
 
   await page.getByRole("navigation", { name: "Footer links" }).getByRole("link", { name: "Privacy" }).click();
 

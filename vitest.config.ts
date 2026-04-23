@@ -11,6 +11,7 @@ export default defineConfig({
     exclude: [
       "**/node_modules/**",
       "**/dist/**",
+      "**/.worktree-*/**",
       "tests/e2e/**",
       "playwright.config.ts",
     ],
