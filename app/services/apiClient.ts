@@ -438,6 +438,11 @@ class INaturalistAPIClient implements BiologicalAPIClient {
     // post-filter results client-side to keep only Animalia + species/subspecies taxa.
     // Try to use iconic_taxa filter if supported by the search endpoint
     const url = this.withLocaleParams(`${INATURALIST_BASE_URL}/search?q=${encodeURIComponent(trimmedQuery)}&sources=taxa&per_page=${limit * 3}`);
+    const searchDiagnostics: {
+      queryIntent?: "broad" | "specific";
+      thresholdsByGroup?: Record<string, number>;
+      filteredByMinObservations?: number;
+    } = {};
 
     try {
       const response = await this.makeRequest<INaturalistSearchResponse>(url);
@@ -502,12 +507,92 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       };
 
       const allowedRanks = new Set(["species", "subspecies"]);
-      const MIN_OBSERVATIONS = 1000; // Minimum number of observations to include
+      type QueryIntent = "broad" | "specific";
+      type TaxonomyGroup = "mammalBird" | "reptileAmphibianFish" | "arthropod" | "otherAnimal";
+      const BASE_MIN_OBSERVATIONS: Record<TaxonomyGroup, number> = {
+        mammalBird: 700,
+        reptileAmphibianFish: 1500,
+        arthropod: 5000,
+        otherAnimal: 1200,
+      };
+      // For specific queries (or exact species-name matches), we lower the base threshold
+      // to this fraction so rare-but-known species can still appear in results.
+      // Example: base 5000 for arthropods becomes 1250 when relaxation is applied.
+      const SPECIFIC_QUERY_RELAXATION = 0.25;
+
+      const normalize = (value?: string): string => (value || "")
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[^\w\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      const normalizedQuery = normalize(trimmedQuery);
+      const queryTokens = normalizedQuery.split(" ").filter(Boolean);
+
+      const queryIntent: QueryIntent = (normalizedQuery.length > 3
+        && (queryTokens.length >= 2 || normalizedQuery.length >= 8))
+        ? "specific"
+        : "broad";
+
+      const isStrongNameMatch = (taxon: INaturalistTaxon): boolean => {
+        if (!normalizedQuery) return false;
+        const scientific = normalize(taxon.name);
+        const common = normalize(taxon.preferred_common_name);
+        const aliases = [scientific, common].filter(Boolean);
+        return aliases.some(alias =>
+          alias === normalizedQuery
+          || alias.startsWith(`${normalizedQuery} `)
+          || normalizedQuery.startsWith(`${alias} `));
+      };
+
+      const getTaxonomyGroup = (taxon: INaturalistTaxon): TaxonomyGroup => {
+        // If the result has an iconic taxon name, we can use it to determine the taxonomy group.
+        const iconic = (taxon.iconic_taxon_name || "").toLowerCase();
+        if (["mammalia", "aves"].includes(iconic)) return "mammalBird";
+        if (["reptilia", "amphibia", "actinopterygii"].includes(iconic)) return "reptileAmphibianFish";
+        if (["insecta", "arachnida"].includes(iconic)) return "arthropod";
+        if (iconic) return "otherAnimal";
+
+        // If the result does not have an iconic taxon name, we can use the ancestry to determine the taxonomy group.
+        const ancestryIds = new Set<number>();
+        for (const id of taxon.ancestor_ids || []) ancestryIds.add(id);
+        if (typeof taxon.ancestry === "string") {
+          for (const raw of taxon.ancestry.split("/")) {
+            const parsed = Number.parseInt(raw.trim(), 10);
+            if (!Number.isNaN(parsed)) ancestryIds.add(parsed);
+          }
+        }
+
+        // Class-level fallback IDs in iNaturalist
+        if (ancestryIds.has(40151) || ancestryIds.has(3)) return "mammalBird";
+        if (ancestryIds.has(26036) || ancestryIds.has(20978) || ancestryIds.has(47178)) return "reptileAmphibianFish";
+        if (ancestryIds.has(47158) || ancestryIds.has(47119)) return "arthropod";
+        return "otherAnimal";
+      };
+
+      const computeMinObservations = (group: TaxonomyGroup, strongNameMatch: boolean): number => {
+        const base = BASE_MIN_OBSERVATIONS[group];
+        if (strongNameMatch || queryIntent === "specific") {
+          return Math.max(1, Math.floor(base * SPECIFIC_QUERY_RELAXATION));
+        }
+        return base;
+      };
+
+      const diagnostics = {
+        queryIntent,
+        filteredByMinObservations: 0,
+        thresholdsByGroup: {} as Record<TaxonomyGroup, number>,
+      };
+      searchDiagnostics.queryIntent = diagnostics.queryIntent;
+      searchDiagnostics.thresholdsByGroup = diagnostics.thresholdsByGroup;
+      searchDiagnostics.filteredByMinObservations = diagnostics.filteredByMinObservations;
 
       const processResults = (results: Array<INaturalistSearchResult<INaturalistTaxon>>) => {
         const candidates: Array<{
           animal: Animal;
           score: number;
+          popularityScore: number;
+          exactMatch: boolean;
           idx: number;
         }> = [];
 
@@ -523,9 +608,13 @@ class INaturalistAPIClient implements BiologicalAPIClient {
 
           if (!isAnimaliaDescendant(taxon)) continue;
 
-          // Filter out animals with no or too few observations
           const observationsCount = taxon.observations_count ?? 0;
-          if (observationsCount === 0 || observationsCount < MIN_OBSERVATIONS) {
+          const exactMatch = isStrongNameMatch(taxon);
+          const taxonomyGroup = getTaxonomyGroup(taxon);
+          const minObservations = computeMinObservations(taxonomyGroup, exactMatch);
+          diagnostics.thresholdsByGroup[taxonomyGroup] = minObservations;
+          if (observationsCount === 0 || observationsCount < minObservations) {
+            diagnostics.filteredByMinObservations++;
             continue;
           }
 
@@ -536,6 +625,8 @@ class INaturalistAPIClient implements BiologicalAPIClient {
           candidates.push({
             animal: validation.data,
             score: typeof item.score === "number" ? item.score : 0,
+            popularityScore: Math.log10(observationsCount + 1),
+            exactMatch,
             idx,
           });
         }
@@ -558,14 +649,19 @@ class INaturalistAPIClient implements BiologicalAPIClient {
           // If fetching next page fails, continue with what we have
           this.logError("Animal Search Pagination Error", {
             query: trimmedQuery,
+            queryIntent: diagnostics.queryIntent,
+            thresholdsByGroup: diagnostics.thresholdsByGroup,
+            filteredByMinObservations: diagnostics.filteredByMinObservations,
             error: error instanceof Error ? error.message : String(error),
           });
         }
       }
 
-      // Sort by iNaturalist's relevance score (the higher the better)
+      // Keep iNaturalist relevance score as primary ordering.
       allCandidates.sort((a, b) => {
         if (a.score !== b.score) return b.score - a.score;
+        if (a.exactMatch !== b.exactMatch) return a.exactMatch ? -1 : 1;
+        if (a.popularityScore !== b.popularityScore) return b.popularityScore - a.popularityScore;
         return a.idx - b.idx; // stable fallback
       });
 
@@ -577,6 +673,9 @@ class INaturalistAPIClient implements BiologicalAPIClient {
 
       this.logError("Animal Search Error", {
         query: trimmedQuery,
+        queryIntent: searchDiagnostics.queryIntent,
+        thresholdsByGroup: searchDiagnostics.thresholdsByGroup,
+        filteredByMinObservations: searchDiagnostics.filteredByMinObservations,
         error: error instanceof Error ? error.message : String(error),
         outageLikely,
       });

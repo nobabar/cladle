@@ -493,6 +493,142 @@ describe("api client", () => {
       expect(result.error?.details?.outageLikely).toBe(false);
     });
 
+    it("should apply stricter observation threshold for broad arthropod queries", async () => {
+      /* eslint-disable camelcase */
+      const mockSearchResponse = {
+        results: [
+          {
+            type: "Taxon",
+            score: 80,
+            record: {
+              id: 11,
+              name: "Heliconius melpomene",
+              preferred_common_name: "Postman butterfly",
+              rank: "species",
+              iconic_taxon_name: "Insecta",
+              ancestry: "48460/47120/47158/1234",
+              ancestor_ids: [48460, 47120, 47158, 1234],
+              observations_count: 2400,
+            },
+          },
+          {
+            type: "Taxon",
+            score: 70,
+            record: {
+              id: 12,
+              name: "Danaus plexippus",
+              preferred_common_name: "Monarch butterfly",
+              rank: "species",
+              iconic_taxon_name: "Insecta",
+              ancestry: "48460/47120/47158/5678",
+              ancestor_ids: [48460, 47120, 47158, 5678],
+              observations_count: 12000,
+            },
+          },
+        ],
+      };
+      /* eslint-enable camelcase */
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSearchResponse,
+      } as Response);
+
+      const promise = client.searchAnimals("insect", 10);
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      expect(result.error).toBeNull();
+      expect(result.data?.map(a => a.scientificName)).toEqual(["Danaus plexippus"]);
+    });
+
+    it("should relax threshold for specific rare species queries", async () => {
+      /* eslint-disable camelcase */
+      const mockSearchResponse = {
+        results: [
+          {
+            type: "Taxon",
+            score: 60,
+            record: {
+              id: 4338,
+              name: "Balaeniceps rex",
+              preferred_common_name: "Shoebill",
+              rank: "species",
+              iconic_taxon_name: "Aves",
+              ancestry: "48460/1/3/2966/1896/4338",
+              ancestor_ids: [48460, 1, 3, 2966, 1896, 4338],
+              observations_count: 320,
+            },
+          },
+        ],
+      };
+      /* eslint-enable camelcase */
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSearchResponse,
+      } as Response);
+
+      const promise = client.searchAnimals("Shoebill", 10);
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      expect(result.error).toBeNull();
+      expect(result.data?.map(a => a.scientificName)).toEqual(["Balaeniceps rex"]);
+    });
+
+    it("should keep relevance primary and use observation popularity as a tie-breaker", async () => {
+      /* eslint-disable camelcase */
+      const mockSearchResponse = {
+        results: [
+          {
+            type: "Taxon",
+            score: 40,
+            record: {
+              id: 20,
+              name: "Panthera leo",
+              preferred_common_name: "Lion",
+              rank: "species",
+              iconic_taxon_name: "Mammalia",
+              ancestry: "48460/1/2/355675/40151/41066/4200",
+              ancestor_ids: [48460, 1, 2, 355675, 40151, 41066, 4200],
+              observations_count: 1000,
+            },
+          },
+          {
+            type: "Taxon",
+            score: 40,
+            record: {
+              id: 21,
+              name: "Panthera tigris",
+              preferred_common_name: "Tiger",
+              rank: "species",
+              iconic_taxon_name: "Mammalia",
+              ancestry: "48460/1/2/355675/40151/41066/41067",
+              ancestor_ids: [48460, 1, 2, 355675, 40151, 41066, 41067],
+              observations_count: 9000,
+            },
+          },
+        ],
+      };
+      /* eslint-enable camelcase */
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSearchResponse,
+      } as Response);
+
+      const promise = client.searchAnimals("panthera", 10);
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      expect(result.error).toBeNull();
+      expect(result.data?.map(a => a.scientificName)).toEqual(["Panthera tigris", "Panthera leo"]);
+    });
+
     it("should mark outage after repeated search failures", async () => {
       (globalThis.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("Network error"));
 

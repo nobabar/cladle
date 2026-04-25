@@ -80,7 +80,6 @@ export const CURATED_ANIMALS: CuratedAnimal[] = [
   { id: "47062", name: "Aardvark", scientificName: "Orycteropus afer", difficulty: "hard", taxonomicGroup: "mammal", educationalNote: "Ant-eating mammal, unique order" },
   { id: "43357", name: "Pangolins", scientificName: "Pholidota", difficulty: "hard", taxonomicGroup: "mammal", educationalNote: "Scaly anteater, most trafficked mammal" },
   { id: "210941", name: "Red-flanked Bluetail", scientificName: "Tarsiger cyanurus", difficulty: "hard", taxonomicGroup: "mammal", educationalNote: "Small primate, huge eyes" },
-  { id: "1584019", name: "Kākāpō", scientificName: "Strigops habroptilus", difficulty: "hard", taxonomicGroup: "bird", educationalNote: "Flightless parrot, critically endangered" },
   { id: "31215", name: "Frilled Dragon", scientificName: "Chlamydosaurus kingii", difficulty: "hard", taxonomicGroup: "reptile", educationalNote: "Australian lizard, defensive frill" },
 ];
 
