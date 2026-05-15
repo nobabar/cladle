@@ -233,6 +233,15 @@ body {
   }
 }
 
+/* Fallback z-index for UModal overlay/content (matches data-slot + data-state). */
+[data-slot="overlay"][data-state="open"] {
+  z-index: 1250;
+}
+
+[data-slot="content"][data-state="open"] {
+  z-index: 1251;
+}
+
 /* Tablet breakpoint (768px - 1023px) */
 @media (min-width: 768px) {
   html {
