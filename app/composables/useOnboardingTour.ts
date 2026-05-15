@@ -1,7 +1,8 @@
 import { computed } from "vue";
 import { driver } from "driver.js";
 
-const TOUR_STORAGE_KEY = "cladle:onboarding:daily:v1";
+/** Persisted tour completion */
+export const ONBOARDING_DAILY_TOUR_COMPLETE_KEY = "cladle:onboarding:daily:v1";
 
 export function useOnboardingTour() {
   const { t } = useI18n();
@@ -10,21 +11,21 @@ export function useOnboardingTour() {
     if (!import.meta.client) {
       return false;
     }
-    return localStorage.getItem(TOUR_STORAGE_KEY) === "done";
+    return localStorage.getItem(ONBOARDING_DAILY_TOUR_COMPLETE_KEY) === "done";
   });
 
   function markOnboardingAsCompleted() {
     if (!import.meta.client) {
       return;
     }
-    localStorage.setItem(TOUR_STORAGE_KEY, "done");
+    localStorage.setItem(ONBOARDING_DAILY_TOUR_COMPLETE_KEY, "done");
   }
 
   function resetOnboarding() {
     if (!import.meta.client) {
       return;
     }
-    localStorage.removeItem(TOUR_STORAGE_KEY);
+    localStorage.removeItem(ONBOARDING_DAILY_TOUR_COMPLETE_KEY);
   }
 
   function startDailyTour() {

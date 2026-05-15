@@ -7,6 +7,7 @@ import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 
 import { useResponsive } from "~/composables/useResponsive";
 import { useUiIcons } from "~/composables/useUiIcons";
+import { ONBOARDING_DAILY_TOUR_COMPLETE_KEY } from "~/composables/useOnboardingTour";
 
 const props = withDefaults(defineProps<Props>(), {
   isOpen: false,
@@ -52,6 +53,98 @@ const ignoreNextStickyTabClick = ref(false);
 
 const frontElement = ref<"postit" | "image">("postit");
 
+/** Periodically show the fold when not hovered (fine pointer + hover-capable only). */
+const stickyTabPointerInside = ref(false);
+const foldHintActive = ref(false);
+let foldHintIntervalId: number | null = null;
+let foldHintHoldTimeoutId: number | null = null;
+
+const FOLD_HINT_INTERVAL_MS = 6_500;
+const FOLD_HINT_HOLD_MS = 1_400;
+
+function shouldRunPeriodicFoldHint(): boolean {
+  if (!import.meta.client) {
+    return false;
+  }
+  if (hasInformationPopupBeenDismissedThisSession()) {
+    return false;
+  }
+  try {
+    if (localStorage.getItem(ONBOARDING_DAILY_TOUR_COMPLETE_KEY) === "done") {
+      return false;
+    }
+  } catch {
+    return true;
+  }
+  return true;
+}
+
+function clearFoldHintTimers() {
+  if (foldHintIntervalId !== null) {
+    window.clearInterval(foldHintIntervalId);
+    foldHintIntervalId = null;
+  }
+  if (foldHintHoldTimeoutId !== null) {
+    window.clearTimeout(foldHintHoldTimeoutId);
+    foldHintHoldTimeoutId = null;
+  }
+  foldHintActive.value = false;
+}
+
+function startFoldHintLoop() {
+  clearFoldHintTimers();
+  if (typeof window === "undefined") {
+    return;
+  }
+  if (!shouldRunPeriodicFoldHint()) {
+    return;
+  }
+
+  foldHintIntervalId = window.setInterval(() => {
+    if (!shouldRunPeriodicFoldHint()) {
+      clearFoldHintTimers();
+      return;
+    }
+    if (!props.isOpen) {
+      return;
+    }
+    if (typeof document !== "undefined" && document.visibilityState !== "visible") {
+      return;
+    }
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+    if (!window.matchMedia("(hover: hover)").matches) {
+      return;
+    }
+    if (!window.matchMedia("(pointer: fine)").matches) {
+      return;
+    }
+    if (stickyTabPointerInside.value || isDragging.value || foldHintActive.value) {
+      return;
+    }
+
+    foldHintActive.value = true;
+    foldHintHoldTimeoutId = window.setTimeout(() => {
+      foldHintActive.value = false;
+      foldHintHoldTimeoutId = null;
+    }, FOLD_HINT_HOLD_MS);
+  }, FOLD_HINT_INTERVAL_MS);
+}
+
+function handleStickyTabPointerEnter() {
+  stickyTabPointerInside.value = true;
+  foldHintActive.value = false;
+  if (foldHintHoldTimeoutId !== null) {
+    window.clearTimeout(foldHintHoldTimeoutId);
+    foldHintHoldTimeoutId = null;
+  }
+}
+
+function handleStickyTabPointerLeave() {
+  stickyTabPointerInside.value = false;
+}
+
 function handleEscape(event: KeyboardEvent) {
   if (event.key === "Escape" && props.isOpen) {
     event.preventDefault();
@@ -69,6 +162,9 @@ function handleClickOutside(event: MouseEvent) {
 }
 
 function closePanel() {
+  clearFoldHintTimers();
+  markInformationPopupDismissedThisSession();
+
   emit("close");
   emit("update:isOpen", false);
   window.dispatchEvent(new CustomEvent("cladle:onboarding:postit-closed"));
@@ -117,6 +213,12 @@ function handleImageCardClick(event: MouseEvent) {
 function handleStickyTabPointerDown(event: PointerEvent) {
   if (!containerRef.value) return;
   if (event.button !== 0 && event.pointerType !== "touch") return;
+
+  foldHintActive.value = false;
+  if (foldHintHoldTimeoutId !== null) {
+    window.clearTimeout(foldHintHoldTimeoutId);
+    foldHintHoldTimeoutId = null;
+  }
 
   activePointerId.value = event.pointerId;
   isDragging.value = true;
@@ -507,8 +609,12 @@ watch(() => props.isOpen, (newValue) => {
       setTimeout(() => {
         manageFocus();
       }, 50);
+      startFoldHintLoop();
     });
   } else {
+    clearFoldHintTimers();
+    stickyTabPointerInside.value = false;
+
     // Reset drag state and transform when closing
     isDragging.value = false;
     frontElement.value = "postit"; // Reset to default when closing
@@ -552,12 +658,31 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  clearFoldHintTimers();
   if (typeof window !== "undefined") {
     window.removeEventListener("keydown", handleEscape);
     window.removeEventListener("keydown", handleTabKey);
     document.removeEventListener("click", handleClickOutside, true);
   }
 });
+</script>
+
+<script lang="ts">
+/**
+ * Shared across all mounts of this component until page reload (not persisted).
+ * Kept outside `<script setup>` because setup runs per instance — a bare `let` there would reset each mount.
+ */
+let informationPopupDismissedThisSession = false;
+
+export function markInformationPopupDismissedThisSession() {
+  if (import.meta.client) {
+    informationPopupDismissedThisSession = true;
+  }
+}
+
+export function hasInformationPopupBeenDismissedThisSession(): boolean {
+  return informationPopupDismissedThisSession;
+}
 </script>
 
 <template>
@@ -595,6 +720,7 @@ onUnmounted(() => {
         <div
           ref="stickyTabRef"
           class="information-panel-postit__sticky-tab"
+          :class="{ 'information-panel-postit__sticky-tab--fold-hint': foldHintActive }"
           role="button"
           tabindex="0"
           :aria-label="t('informationPanel.stickyTabAriaLabel')"
@@ -602,11 +728,15 @@ onUnmounted(() => {
           @pointermove="handleStickyTabPointerMove"
           @pointerup="handleStickyTabPointerUp"
           @pointercancel="handleStickyTabPointerCancel"
+          @pointerenter="handleStickyTabPointerEnter"
+          @pointerleave="handleStickyTabPointerLeave"
           @click="handleStickyTabClick"
           @keydown.enter="closePanel"
           @keydown.space.prevent="closePanel"
         >
-          <div class="information-panel-postit__sticky-tab-texture" />
+          <div class="information-panel-postit__sticky-tab-face" aria-hidden="true">
+            <div class="information-panel-postit__sticky-tab-texture" />
+          </div>
         </div>
 
         <!-- Post-it Note -->
@@ -883,11 +1013,12 @@ onUnmounted(() => {
 }
 
 /* Container for post-it and image card */
+/* Above tree/overlays (~80); below UModal (~1250, see main.css + app.config modal.slots). */
 .information-panel-container {
   position: fixed;
   bottom: 1rem;
   right: 1rem;
-  z-index: 9999;
+  z-index: 500;
   width: 400px;
   max-width: calc(100vw - 2rem);
   height: fit-content;
@@ -1008,37 +1139,30 @@ onUnmounted(() => {
   right: 40px;
   width: 120px;
   height: 32px;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.6) 0%,
-    rgba(255, 255, 255, 0.5) 50%,
-    rgba(255, 255, 255, 0.4) 100%
-  );
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 2px 2px 0 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 0;
   cursor: grab;
   touch-action: none;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow:
-    0 -2px 4px rgba(0, 0, 0, 0.1),
-    inset 0 1px 2px rgba(255, 255, 255, 0.6);
-  transition: all 0.2s ease;
+  align-items: stretch;
+  justify-content: stretch;
+  box-shadow: none;
+  transition: transform 0.2s ease;
   z-index: 100;
 }
 
 .information-panel-postit__sticky-tab:hover {
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.65) 0%,
-    rgba(255, 255, 255, 0.55) 50%,
-    rgba(255, 255, 255, 0.45) 100%
-  );
-  box-shadow:
-    0 -2px 6px rgba(0, 0, 0, 0.15),
-    inset 0 1px 2px rgba(255, 255, 255, 0.7);
   transform: translateY(-2px);
+}
+
+@media (hover: hover) {
+  .information-panel-postit__sticky-tab.information-panel-postit__sticky-tab--fold-hint:not(
+    :hover
+  ) {
+    transform: translateY(-2px);
+  }
 }
 
 .information-panel-postit__sticky-tab:active {
@@ -1051,36 +1175,203 @@ onUnmounted(() => {
   outline-offset: 2px;
 }
 
-.dark .information-panel-postit__sticky-tab {
+@media (prefers-reduced-motion: reduce) {
+  .information-panel-postit__sticky-tab-face,
+  .information-panel-postit__sticky-tab-face::before,
+  .information-panel-postit__sticky-tab-face::after {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Top-right peel hint (hover-capable pointers only): clip-path corner fold */
+.information-panel-postit__sticky-tab-face {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  /* Pseudos use inset: calc(-1 * border) so clip-path % shares the same box as the face */
+  --tab-border: 1px;
+  border: var(--tab-border) solid rgba(0, 0, 0, 0.1);
+  border-radius: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0.4) 100%
+  );
+  box-shadow:
+    0 -2px 4px rgba(0, 0, 0, 0.1),
+    inset 0 1px 2px rgba(255, 255, 255, 0.6);
+  isolation: isolate;
+  overflow: visible;
+
+  /* Collapsed */
+  --fold-start-y: 0%;
+  --fold-start-x: 100%;
+  --fold-anchor-x: 100%;
+  --fold-anchor-y: 0%;
+  --shadow-anchor-x: 100%;
+  --shadow-anchor-y: 0%;
+
+  clip-path: polygon(
+    0 0,
+    var(--fold-start-x) 0,
+    100% var(--fold-start-y),
+    100% 100%,
+    0 100%
+  );
+  transition:
+    clip-path 0.4s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+@media (hover: hover) {
+  .information-panel-postit__sticky-tab:hover .information-panel-postit__sticky-tab-face,
+  .information-panel-postit__sticky-tab.information-panel-postit__sticky-tab--fold-hint
+    .information-panel-postit__sticky-tab-face {
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.68) 0%,
+      rgba(255, 255, 255, 0.58) 50%,
+      rgba(255, 255, 255, 0.48) 100%
+    );
+    border-color: rgba(0, 0, 0, 0.14);
+    box-shadow:
+      0 -3px 7px rgba(0, 0, 0, 0.14),
+      inset 0 1px 2px rgba(255, 255, 255, 0.72);
+
+    --fold-start-x: 75%;
+    --fold-start-y: 40%;
+
+    /* --fold-anchor-x: 81.5%;
+    --fold-anchor-y: 55.5%;
+
+    --shadow-anchor-x: 80.8%;
+    --shadow-anchor-y: 58.5%; */
+    --fold-anchor-x: 86.8%;
+    --fold-anchor-y: 44.2%;
+
+    --shadow-anchor-x: 86.4%;
+    --shadow-anchor-y: 46.2%;
+  }
+}
+
+.information-panel-postit__sticky-tab-face::before,
+.information-panel-postit__sticky-tab-face::after {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--tab-border));
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.information-panel-postit__sticky-tab-face::after {
+  z-index: 2;
+  background-color: rgba(0, 0, 0, 0.06);
+  clip-path: polygon(
+    var(--fold-start-x) 0,
+    100% var(--fold-start-y),
+    var(--shadow-anchor-x) var(--shadow-anchor-y)
+  );
+  transition:
+    clip-path 0.4s ease,
+    background-color 0.4s ease;
+}
+
+.information-panel-postit__sticky-tab-face::before {
+  z-index: 3;
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.03) 2px,
+      rgba(0, 0, 0, 0.03) 4px
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.58) 0%,
+      rgba(255, 255, 255, 0.48) 50%,
+      rgba(255, 255, 255, 0.38) 100%
+    );
+  clip-path: polygon(
+    var(--fold-start-x) 0,
+    100% var(--fold-start-y),
+    var(--fold-anchor-x) var(--fold-anchor-y)
+  );
+  transition: clip-path 0.4s ease;
+}
+
+.dark .information-panel-postit__sticky-tab-face {
+  border-color: rgba(255, 255, 255, 0.12);
   background: linear-gradient(
     180deg,
     rgba(160, 140, 100, 0.5) 0%,
     rgba(150, 130, 90, 0.45) 50%,
     rgba(140, 120, 80, 0.4) 100%
   );
-  border-color: rgba(255, 255, 255, 0.12);
   box-shadow:
     0 -2px 4px rgba(0, 0, 0, 0.4),
     inset 0 1px 2px rgba(255, 255, 255, 0.1),
     inset 0 -1px 1px rgba(0, 0, 0, 0.2);
+
 }
 
-.dark .information-panel-postit__sticky-tab:hover {
-  background: linear-gradient(
-    180deg,
-    rgba(170, 150, 110, 0.55) 0%,
-    rgba(160, 140, 100, 0.5) 50%,
-    rgba(150, 130, 90, 0.45) 100%
-  );
-  box-shadow:
-    0 -2px 6px rgba(0, 0, 0, 0.5),
-    inset 0 1px 2px rgba(255, 255, 255, 0.15),
-    inset 0 -1px 1px rgba(0, 0, 0, 0.25);
+.dark .information-panel-postit__sticky-tab-face::before {
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.05) 2px,
+      rgba(255, 255, 255, 0.05) 4px
+    ),
+    linear-gradient(
+      180deg,
+      rgba(160, 140, 100, 0.52) 0%,
+      rgba(140, 120, 80, 0.42) 50%,
+      rgba(120, 100, 70, 0.34) 100%
+    );
+}
+
+.dark .information-panel-postit__sticky-tab-face::after {
+  background-color: rgba(0, 0, 0, 0.14);
+}
+
+@media (hover: hover) {
+  .dark .information-panel-postit__sticky-tab:hover .information-panel-postit__sticky-tab-face,
+  .dark
+    .information-panel-postit__sticky-tab.information-panel-postit__sticky-tab--fold-hint
+    .information-panel-postit__sticky-tab-face {
+    border-color: rgba(255, 255, 255, 0.16);
+    background: linear-gradient(
+      180deg,
+      rgba(170, 150, 110, 0.55) 0%,
+      rgba(160, 140, 100, 0.5) 50%,
+      rgba(150, 130, 90, 0.45) 100%
+    );
+    box-shadow:
+      0 -3px 8px rgba(0, 0, 0, 0.5),
+      inset 0 1px 2px rgba(255, 255, 255, 0.15),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.25);
+  }
+
+  .dark
+    .information-panel-postit__sticky-tab:hover
+    .information-panel-postit__sticky-tab-face::after,
+  .dark
+    .information-panel-postit__sticky-tab.information-panel-postit__sticky-tab--fold-hint
+    .information-panel-postit__sticky-tab-face::after {
+    background-color: rgba(0, 0, 0, 0.2);
+  }
 }
 
 .information-panel-postit__sticky-tab-texture {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: calc(-1 * var(--tab-border));
+  box-sizing: border-box;
   background-image:
     repeating-linear-gradient(
       90deg,
@@ -1089,8 +1380,9 @@ onUnmounted(() => {
       rgba(0, 0, 0, 0.03) 2px,
       rgba(0, 0, 0, 0.03) 4px
     );
-  border-radius: 2px 2px 0 0;
+  border-radius: 0;
   pointer-events: none;
+  z-index: 1;
 }
 
 .dark .information-panel-postit__sticky-tab-texture {
@@ -1537,8 +1829,9 @@ onUnmounted(() => {
   .information-panel-postit__sticky-tab {
     top: -14px;
     right: 30px;
-    width: 100px;
-    height: 28px;
+    width: 110px;
+    min-height: unset;
+    min-width: unset;
   }
 
   .information-panel-image-card {
@@ -1552,13 +1845,6 @@ onUnmounted(() => {
 
   .information-panel-image-card--front:hover {
     transform: rotate(-0.25deg) translateX(-15px) scale(1.02);
-  }
-
-  .information-panel-postit__sticky-tab {
-    width: 50px;
-    height: 20px;
-    right: 15px;
-    top: -10px;
   }
 
   .information-panel-postit__header {
