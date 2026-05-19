@@ -187,6 +187,93 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
+     * Taxonomic depth for an LCA clade node (0 = kingdom). Prefers stored metadata
+     * on the node so clades created from guess–guess LCAs work without a matching guess-target entry.
+     * @param node - LCA clade node
+     * @returns Taxonomic depth
+     */
+    getLCANodeTaxonomicDepth(node: TreeNode): number {
+      if (node.taxonomicDepth !== undefined) {
+        return node.taxonomicDepth;
+      }
+
+      const guessEntry = this.guesses.find(
+        entry => this.normalizeCladeName(entry.lca.clade) === this.normalizeCladeName(node.name || ""),
+      );
+      if (guessEntry) {
+        return guessEntry.lca.depth;
+      }
+
+      if (node.name && this.target) {
+        const depthInTarget = this.getCladeDepthInTaxonomy(this.target, node.name);
+        if (depthInTarget >= 0) {
+          return depthInTarget;
+        }
+      }
+
+      return node.depth ?? 0;
+    },
+
+    /**
+     * Taxonomy path prefix for an LCA clade node.
+     * @param node - LCA clade node
+     * @returns Taxonomy path
+     */
+    getLCANodeTaxonomyPath(node: TreeNode): string[] | undefined {
+      if (node.taxonomyPath && node.taxonomyPath.length > 0) {
+        return node.taxonomyPath;
+      }
+
+      const guessEntry = this.guesses.find(
+        entry => this.normalizeCladeName(entry.lca.clade) === this.normalizeCladeName(node.name || ""),
+      );
+      if (guessEntry?.lca.path?.length) {
+        return guessEntry.lca.path;
+      }
+
+      if (node.name && this.target) {
+        const depth = this.getCladeDepthInTaxonomy(this.target, node.name);
+        if (depth >= 0) {
+          return this.target.taxonomy.slice(0, depth + 1);
+        }
+      }
+
+      return undefined;
+    },
+
+    /**
+     * Whether one clade is a taxonomic ancestor of another using path prefixes.
+     * @param ancestorDepth - Depth of the ancestor clade
+     * @param ancestorClade - Name of the ancestor clade
+     * @param descendantPath - Path of the descendant clade
+     * @returns True if the ancestor clade is a taxonomic ancestor of the descendant clade
+     */
+    isTaxonomicAncestor(
+      ancestorDepth: number,
+      ancestorClade: string,
+      descendantPath: string[],
+    ): boolean {
+      if (ancestorDepth < 0 || ancestorDepth >= descendantPath.length) {
+        return false;
+      }
+      const taxonAtDepth = descendantPath[ancestorDepth];
+      return !!(
+        taxonAtDepth
+        && this.normalizeCladeName(taxonAtDepth) === this.normalizeCladeName(ancestorClade)
+      );
+    },
+
+    /**
+     * Persist taxonomic metadata on an LCA node when it is created or rediscovered.
+     * @param node - LCA clade node
+     * @param lcaResult - LCA result
+     */
+    assignLCANodeTaxonomy(node: TreeNode, lcaResult: LCAResult): void {
+      node.taxonomicDepth = lcaResult.depth;
+      node.taxonomyPath = [...lcaResult.path];
+    },
+
+    /**
      * Update depth recursively for a node and all its descendants
      * @param node - Starting node
      * @param baseDepth - Base depth for the starting node
@@ -555,6 +642,8 @@ export const useGameStore = defineStore("game", {
       rootNode.children.push(targetNode);
       targetNode.parent = rootNode;
 
+      rootNode.taxonomicDepth = 0;
+      rootNode.taxonomyPath = ["Animalia"];
       this.cladeMap.set(this.normalizeCladeName("Animalia"), rootNode);
 
       this.buildNodeMap(rootNode);
@@ -754,6 +843,7 @@ export const useGameStore = defineStore("game", {
           isLCA: true,
           depth: 1, // Will be updated based on parent
         };
+        this.assignLCANodeTaxonomy(lcaNode, lcaResult);
 
         // Find the appropriate parent for the LCA node
         // When adding a less specific LCA, we need to restructure the tree
@@ -775,6 +865,9 @@ export const useGameStore = defineStore("game", {
       } else {
         // Mark existing node as LCA if not already marked
         lcaNode.isLCA = true;
+        if (lcaNode.taxonomicDepth === undefined) {
+          this.assignLCANodeTaxonomy(lcaNode, lcaResult);
+        }
       }
 
       return lcaNode;
@@ -799,52 +892,33 @@ export const useGameStore = defineStore("game", {
       // This new LCA should be a child of the less specific one
       const existingLCAs = Array.from(this.cladeMap.values())
         .filter(node => node.isLCA && node.id !== lcaNode.id)
-        .map((node) => {
-          // Find the guess entry that created this LCA to get its depth
-          const guessEntry = this.guesses.find(
-            entry => this.normalizeCladeName(entry.lca.clade) === this.normalizeCladeName(node.name || ""),
-          );
-          return {
-            node,
-            depth: guessEntry?.lca.depth ?? node.depth ?? 0,
-            lcaResult: guessEntry?.lca,
-          };
-        })
-        .filter(({ depth, lcaResult: existingLCA }) => {
+        .map(node => ({
+          node,
+          depth: this.getLCANodeTaxonomicDepth(node),
+          path: this.getLCANodeTaxonomyPath(node),
+          clade: node.name || "",
+        }))
+        .filter(({ depth, path, clade }) => {
           // Less specific means shallower taxonomic depth
           if (depth >= lcaResult.depth) {
             return false;
           }
-          // Verify that the existing LCA is actually an ancestor of the new LCA
-          if (existingLCA?.path && lcaResult.path) {
-            // Check if existing LCA's path is a proper prefix of the new LCA's path
-            // This ensures the existing LCA is actually a taxonomic ancestor
-            if (depth >= 0 && depth < lcaResult.path.length && depth < existingLCA.path.length) {
-              // Verify that all path elements up to the existing LCA's depth match
-              for (let i = 0; i <= depth; i++) {
-                const existingPathElement = existingLCA.path[i];
-                const newPathElement = lcaResult.path[i];
-                if (
-                  !existingPathElement
-                  || !newPathElement
-                  || this.normalizeCladeName(existingPathElement)
-                  !== this.normalizeCladeName(newPathElement)
-                ) {
-                  return false; // Paths don't match, not an ancestor
-                }
-              }
-              // Also verify that the clade name at the depth matches
-              const ancestorAtDepth = lcaResult.path[depth];
-              if (
-                ancestorAtDepth
-                && this.normalizeCladeName(ancestorAtDepth)
-                === this.normalizeCladeName(existingLCA.clade)
-              ) {
-                return true; // Verified ancestor relationship
-              }
+          if (!path || !lcaResult.path) {
+            return false;
+          }
+          for (let i = 0; i <= depth; i++) {
+            const existingPathElement = path[i];
+            const newPathElement = lcaResult.path[i];
+            if (
+              !existingPathElement
+              || !newPathElement
+              || this.normalizeCladeName(existingPathElement)
+              !== this.normalizeCladeName(newPathElement)
+            ) {
+              return false;
             }
           }
-          return false; // If we can't verify, exclude it to prevent incorrect placement
+          return this.isTaxonomicAncestor(depth, clade, lcaResult.path);
         })
         .sort((a, b) => b.depth - a.depth); // Sort by depth descending (most specific first)
 
@@ -894,65 +968,33 @@ export const useGameStore = defineStore("game", {
             && node.id !== newLCANode.id
             && node.parent?.id !== newLCANode.id,
         )
-        .map((node) => {
-          // Find the guess entry that created this LCA to get its depth
-          // Use normalized comparison
-          const guessEntry = this.guesses.find(
-            entry => this.normalizeCladeName(entry.lca.clade) === this.normalizeCladeName(node.name || ""),
-          );
-          return {
-            node,
-            depth: guessEntry?.lca.depth ?? node.depth ?? 0,
-            lcaResult: guessEntry?.lca,
-          };
-        })
-        .filter(({ depth, lcaResult: existingLCA, node }) => {
-          // Check if this existing LCA is more specific (deeper) than the new LCA
+        .map(node => ({
+          node,
+          depth: this.getLCANodeTaxonomicDepth(node),
+          path: this.getLCANodeTaxonomyPath(node),
+        }))
+        .filter(({ depth, path, node }) => {
           if (depth <= lcaResult.depth) {
             return false;
           }
 
-          // Check if the new LCA is an ancestor of the existing LCA
-          // by checking if it appears in the existing LCA's path at the correct depth
-          if (
-            existingLCA?.path
-            && lcaResult.depth >= 0
-            && lcaResult.depth < existingLCA.path.length
-          ) {
-            const ancestorAtDepth = existingLCA.path[lcaResult.depth];
-            const isAncestor = !!(
-              ancestorAtDepth
-              && this.normalizeCladeName(ancestorAtDepth)
-              === this.normalizeCladeName(lcaResult.clade)
-            );
-
-            if (!isAncestor) {
-              return false;
-            }
-
-            // Only move if the current parent is less specific than the new LCA
-            // This prevents moving nodes that are already correctly positioned
-            // under a more specific intermediate LCA (e.g., don't move Panthera
-            // from under Carnivora when adding Mammalia)
-            const currentParent = node.parent;
-            if (currentParent && currentParent.isLCA && currentParent.name) {
-              // Find the parent's LCA depth
-              const parentGuessEntry = this.guesses.find(
-                entry => this.normalizeCladeName(entry.lca.clade) === this.normalizeCladeName(currentParent.name || ""),
-              );
-              const parentDepth = parentGuessEntry?.lca.depth ?? currentParent.depth ?? 0;
-
-              // Only move if parent is less specific (shallower) than new LCA
-              // If parent is more specific (deeper), keep the node where it is
-              if (parentDepth > lcaResult.depth) {
-                return false; // Parent is more specific, don't move
-              }
-            }
-
-            return true;
+          if (!path) {
+            return false;
           }
 
-          return false;
+          if (!this.isTaxonomicAncestor(lcaResult.depth, lcaResult.clade, path)) {
+            return false;
+          }
+
+          const currentParent = node.parent;
+          if (currentParent && currentParent.isLCA && currentParent.name) {
+            const parentDepth = this.getLCANodeTaxonomicDepth(currentParent);
+            if (parentDepth > lcaResult.depth) {
+              return false;
+            }
+          }
+
+          return true;
         });
 
       // Move each more specific LCA to be a child of the new LCA
@@ -1090,18 +1132,7 @@ export const useGameStore = defineStore("game", {
       // If parent is an LCA node, get its depth from the clade map
       // We need to find the LCA result that corresponds to this clade
       if (targetNode.parent.isLCA && targetNode.parent.name) {
-        // Find the guess entry that has this LCA (use normalized comparison)
-        const matchingGuess = this.guesses.find(
-          entry => this.normalizeCladeName(entry.lca.clade) === this.normalizeCladeName(targetNode.parent!.name || ""),
-        );
-
-        if (matchingGuess) {
-          return matchingGuess.lca.depth;
-        }
-
-        // Fallback: try to infer depth from parent's depth property
-        // This is less accurate but better than nothing
-        return targetNode.parent.depth || 0;
+        return this.getLCANodeTaxonomicDepth(targetNode.parent);
       }
 
       return -1;
