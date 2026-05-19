@@ -368,6 +368,72 @@ describe("gameStore", () => {
       }
     });
 
+    it("places guess-guess LCAs under the correct taxonomic parent (not a broader sibling)", () => {
+      const easternBeardedDragon: Animal = {
+        id: "31419",
+        name: "Agame barbu de l'Est",
+        scientificName: "Pogona barbata",
+        taxonomy: ["Animalia", "Chordata", "Reptilia", "Squamata", "Agamidae", "Pogona", "Pogona barbata"],
+      };
+
+      const californiaSeaLion: Animal = {
+        id: "41740",
+        name: "California Sea Lion",
+        scientificName: "Zalophus californianus",
+        taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Otariidae", "Zalophus", "Zalophus californianus"],
+      };
+
+      const mountainLion: Animal = {
+        id: "42007",
+        name: "Mountain Lion",
+        scientificName: "Puma concolor",
+        taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Puma", "Puma concolor"],
+      };
+
+      const lion: Animal = {
+        id: "41964",
+        name: "Lion",
+        scientificName: "Panthera leo",
+        taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera leo"],
+      };
+
+      const southernLion: Animal = {
+        id: "557401",
+        name: "Southern Lion",
+        scientificName: "Neofelis diardi",
+        taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Neofelis", "Neofelis diardi"],
+      };
+
+      const maroonLeggedLionFly: Animal = {
+        id: "55773",
+        name: "Maroon-legged Lion Fly",
+        scientificName: "Neoscatella grisea",
+        taxonomy: ["Animalia", "Arthropoda", "Insecta", "Diptera", "Scatopsidae", "Neoscatella", "Neoscatella grisea"],
+      };
+
+      const store = getGameStore();
+      store.startGame(easternBeardedDragon, 20);
+
+      store.processGuess(californiaSeaLion);
+      store.processGuess(lion);
+      store.processGuess(mountainLion);
+      store.processGuess(southernLion);
+      store.processGuess(maroonLeggedLionFly);
+
+      const chordataNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Chordata" && n.isLCA);
+      const carnivoraNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Carnivora" && n.isLCA);
+      const felidaeNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Felidae" && n.isLCA);
+      const targetNode = store.treeData?.target;
+
+      expect(chordataNode).toBeDefined();
+      expect(carnivoraNode).toBeDefined();
+      expect(felidaeNode).toBeDefined();
+
+      expect(targetNode?.parent?.id).toBe(chordataNode?.id);
+      expect(felidaeNode?.parent?.id).toBe(carnivoraNode?.id);
+      expect(carnivoraNode?.parent?.id).toBe(chordataNode?.id);
+    });
+
     it("keeps deeper guess clades connected when a broader clade is added later", () => {
       const store = getGameStore();
       store.startGame(shoebill, 10);

@@ -31,6 +31,13 @@ export interface TreeNode {
 
   /** Depth in the tree (0 for root) */
   depth?: number;
+
+  /** Taxonomic depth from LCA calculation (0 = kingdom, 1 = phylum, …) */
+  taxonomicDepth?: number;
+
+  /** Taxonomy path prefix from kingdom through this clade */
+  taxonomyPath?: string[];
+
   isTarget?: boolean;
   isGuess?: boolean;
   isLCA?: boolean;
