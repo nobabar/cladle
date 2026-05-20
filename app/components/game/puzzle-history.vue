@@ -63,7 +63,7 @@ defineExpose({ open });
         notebook-button-secondary cursor-pointer"
       @click="open"
     />
-    <UModal v-model:open="isOpen" :ui="{ width: 'max-w-md' }">
+    <UModal v-model:open="isOpen" :ui="{ content: 'max-w-md' }">
       <template #content>
         <div class="p-4 sm:p-6">
           <h2
