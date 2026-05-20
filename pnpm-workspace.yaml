@@ -3,6 +3,8 @@ shellEmulator: true
 trustPolicy: no-downgrade
 
 overrides:
+  chokidar: ^5.0.0
+  semver: ^7.7.2
   "@tiptap/core": 3.13.0
   "@tiptap/extension-blockquote": 3.13.0
   "@tiptap/extension-bold": 3.13.0
@@ -29,3 +31,8 @@ ignoredBuiltDependencies:
   - esbuild
   - unrs-resolver
   - vue-demi
+allowBuilds:
+  '@parcel/watcher': false
+  esbuild: false
+  unrs-resolver: false
+  vue-demi: false
