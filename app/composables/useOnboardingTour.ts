@@ -80,7 +80,7 @@ export function useOnboardingTour() {
     let didAdvanceFromTreeStep = false;
     let didAdvanceFromSearchStep = false;
     let didAdvanceFromPostitStep = false;
-    let shouldScrollTopOnDestroy = false;
+    let shouldScrollToTopAfterTour = false;
     let cleanupTreeStepListener: (() => void) | null = null;
     let cleanupSearchStepListener: (() => void) | null = null;
     let cleanupPostitStepListener: (() => void) | null = null;
@@ -290,14 +290,37 @@ export function useOnboardingTour() {
       onboardingDriver?.moveNext();
     }
 
-    function finishTourAndScrollTop() {
-      shouldScrollTopOnDestroy = true;
-      onboardingDriver?.destroy();
+    /** Scroll the window to the top of the page. */
+    function scrollPageToTop() {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    }
+
+    /** Driver refocuses after teardown and can undo the scroll; one smooth retry is enough. */
+    function scheduleScrollToTopAfterTeardown() {
+      window.setTimeout(() => {
+        scrollPageToTop();
+        window.setTimeout(() => {
+          document.querySelector<HTMLElement>("[data-onboarding='daily-search'] input")
+            ?.focus({ preventScroll: true });
+        }, 500);
+      }, 400);
+    }
+
+    /**
+     * Must call `driver.destroy()` — default last-step handler only runs `onDestroyStarted`.
+     * @param tourDriver - Active Driver.js instance for this tour.
+     */
+    function completeTourAndScrollToTop(tourDriver: ReturnType<typeof driver>) {
+      shouldScrollToTopAfterTour = true;
+      scrollPageToTop();
+      tourDriver.destroy();
     }
 
     onboardingDriver = driver({
       showProgress: true,
-      allowClose: false,
+      // Close button + Escape; backdrop clicks are ignored via overlayClickBehavior.
+      allowClose: true,
+      overlayClickBehavior: () => {},
       nextBtnText: t("onboarding.next"),
       prevBtnText: t("onboarding.previous"),
       doneBtnText: t("onboarding.done"),
@@ -434,8 +457,8 @@ export function useOnboardingTour() {
             description: t("onboarding.daily.helpBody"),
             side: "top",
             align: "start",
-            onNextClick: () => {
-              finishTourAndScrollTop();
+            onNextClick: (_element, _step, { driver: tourDriver }) => {
+              completeTourAndScrollToTop(tourDriver);
             },
           },
         },
@@ -449,9 +472,9 @@ export function useOnboardingTour() {
           refreshRafId = null;
         }
         markOnboardingAsCompleted();
-        if (shouldScrollTopOnDestroy) {
-          window.scrollTo({ top: 0, behavior: "smooth" });
-          shouldScrollTopOnDestroy = false;
+        if (shouldScrollToTopAfterTour) {
+          shouldScrollToTopAfterTour = false;
+          scheduleScrollToTopAfterTeardown();
         }
       },
     });

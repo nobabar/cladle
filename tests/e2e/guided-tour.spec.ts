@@ -9,41 +9,6 @@ async function startGuidedTourFromHelp(page: Page) {
   await expect(page.getByRole("button", { name: "Next" })).toBeVisible();
 }
 
-async function completeTourByButtons(page: Page) {
-  for (let i = 0; i < 12; i += 1) {
-    if (page.isClosed()) {
-      return;
-    }
-
-    const tourGone = await page
-      .getByRole("button", { name: "Next" })
-      .or(page.getByRole("button", { name: "Finish" }))
-      .count()
-      .then(count => count === 0)
-      .catch(() => true);
-    if (tourGone) {
-      return;
-    }
-
-    const finishVisible = await page.getByRole("button", { name: "Finish" }).isVisible().catch(() => false);
-    if (finishVisible) {
-      const finishButton = page.getByRole("button", { name: "Finish" });
-      await finishButton.dispatchEvent("click").catch(() => {});
-      return;
-    }
-
-    const nextVisible = await page.getByRole("button", { name: "Next" }).isVisible().catch(() => false);
-    if (nextVisible) {
-      const nextButton = page.getByRole("button", { name: "Next" });
-      await nextButton.dispatchEvent("click").catch(() => {});
-      await page.waitForTimeout(120);
-      continue;
-    }
-
-    await page.waitForTimeout(120);
-  }
-}
-
 async function closePostitFromStickyTab(page: Page) {
   const stickyTab = page.locator(
     "[data-onboarding='daily-information-postit'] .information-panel-postit__sticky-tab",
@@ -62,6 +27,18 @@ async function closePostitFromStickyTab(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await mockINaturalist(page);
+});
+
+test("guided tour can be closed via button but not via overlay click", async ({ page }) => {
+  await startGuidedTourFromHelp(page);
+
+  await expect(page.getByRole("button", { name: "Close" })).toBeVisible();
+
+  await page.locator(".driver-overlay").click({ position: { x: 8, y: 8 } });
+  await expect(page.getByRole("button", { name: "Next" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Close" }).click();
+  await expect(page.locator(".driver-popover")).toHaveCount(0);
 });
 
 test("guided tour advances with next-only navigation", async ({ page }) => {
@@ -96,7 +73,18 @@ test("guided tour can progress through interactive actions", async ({ page }) =>
   await expect(page.locator("[data-onboarding='daily-information-postit']")).toBeVisible();
 
   await closePostitFromStickyTab(page);
-  await expect(page.getByRole("button", { name: "Next" }).or(page.getByRole("button", { name: "Finish" }))).toBeVisible();
-  await completeTourByButtons(page);
-  await expect(page.getByRole("button", { name: "Finish" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Finish" })).toBeVisible({ timeout: 10_000 });
+
+  const scrollYBeforeFinish = await page.evaluate(() => window.scrollY);
+  expect(scrollYBeforeFinish).toBeGreaterThan(200);
+
+  await page.locator(".driver-popover-navigation-btns .driver-popover-next-btn").click();
+  await expect(page.locator(".driver-popover")).toHaveCount(0);
+
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY), {
+      timeout: 15_000,
+      intervals: [100, 250, 500],
+    })
+    .toBeLessThan(scrollYBeforeFinish * 0.5);
 });
