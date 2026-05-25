@@ -47,6 +47,7 @@ function createMockApiClient(
         error: { code: "NOT_FOUND", message: "Not found" },
       };
     }),
+    fetchTaxonGalleryPhotos: vi.fn(),
     fetchCladeData: vi.fn(),
     searchAnimals: vi.fn(),
   };

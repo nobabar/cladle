@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { gotoDailyAndWaitForShell } from "./helpers/daily-shell";
+import { gotoDailyAndWaitForShell, reloadWithStaleDailyPuzzle } from "./helpers/daily-shell";
 import { mockINaturalist } from "./helpers/inaturalist";
 
 async function dismissOnboardingPromptIfPresent(page: Page) {
@@ -70,23 +70,7 @@ test("daily persistence survives refresh and resets with new day", async ({ page
   await expect(recentGuesses.getByText("Lion", { exact: true })).toBeVisible();
   await expect(page.getByText(/Guesses remaining:\s*19/)).toBeVisible();
 
-  await page.evaluate(() => {
-    const persistedRaw = localStorage.getItem("cladle-game-store");
-    if (!persistedRaw) {
-      return;
-    }
-    const persisted = JSON.parse(persistedRaw);
-    if (persisted?.dailyState) {
-      persisted.dailyState.puzzleDate = "1999-01-01";
-      if (persisted.dailyState.guesses) {
-        persisted.dailyState.guesses = [];
-      }
-      persisted.dailyState.status = "playing";
-      localStorage.setItem("cladle-game-store", JSON.stringify(persisted));
-    }
-  });
-
-  await page.reload();
+  await reloadWithStaleDailyPuzzle(page);
   await dismissOnboardingPromptIfPresent(page);
   await expect(page.getByText(/Guesses remaining:\s*20/)).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole("combobox", { name: "Search for an animal" })).toHaveCount(1);
@@ -182,26 +166,12 @@ test("cross-day rollover resets to a fresh daily puzzle", async ({ page }) => {
   await page.getByRole("option", { name: /Tiger/i }).click();
   await expect(page.getByRole("heading", { name: /You Won!/ })).toBeVisible({ timeout: 30_000 });
 
-  await page.evaluate(() => {
-    const persistedRaw = localStorage.getItem("cladle-game-store");
-    if (!persistedRaw) {
-      return;
-    }
-    const persisted = JSON.parse(persistedRaw);
-    if (persisted?.dailyState) {
-      persisted.dailyState.puzzleDate = "1999-01-01";
-      persisted.dailyState.status = "playing";
-      persisted.dailyState.guesses = [];
-      localStorage.setItem("cladle-game-store", JSON.stringify(persisted));
-    }
-  });
-
-  await page.reload();
+  await reloadWithStaleDailyPuzzle(page);
   await dismissOnboardingPromptIfPresent(page);
   await expect(page.getByRole("combobox", { name: "Search for an animal" })).toBeVisible({
     timeout: 30_000,
   });
+  await expect(page.getByText(/Guesses remaining:\s*20/)).toBeVisible({ timeout: 30_000 });
   await expect(page.locator(".notebook-guess-history")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: /You Won!/ })).toHaveCount(0, { timeout: 10_000 });
-  await expect(page.getByText(/Guesses remaining:\s*20/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: /You Won!/ })).toHaveCount(0);
 });

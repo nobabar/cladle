@@ -39,6 +39,17 @@ const UTooltipStub = {
   template: "<div class=\"u-tooltip-stub\"><slot /></div>",
 };
 
+const UModalStub = {
+  name: "UModal",
+  template: "<div class=\"u-modal-stub\"><slot name=\"body\" /></div>",
+  props: ["open", "title", "ui"],
+};
+
+const UButtonStub = {
+  name: "UButton",
+  template: "<button type=\"button\" class=\"u-button-stub\"><slot /></button>",
+};
+
 // Helper function to mount with stubs
 function mountWithStubs(component: any, options: any = {}) {
   return mount(component, {
@@ -51,6 +62,13 @@ function mountWithStubs(component: any, options: any = {}) {
         GameTreeVisualization: GameTreeVisualizationStub,
         Icon: IconStub,
         UTooltip: UTooltipStub,
+        UModal: UModalStub,
+        UButton: UButtonStub,
+        GameWinStatePhotoGallery: {
+          name: "GameWinStatePhotoGallery",
+          template: "<div data-testid=\"win-state-photo-gallery-stub\" />",
+          props: ["open", "taxonId", "taxonName", "fallbackImageUrl"],
+        },
         ...options.global?.stubs,
       },
     },
@@ -320,6 +338,44 @@ describe("winState Component", () => {
 
       expect(wrapper.text()).toContain("Congratulations");
       expect(wrapper.text()).toContain("You found the Tiger");
+    });
+
+    it("should display target description when available", async () => {
+      const store = getGameStore();
+      const target: Animal = {
+        ...createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]),
+        description: "<p>The <b>tiger</b> is a large cat.</p>",
+        imageUrl: "https://example.com/tiger.jpg",
+      };
+      store.startGame(target, 6);
+      store.status = "won";
+      store.treeData = createSimpleTreeData();
+
+      const wrapper = mountWithStubs(WinState);
+      await nextTick();
+
+      const description = wrapper.find("[data-testid=\"win-state-target-description\"]");
+      expect(description.exists()).toBe(true);
+      expect(description.text()).toContain("tiger");
+      expect(description.text()).toContain("large cat");
+    });
+
+    it("should expose clickable target image to open photo gallery", async () => {
+      const store = getGameStore();
+      const target: Animal = {
+        ...createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]),
+        imageUrl: "https://example.com/tiger.jpg",
+      };
+      store.startGame(target, 6);
+      store.status = "won";
+      store.treeData = createSimpleTreeData();
+
+      const wrapper = mountWithStubs(WinState);
+      await nextTick();
+
+      const button = wrapper.find("[data-testid=\"win-state-target-image-button\"]");
+      expect(button.exists()).toBe(true);
+      expect(button.attributes("aria-label")).toContain("Explore photos");
     });
 
     it("should display guess count when won", async () => {

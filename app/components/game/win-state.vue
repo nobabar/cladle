@@ -478,116 +478,10 @@ onUnmounted(() => {
   border-width: 0;
 }
 
-/* Win state content (shared by modal and panel) */
-.win-state__content {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  min-height: 0;
-  flex: 1;
+/* Result content root (GameWinStateResultContent) */
+.win-state-panel .win-state__content {
+  margin-top: 0;
 }
-.win-state-panel .win-state__content { margin-top: 0; }
-
-.win-state__header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.win-state__stats {
-  font-size: 0.875rem;
-  line-height: 1.5;
-  margin: 0;
-  color: var(--color-ink-subtle, #6b7280);
-}
-.dark .win-state__stats { color: #9ca3af; }
-
-.win-state__target-meta {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  margin-top: 0.25rem;
-}
-
-.win-state__target-image {
-  width: 3.25rem;
-  height: 3.25rem;
-  border-radius: 0.5rem;
-  object-fit: cover;
-  border: 1px solid var(--color-border-subtle, #e2d6c3);
-  background: var(--color-paper, #fdfbf5);
-  flex: 0 0 auto;
-}
-
-.win-state__target-links {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.875rem;
-}
-
-.win-state__target-line {
-  margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.35;
-  color: var(--color-ink-muted, #374151);
-}
-
-.win-state__scientific-name {
-  font-style: italic;
-  color: var(--color-ink-subtle, #6b7280);
-  margin-left: 0.25rem;
-}
-
-.dark .win-state__target-line { color: #d1d5db; }
-.dark .win-state__scientific-name { color: #9ca3af; }
-
-.win-state__target-link {
-  color: var(--color-ink, #111827);
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.win-state__target-link-separator {
-  color: var(--color-ink-subtle, #6b7280);
-}
-
-.dark .win-state__target-link { color: #f9fafb; }
-.dark .win-state__target-link-separator { color: #9ca3af; }
-.dark .win-state__target-image {
-  background: var(--color-ink, #1f2937);
-  border-color: #374151;
-}
-
-.win-state__tree {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  flex: 1;
-  min-height: 0;
-}
-
-.win-state__tree-title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  line-height: 1.5;
-  margin: 0;
-  color: var(--color-ink, #111827);
-}
-.dark .win-state__tree-title { color: #f9fafb; }
-
-.win-state__tree-container {
-  width: 100%;
-  border: none;
-  border-radius: 0;
-  overflow: visible;
-  background: transparent;
-  box-shadow: none;
-  min-height: 200px;
-}
-.dark .win-state__tree-container { background: transparent; }
 
 /* Desktop Side Panel - notebook/anatomical palette */
 /* Positioned relative to .notebook-sheet (parent) */
@@ -809,35 +703,6 @@ onUnmounted(() => {
   box-shadow: -2px 0 4px -1px rgba(0, 0, 0, 0.2);
 }
 
-/* Mobile optimizations (< 768px) */
-@media (max-width: 767px) {
-  .win-state__content {
-    gap: 1rem;
-  }
-
-  .win-state__header {
-    gap: 0.5rem;
-  }
-
-  .win-state__tree-container {
-    max-height: 300px;
-    overflow: auto;
-  }
-
-  /* Larger tap targets on touch */
-  .win-state__content > * + * {
-    margin-top: 1rem;
-  }
-}
-
-/* Tablet optimizations (768px - 1023px) */
-@media (min-width: 768px) and (max-width: 1023px) {
-  .win-state__tree-container {
-    max-height: 400px;
-    overflow: auto;
-  }
-}
-
 /* Desktop optimizations (>= 1024px) */
 @media (min-width: 1024px) {
   .win-state-panel {
@@ -848,17 +713,6 @@ onUnmounted(() => {
   .win-state-panel.win-state-panel--collapsed {
     width: 48px;
     min-width: 48px;
-  }
-
-  .win-state__tree-container {
-    max-height: none;
-    min-height: 400px;
-    overflow: visible;
-    width: 100%;
-  }
-
-  .win-state__content {
-    min-height: 0;
   }
 }
 

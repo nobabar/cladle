@@ -596,6 +596,32 @@ describe("gameStore", () => {
       expect(store.target).toEqual(tiger);
     });
 
+    it("should apply localized target and update tree leaf", () => {
+      const store = getGameStore();
+      store.startGame(tiger, 6);
+      const localized = {
+        ...tiger,
+        name: "Tigre",
+        description: "<p>Le tigre est un grand felin.</p>",
+        wikipediaUrl: "https://fr.wikipedia.org/wiki/Tigre",
+      };
+
+      store.applyLocalizedTarget(localized);
+
+      expect(store.target?.name).toBe("Tigre");
+      expect(store.target?.description).toContain("tigre");
+      expect(store.treeData?.target?.name).toBe("Tigre");
+      expect(store.treeData?.target?.data).toEqual(localized);
+    });
+
+    it("should ignore applyLocalizedTarget when id does not match", () => {
+      const store = getGameStore();
+      store.startGame(tiger, 6);
+      store.applyLocalizedTarget({ ...wolf, id: wolf.id });
+
+      expect(store.target?.name).toBe(tiger.name);
+    });
+
     it("should add guess with addGuess method", () => {
       const store = getGameStore();
       store.startGame(tiger, 6);

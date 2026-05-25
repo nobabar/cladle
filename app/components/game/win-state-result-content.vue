@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, toRefs } from "vue";
+import { computed, ref, toRefs } from "vue";
+import GameWinStatePhotoGallery from "~/components/game/win-state-photo-gallery.vue";
 import { useUiIcons } from "~/composables/useUiIcons";
 import type { Animal } from "~/types/animal";
 import type { TreeData, TreeNode } from "~/types/tree";
+import { sanitizeBasicHTML } from "~/utils/sanitizeBasicHTML";
 import type { PhylogeneticMetrics } from "~/utils/sharingFormatter";
 
 const props = defineProps<{
@@ -68,6 +70,18 @@ function onCopy(): void {
 function onNodeClick(node: TreeNode): void {
   emit("nodeClick", node);
 }
+
+const isGalleryOpen = ref(false);
+
+const sanitizedTargetDescription = computed(() => {
+  if (!targetAnimal.value?.description) return "";
+  return sanitizeBasicHTML(targetAnimal.value.description);
+});
+
+function openPhotoGallery(): void {
+  if (!targetAnimal.value?.id) return;
+  isGalleryOpen.value = true;
+}
 </script>
 
 <template>
@@ -80,13 +94,39 @@ function onNodeClick(node: TreeNode): void {
         v-if="targetAnimal"
         class="win-state__target-meta"
       >
-        <img
-          v-if="targetAnimal.imageUrl"
-          :src="targetAnimal.imageUrl"
-          class="win-state__target-image"
-          :alt="t('winState.imageAlt', { name: targetAnimal.name })"
-          loading="lazy"
+        <button
+          type="button"
+          class="win-state__target-image-button"
+          :class="{ 'win-state__target-image-button--placeholder': !targetAnimal.imageUrl }"
+          :aria-label="t('winState.explorePhotos', { name: targetAnimal.name })"
+          data-testid="win-state-target-image-button"
+          @click="openPhotoGallery"
         >
+          <span class="win-state__target-image-wrap">
+            <img
+              v-if="targetAnimal.imageUrl"
+              :src="targetAnimal.imageUrl"
+              class="win-state__target-image"
+              :alt="t('winState.imageAlt', { name: targetAnimal.name })"
+              loading="lazy"
+            >
+            <span
+              v-else
+              class="win-state__target-image-placeholder-label"
+            >
+              {{ t("winState.galleryShort") }}
+            </span>
+            <span
+              class="win-state__target-image-zoom"
+              aria-hidden="true"
+            >
+              <Icon
+                :name="uiIcon.zoomIn"
+                class="win-state__target-image-zoom-icon"
+              />
+            </span>
+          </span>
+        </button>
         <div class="win-state__target-names">
           <p class="win-state__target-common">
             <strong>{{ targetAnimal.name }}</strong>
@@ -126,6 +166,25 @@ function onNodeClick(node: TreeNode): void {
           </a>
         </div>
       </div>
+      <div
+        v-if="sanitizedTargetDescription"
+        class="win-state__target-description-block"
+        data-testid="win-state-target-description"
+      >
+        <!-- eslint-disable vue/no-v-html -- sanitized Wikipedia / iNat summary -->
+        <div
+          class="win-state__target-description"
+          v-html="sanitizedTargetDescription"
+        />
+        <!-- eslint-enable vue/no-v-html -->
+      </div>
+      <GameWinStatePhotoGallery
+        v-if="targetAnimal"
+        v-model:open="isGalleryOpen"
+        :taxon-id="targetAnimal.id"
+        :taxon-name="targetAnimal.name"
+        :fallback-image-url="targetAnimal.imageUrl"
+      />
       <p class="win-state__stats">
         {{ statsText }}
       </p>
@@ -288,20 +347,120 @@ function onNodeClick(node: TreeNode): void {
 .dark .win-state__stats { color: #9ca3af; }
 
 .win-state__target-meta {
+  --win-state-thumb: 5.5rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 0.35rem 0.75rem;
+  margin-top: 0.25rem;
+  align-items: start;
+}
+
+.win-state__target-image-button {
+  grid-row: 1 / -1;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 0.5rem;
+  line-height: 0;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.win-state__target-image-button:hover,
+.win-state__target-image-button:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-focus-ring, #6b7f8e);
+}
+
+.win-state__target-image-button:active {
+  transform: scale(0.98);
+}
+
+.win-state__target-image-wrap {
+  position: relative;
+  display: block;
+  width: var(--win-state-thumb);
+  height: var(--win-state-thumb);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.win-state__target-image-button--placeholder .win-state__target-image-wrap {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-top: 0.25rem;
+  justify-content: center;
+  border: 1px dashed var(--color-border-subtle, #e2d6c3);
+  background: var(--color-paper, #fdfbf5);
+}
+
+.win-state__target-image-placeholder-label {
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-ink-subtle, #6b7280);
 }
 
 .win-state__target-image {
-  width: 3.25rem;
-  height: 3.25rem;
+  width: 100%;
+  height: 100%;
   border-radius: 0.5rem;
   object-fit: cover;
   border: 1px solid var(--color-border-subtle, #e2d6c3);
   background: var(--color-paper, #fdfbf5);
-  flex: 0 0 auto;
+  display: block;
+  box-sizing: border-box;
+}
+
+.win-state__target-image-zoom {
+  position: absolute;
+  right: 0.2rem;
+  bottom: 0.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--color-paper, #fdfbf5) 92%, transparent);
+  border: 1px solid var(--color-border-subtle, #e2d6c3);
+  box-shadow: 0 1px 3px rgba(44, 36, 22, 0.15);
+  color: var(--color-ink-muted, #374151);
+  pointer-events: none;
+}
+
+.win-state__target-image-zoom-icon {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.dark .win-state__target-image-zoom {
+  background: color-mix(in srgb, var(--color-ink, #1f2937) 88%, transparent);
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+
+.win-state__target-description-block {
+  margin-top: 0.15rem;
+}
+
+.win-state__target-description {
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--color-ink-muted, #374151);
+}
+
+.win-state__target-description :deep(p) {
+  margin: 0 0 0.5rem;
+}
+
+.win-state__target-description :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.dark .win-state__target-description {
+  color: #d1d5db;
 }
 
 .dark .win-state__target-image {
@@ -310,39 +469,45 @@ function onNodeClick(node: TreeNode): void {
 }
 
 .win-state__target-names {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  min-width: 0;
   gap: 0.15rem;
-  flex: 1;
+  min-width: 0;
+  padding-top: 0.35rem;
 }
 
-.win-state__target-common {
+.win-state__target-common,
+.win-state__target-scientific {
   margin: 0;
   font-size: 0.95rem;
   line-height: 1.35;
+}
+
+.win-state__target-common {
   color: var(--color-ink-muted, #374151);
 }
 
 .dark .win-state__target-common { color: #d1d5db; }
 
 .win-state__target-scientific {
-  margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.35;
   color: var(--color-ink-subtle, #6b7280);
 }
 
 .dark .win-state__target-scientific { color: #9ca3af; }
 
 .win-state__target-links {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: end;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 0.2rem;
-  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.85rem;
+  min-width: 0;
+  padding-bottom: 0.35rem;
 }
 
 .win-state__target-link {
@@ -536,32 +701,65 @@ function onNodeClick(node: TreeNode): void {
 
 .win-state__tree-container {
   width: 100%;
-  border: none;
-  border-radius: 0;
-  overflow: visible;
-  background: transparent;
-  box-shadow: none;
   min-height: 200px;
 }
-
-.dark .win-state__tree-container { background: transparent; }
 
 @media (max-width: 767px) {
   .win-state__content {
     gap: 1rem;
   }
 
-  .win-state__target-meta {
+  .win-state__header {
     gap: 0.5rem;
   }
 
-  .win-state__target-image {
-    width: 2.75rem;
-    height: 2.75rem;
+  .win-state__target-names {
+    padding-top: 0.25rem;
   }
 
-  .win-state__target-meta {
-    align-items: flex-start;
+  .win-state__target-links {
+    padding-bottom: 0.25rem;
+  }
+
+  .win-state__target-description-block {
+    margin-top: 0;
+  }
+
+  .win-state__tree-container {
+    max-height: 300px;
+    overflow: auto;
+  }
+
+  .win-state-phylo-share__row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+  }
+
+  .win-state__phylo-metrics {
+    flex: none;
+    width: 100%;
+  }
+
+  .win-state__share {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .win-state__tree-container {
+    max-height: 400px;
+    overflow: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .win-state__tree-container {
+    max-height: none;
+    min-height: 400px;
+    overflow: visible;
   }
 }
 </style>
