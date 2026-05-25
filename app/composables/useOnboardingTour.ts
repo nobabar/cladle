@@ -290,19 +290,32 @@ export function useOnboardingTour() {
       onboardingDriver?.moveNext();
     }
 
-    /** Scroll the window to the top of the page. */
-    function scrollPageToTop() {
-      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    function snapPageToTop() {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      const scrollingElement = document.scrollingElement ?? document.documentElement;
+      scrollingElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      window.scrollTo(0, 0);
     }
 
-    /** Driver refocuses after teardown and can undo the scroll; one smooth retry is enough. */
+    /** Scroll the window to the top (smooth when supported, then snap for reliability). */
+    function scrollPageToTop() {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+      window.setTimeout(snapPageToTop, 500);
+    }
+
+    /** Driver refocuses after teardown and can undo the scroll; retry smooth then snap. */
     function scheduleScrollToTopAfterTeardown() {
       window.setTimeout(() => {
         scrollPageToTop();
+        window.setTimeout(snapPageToTop, 500);
         window.setTimeout(() => {
+          snapPageToTop();
           document.querySelector<HTMLElement>("[data-onboarding='daily-search'] input")
             ?.focus({ preventScroll: true });
-        }, 500);
+        }, 900);
       }, 400);
     }
 
