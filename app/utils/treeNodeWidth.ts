@@ -2,15 +2,15 @@ import type { TreeNode } from "~/types/tree";
 
 const DEFAULT_FONT_SIZE = 14;
 const DEFAULT_FONT_FAMILY = "system-ui, -apple-system, sans-serif";
-/** Canvas measureText stack when Lexend is active (matches --font-readable). */
-const LEXEND_MEASURE_STACK = "\"Lexend\", system-ui, -apple-system, sans-serif";
+/** Canvas measureText stack when readable font is active (matches --font-readable). */
+const READABLE_MEASURE_STACK = "\"Atkinson Hyperlegible Next\", system-ui, -apple-system, sans-serif";
 
 function measureFontFamilyForDocument(): string {
   if (typeof document === "undefined") {
     return DEFAULT_FONT_FAMILY;
   }
   return document.documentElement.classList.contains("font-readable")
-    ? LEXEND_MEASURE_STACK
+    ? READABLE_MEASURE_STACK
     : DEFAULT_FONT_FAMILY;
 }
 const HORIZONTAL_PADDING = 20;
