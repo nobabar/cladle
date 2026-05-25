@@ -44,6 +44,14 @@ export default defineNuxtConfig({
 
   typescript: {
     typeCheck: true,
+    tsConfig: {
+      compilerOptions: {
+        paths: {
+          "#test": ["../tests"],
+          "#test/*": ["../tests/*"],
+        },
+      },
+    },
   },
 
   eslint: {
