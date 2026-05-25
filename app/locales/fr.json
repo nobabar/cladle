@@ -48,12 +48,10 @@
     }
   },
   "daily": {
-    "subtitle": "Puzzle du jour",
-    "tagline": "Nouveau puzzle tous les jours"
+    "subtitle": "Puzzle du jour"
   },
   "freePlay": {
     "subtitle": "Mode Libre",
-    "tagline": "Réinitialisez à tout moment pour obtenir un nouvel animal aléatoire",
     "newRandomAnimal": "Nouvel animal aléatoire"
   },
   "game": {
@@ -210,7 +208,7 @@
     "outcomeUnsolvedLine": "Résultat : Non résolu en {guessCount} essais."
   },
   "winState": {
-    "titleWin": "🎉 Victoire !",
+    "titleWin": "Victoire !",
     "titleLoss": "Partie terminée",
     "youWon": "Victoire !",
     "gameOver": "Partie terminée",
@@ -229,6 +227,15 @@
     "srLossAnnouncement": "{message} Vous avez utilisé les {maxGuesses} essais.",
     "shareResults": "Partager les résultats",
     "imageAlt": "Image de {name}",
+    "explorePhotos": "Explorer les photos de {name}",
+    "galleryShort": "Photos",
+    "galleryLoading": "Chargement des photos…",
+    "galleryLoadFailed": "Impossible de charger d'autres photos. Vous pouvez en voir plus sur iNaturalist.",
+    "galleryNoPhotos": "Aucune photo disponible pour ce taxon.",
+    "galleryImageAlt": "Photo de {name}",
+    "galleryStripAria": "Galerie photos, sélectionnez une photo",
+    "gallerySelectPhoto": "Afficher la photo {index}",
+    "galleryMoreOnINaturalist": "Plus de photos sur iNaturalist",
     "viewOnINaturalist": "Voir sur iNaturalist",
     "viewOnWikipedia": "Voir sur Wikipédia",
     "treeDepth": "Profondeur de l'arbre",
