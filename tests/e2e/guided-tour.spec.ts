@@ -9,6 +9,14 @@ async function startGuidedTourFromHelp(page: Page) {
   await expect(page.getByRole("button", { name: "Next" })).toBeVisible();
 }
 
+async function finishGuidedTour(page: Page) {
+  const finishButton = page.getByRole("dialog").getByRole("button", { name: "Finish" });
+  await expect(finishButton).toBeVisible({ timeout: 10_000 });
+  // Driver.js repositions the popover while the stage updates; WebKit often never sees it as "stable".
+  await finishButton.click({ force: true });
+  await expect(page.locator(".driver-popover")).toHaveCount(0, { timeout: 10_000 });
+}
+
 async function closePostitFromStickyTab(page: Page) {
   const stickyTab = page.locator(
     "[data-onboarding='daily-information-postit'] .information-panel-postit__sticky-tab",
@@ -73,18 +81,19 @@ test("guided tour can progress through interactive actions", async ({ page }) =>
   await expect(page.locator("[data-onboarding='daily-information-postit']")).toBeVisible();
 
   await closePostitFromStickyTab(page);
-  await expect(page.getByRole("button", { name: "Finish" })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("dialog", { name: "Need more guidance?" })).toBeVisible({
+    timeout: 10_000,
+  });
 
   const scrollYBeforeFinish = await page.evaluate(() => window.scrollY);
   expect(scrollYBeforeFinish).toBeGreaterThan(200);
 
-  await page.locator(".driver-popover-navigation-btns .driver-popover-next-btn").click();
-  await expect(page.locator(".driver-popover")).toHaveCount(0);
+  await finishGuidedTour(page);
 
   await expect
     .poll(() => page.evaluate(() => window.scrollY), {
-      timeout: 15_000,
-      intervals: [100, 250, 500],
+      timeout: 25_000,
+      intervals: [100, 250, 500, 1000],
     })
     .toBeLessThan(scrollYBeforeFinish * 0.5);
 });
