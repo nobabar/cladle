@@ -280,6 +280,12 @@ function restoreDailyModeStateIfNeeded(): void {
 function checkAndInitializeDailyPuzzle() {
   restoreDailyModeStateIfNeeded();
 
+  if (gameStore.shouldResetForNewDay()) {
+    gameStore.resetForNewDay();
+    void startNewGame();
+    return;
+  }
+
   const today = gameStore.getCurrentDate();
   const hasValidDailyState = gameStore.target
     && gameStore.gameMode === "daily"

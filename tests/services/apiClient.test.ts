@@ -193,6 +193,95 @@ describe("api client", () => {
     });
   });
 
+  describe("fetchTaxonGalleryPhotos", () => {
+    it("should fetch and dedupe taxon gallery photos", async () => {
+      /* eslint-disable camelcase */
+      const mockResponse = {
+        results: [{
+          id: 42,
+          name: "Tiger",
+          rank: "species",
+          default_photo: {
+            id: 100,
+            medium_url: "https://example.com/default-medium.jpg",
+            large_url: "https://example.com/default-large.jpg",
+            attribution: "(c) photographer",
+          },
+          taxon_photos: [
+            {
+              photo: {
+                id: 100,
+                medium_url: "https://example.com/default-medium.jpg",
+              },
+            },
+            {
+              photo: {
+                id: 101,
+                medium_url: "https://example.com/second-medium.jpg",
+                large_url: "https://example.com/second-large.jpg",
+              },
+            },
+          ],
+        }],
+      };
+      /* eslint-enable camelcase */
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+      } as Response);
+
+      const promise = client.fetchTaxonGalleryPhotos("42", 5);
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      expect(result.error).toBeNull();
+      expect(result.data).toHaveLength(2);
+      expect(result.data?.[0]?.id).toBe("100");
+      expect(result.data?.[1]?.id).toBe("101");
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "https://api.inaturalist.org/v1/taxa/42?locale=en",
+        expect.any(Object),
+      );
+    });
+
+    it("should return cached gallery without refetching", async () => {
+      /* eslint-disable camelcase */
+      const mockResponse = {
+        results: [{
+          id: 42,
+          name: "Tiger",
+          rank: "species",
+          default_photo: {
+            id: 100,
+            medium_url: "https://example.com/default-medium.jpg",
+          },
+        }],
+      };
+      /* eslint-enable camelcase */
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockResponse,
+      } as Response);
+
+      const first = client.fetchTaxonGalleryPhotos("42");
+      await vi.runAllTimersAsync();
+      await first;
+
+      vi.clearAllMocks();
+
+      const second = client.fetchTaxonGalleryPhotos("42");
+      await vi.runAllTimersAsync();
+      const result = await second;
+
+      expect(result.data).toHaveLength(1);
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    });
+  });
+
   describe("fetchCladeData", () => {
     it("should fetch clade data successfully", async () => {
       // Arrange
