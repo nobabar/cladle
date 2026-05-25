@@ -23,6 +23,7 @@ const DEFAULT_TTL = 86400000; // 24 hours
 export const TTL_VALUES = {
   ANIMAL: 86400000, // 24 hours
   CLADE: 86400000, // 24 hours
+  TAXON_GALLERY: 86400000, // 24 hours
   LCA: 604800000, // 7 days
 };
 
@@ -281,6 +282,7 @@ export const cacheService = createCacheService();
  */
 export const CacheKeys = {
   animal: (animalId: string): string => `animal:${animalId}`,
+  taxonGallery: (taxonId: string): string => `gallery:${taxonId}`,
   cladeByTaxonId: (taxonId: string | number): string => `clade:taxon:${taxonId}`,
   clade: (cladeName: string): string => `clade:${cladeName}`,
 

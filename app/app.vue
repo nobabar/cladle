@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useReadableFont } from "~/composables/useReadableFont";
+import { useSyncTargetWithLocale } from "~/composables/useSyncTargetWithLocale";
 
 /** Initialize reading-comfort cookie → `<html class="font-readable">` sync (see useReadableFont). */
 useReadableFont();
+
+/** Mystery animal name/description follow UI locale (iNaturalist + Wikipedia). */
+useSyncTargetWithLocale();
 
 const { t } = useI18n();
 

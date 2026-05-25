@@ -556,6 +556,31 @@ export const useGameStore = defineStore("game", {
       this.target = animal;
     },
 
+    /**
+     * Replace target fields from a locale-specific fetch (name, description, wiki URLs).
+     * Updates the target leaf on the phylogenetic tree when present.
+     * @param animal - Locale-specific animal payload for the current target taxon
+     */
+    applyLocalizedTarget(animal: Animal): void {
+      if (!this.target || this.target.id !== animal.id) {
+        return;
+      }
+
+      this.target = animal;
+
+      const targetNode = this.treeData?.target;
+      if (targetNode) {
+        targetNode.name = animal.name;
+        if (targetNode.data) {
+          targetNode.data = animal;
+        }
+      }
+
+      if (this.gameMode) {
+        this.saveModeState(this.gameMode);
+      }
+    },
+
     addGuess(guess: Animal): void {
       this.processGuess(guess);
     },

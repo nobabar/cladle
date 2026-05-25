@@ -29,6 +29,7 @@ export const uiIconHandDrawn = {
   preferences: "i-streamline-freehand-settings-cog-double-1",
   computer: "i-streamline-freehand-laptop-computer-smiley",
   phone: "i-streamline-freehand-mobile-phone-smartphone",
+  zoomIn: "i-streamline-freehand-zoom-in-magnifier-1",
 } as const;
 
 /** Lucide set (Iconify `i-lucide-*`) */
@@ -55,6 +56,7 @@ export const uiIconLucide = {
   preferences: "i-lucide-settings",
   computer: "i-lucide-monitor",
   phone: "i-lucide-smartphone",
+  zoomIn: "i-lucide-zoom-in",
 } as const;
 
 export type UiIconSet = typeof uiIconHandDrawn;

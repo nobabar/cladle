@@ -82,6 +82,7 @@ vi.mock("~/composables/useBiologicalAPI", () => ({
         error: animal ? null : { code: "NOT_FOUND", message: "Not found" },
       };
     }),
+    fetchTaxonGalleryPhotos: vi.fn(),
     fetchCladeData: vi.fn(),
   })),
 }));

@@ -15,6 +15,7 @@ import type { Clade } from "~/types/clade";
 function createMockClient(overrides: Partial<BiologicalAPIClient> = {}): BiologicalAPIClient {
   return {
     fetchAnimalData: vi.fn(),
+    fetchTaxonGalleryPhotos: vi.fn(),
     fetchCladeData: vi.fn(),
     searchAnimals: vi.fn(),
     ...overrides,
@@ -207,6 +208,7 @@ describe("useBiologicalAPI", () => {
           },
           error: null,
         }),
+        fetchTaxonGalleryPhotos: async () => ({ data: [], error: null }),
         fetchCladeData: async (name: string): Promise<ApiResponse<Clade>> => ({
           data: {
             name,

@@ -4,6 +4,8 @@
  */
 
 import type { Animal } from "~/types/animal";
+import { TAXON_GALLERY_MAX_PHOTOS } from "~/types/taxonGallery";
+import type { TaxonGalleryPhoto } from "~/types/taxonGallery";
 import type { Clade } from "~/types/clade";
 import type { ApiError, ApiResponse } from "~/types/api";
 import type { BiologicalAPIClient } from "~/composables/useBiologicalAPI";
@@ -89,9 +91,16 @@ interface INaturalistTaxon {
   wikipedia_url?: string;
   wikipedia_summary?: string;
   observations_count?: number;
-  default_photo?: {
-    medium_url?: string;
-  };
+  default_photo?: INaturalistPhoto;
+  taxon_photos?: Array<{ photo?: INaturalistPhoto }>;
+}
+
+interface INaturalistPhoto {
+  id?: number;
+  medium_url?: string;
+  large_url?: string;
+  square_url?: string;
+  attribution?: string;
 }
 
 interface INaturalistResponse {
@@ -325,6 +334,80 @@ class INaturalistAPIClient implements BiologicalAPIClient {
   private pickLocalized<T>(bundle: LocaleKeyedBundle<T>, localeKey: string): T | null {
     const hit = bundle.locales[localeKey];
     return hit !== undefined ? hit : null;
+  }
+
+  /**
+   * Extract up to `limit` distinct taxon photos from an iNaturalist taxon payload.
+   * @param taxon - Taxon record including `default_photo` and `taxon_photos`
+   * @param limit - Maximum number of photos to return
+   * @returns Array of taxon gallery photos
+   */
+  private extractTaxonGalleryPhotos(
+    taxon: INaturalistTaxon,
+    limit: number,
+  ): TaxonGalleryPhoto[] {
+    const seen = new Set<string>();
+    const photos: TaxonGalleryPhoto[] = [];
+
+    const pushPhoto = (raw: INaturalistPhoto | undefined): void => {
+      if (!raw?.medium_url) return;
+      const key = raw.id != null ? `id:${raw.id}` : `url:${raw.medium_url}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      photos.push({
+        id: raw.id != null ? String(raw.id) : key,
+        mediumUrl: raw.medium_url,
+        largeUrl: raw.large_url,
+        attribution: raw.attribution,
+      });
+    };
+
+    pushPhoto(taxon.default_photo);
+    for (const entry of taxon.taxon_photos ?? []) {
+      pushPhoto(entry.photo);
+      if (photos.length >= limit) break;
+    }
+
+    return photos.slice(0, limit);
+  }
+
+  /**
+   * Fetch a small preview set of community photos for a taxon (win-state gallery).
+   * Uses one `/taxa/:id` request; results are cached separately from full animal records.
+   * @param id - iNaturalist taxon ID
+   * @param limit - Max photos to return (default {@link TAXON_GALLERY_MAX_PHOTOS})
+   * @returns ApiResponse with array of taxon gallery photos or error
+   */
+  async fetchTaxonGalleryPhotos(
+    id: string,
+    limit: number = TAXON_GALLERY_MAX_PHOTOS,
+  ): Promise<ApiResponse<TaxonGalleryPhoto[]>> {
+    const cappedLimit = Math.max(1, Math.min(limit, TAXON_GALLERY_MAX_PHOTOS));
+    const cacheKey = CacheKeys.taxonGallery(id);
+
+    const cached = await cacheService.get<TaxonGalleryPhoto[]>("animals", cacheKey);
+    if (cached !== null) {
+      return { data: cached.slice(0, cappedLimit), error: null };
+    }
+
+    const url = this.withLocaleParams(`${INATURALIST_BASE_URL}/taxa/${id}`);
+
+    try {
+      const response = await this.makeRequest<INaturalistResponse>(url);
+      const taxon = response.results?.[0];
+      if (!taxon) {
+        return this.createErrorResponse(
+          getUserFriendlyError("ANIMAL_NOT_FOUND"),
+          "ANIMAL_NOT_FOUND",
+        );
+      }
+
+      const photos = this.extractTaxonGalleryPhotos(taxon, cappedLimit);
+      await cacheService.set("animals", cacheKey, photos, TTL_VALUES.TAXON_GALLERY);
+      return { data: photos, error: null };
+    } catch (error) {
+      return this.handleError(error, url);
+    }
   }
 
   /**

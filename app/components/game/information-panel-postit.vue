@@ -8,6 +8,7 @@ import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 import { useResponsive } from "~/composables/useResponsive";
 import { useUiIcons } from "~/composables/useUiIcons";
 import { ONBOARDING_DAILY_TOUR_COMPLETE_KEY } from "~/composables/useOnboardingTour";
+import { sanitizeBasicHTML } from "~/utils/sanitizeBasicHTML";
 
 const props = withDefaults(defineProps<Props>(), {
   isOpen: false,
@@ -20,7 +21,7 @@ const emit = defineEmits<{
   "update:isOpen": [value: boolean];
 }>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const uiIcon = useUiIcons();
 
 interface Props {
@@ -453,6 +454,25 @@ watch(
   },
 );
 
+watch(locale, () => {
+  if (!props.isOpen || !props.nodeData) {
+    return;
+  }
+  if (props.nodeData.type === "clade") {
+    const cladeName = props.nodeData.cladeData?.name || props.nodeData.name;
+    if (cladeName) {
+      fetchCladeInfo(cladeName);
+    }
+    return;
+  }
+  if (props.nodeData.type === "animal") {
+    const animalId = props.nodeData.data?.id || props.nodeData.id;
+    if (animalId) {
+      fetchAnimalInfo(animalId);
+    }
+  }
+});
+
 /**
  * Format rank for display (capitalize first letter)
  */
@@ -461,80 +481,6 @@ const formattedRank = computed(() => {
   const rank = cladeData.value.rank;
   return rank.charAt(0).toUpperCase() + rank.slice(1);
 });
-
-/**
- * Sanitize HTML to only allow basic formatting tags (<b>, <i>)
- * Uses DOM API for secure parsing and filtering - much safer than regex
- * Removes all other HTML tags, attributes, and potentially dangerous content
- * @param html - HTML string to sanitize
- * @returns Sanitized HTML string with only <b> and <i> tags (no attributes)
- */
-function sanitizeBasicHTML(html: string): string {
-  if (!html || typeof window === "undefined") return html || "";
-
-  try {
-    // Create a temporary container to parse the HTML
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = html;
-
-    /**
-     * Recursively sanitize DOM nodes
-     * Only keeps text nodes and allowed tags (<b>, <i>) without attributes
-     * @param node - DOM node to sanitize
-     * @returns Sanitized HTML string
-     */
-    function sanitizeNode(node: Node): string {
-      if (node.nodeType === Node.TEXT_NODE) {
-        // Text nodes are safe - just return the text content
-        return node.textContent || "";
-      }
-
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        const element = node as Element;
-        const tagName = element.tagName.toLowerCase();
-
-        // Only allow <b> and <i> tags
-        if (tagName === "b" || tagName === "i") {
-          // Get sanitized children
-          let childrenHTML = "";
-          for (const child of Array.from(element.childNodes)) {
-            childrenHTML += sanitizeNode(child);
-          }
-          // Return tag without any attributes (security: strip all attributes)
-          return `<${tagName}>${childrenHTML}</${tagName}>`;
-        }
-
-        // For disallowed tags, process children but don't include the tag itself
-        // This preserves text content while removing dangerous tags
-        let childrenHTML = "";
-        for (const child of Array.from(element.childNodes)) {
-          childrenHTML += sanitizeNode(child);
-        }
-        return childrenHTML;
-      }
-
-      // For other node types (comments, etc.), return empty string
-      return "";
-    }
-
-    // Sanitize all child nodes
-    let sanitized = "";
-    for (const child of Array.from(tempDiv.childNodes)) {
-      sanitized += sanitizeNode(child);
-    }
-
-    return sanitized;
-  } catch (error) {
-    // If parsing fails, escape everything for safety
-    console.warn("HTML sanitization failed, escaping content:", error);
-    return html
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-}
 
 /**
  * Sanitized animal description with basic HTML formatting
