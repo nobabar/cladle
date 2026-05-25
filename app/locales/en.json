@@ -48,12 +48,10 @@
     }
   },
   "daily": {
-    "subtitle": "Daily Puzzle",
-    "tagline": "New puzzle every day"
+    "subtitle": "Daily Puzzle"
   },
   "freePlay": {
     "subtitle": "Free Play Mode",
-    "tagline": "Reset anytime to get a new random animal",
     "newRandomAnimal": "New Random Animal"
   },
   "game": {
@@ -210,7 +208,7 @@
     "outcomeUnsolvedLine": "Outcome: Did not solve in {guessCount} guesses."
   },
   "winState": {
-    "titleWin": "🎉 You Won!",
+    "titleWin": "You Won!",
     "titleLoss": "Game Over",
     "youWon": "You won!",
     "gameOver": "Game over",

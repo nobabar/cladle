@@ -439,12 +439,6 @@ onBeforeUnmount(() => {
           >
             {{ t("daily.subtitle") }}
           </p>
-          <p
-            class="text-center text-xs sm:text-sm text-[var(--color-ink-subtle)]
-              dark:text-[var(--color-ink-subtle)] mt-1"
-          >
-            {{ t("daily.tagline") }}
-          </p>
         </header>
 
         <!-- Loading Indicator (Global) -->

@@ -48,12 +48,10 @@
     }
   },
   "daily": {
-    "subtitle": "Puzzle du jour",
-    "tagline": "Nouveau puzzle tous les jours"
+    "subtitle": "Puzzle du jour"
   },
   "freePlay": {
     "subtitle": "Mode Libre",
-    "tagline": "Réinitialisez à tout moment pour obtenir un nouvel animal aléatoire",
     "newRandomAnimal": "Nouvel animal aléatoire"
   },
   "game": {
@@ -210,7 +208,7 @@
     "outcomeUnsolvedLine": "Résultat : Non résolu en {guessCount} essais."
   },
   "winState": {
-    "titleWin": "🎉 Victoire !",
+    "titleWin": "Victoire !",
     "titleLoss": "Partie terminée",
     "youWon": "Victoire !",
     "gameOver": "Partie terminée",
