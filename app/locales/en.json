@@ -48,12 +48,10 @@
     }
   },
   "daily": {
-    "subtitle": "Daily Puzzle",
-    "tagline": "New puzzle every day"
+    "subtitle": "Daily Puzzle"
   },
   "freePlay": {
     "subtitle": "Free Play Mode",
-    "tagline": "Reset anytime to get a new random animal",
     "newRandomAnimal": "New Random Animal"
   },
   "game": {
@@ -210,7 +208,7 @@
     "outcomeUnsolvedLine": "Outcome: Did not solve in {guessCount} guesses."
   },
   "winState": {
-    "titleWin": "🎉 You Won!",
+    "titleWin": "You Won!",
     "titleLoss": "Game Over",
     "youWon": "You won!",
     "gameOver": "Game over",
@@ -229,6 +227,15 @@
     "srLossAnnouncement": "{message} You used all {maxGuesses} guesses.",
     "shareResults": "Share results",
     "imageAlt": "Image of {name}",
+    "explorePhotos": "Explore photos of {name}",
+    "galleryShort": "Photos",
+    "galleryLoading": "Loading photos…",
+    "galleryLoadFailed": "Could not load extra photos. You can still browse more on iNaturalist.",
+    "galleryNoPhotos": "No photos available for this taxon.",
+    "galleryImageAlt": "Photo of {name}",
+    "galleryStripAria": "Photo gallery, select a photo",
+    "gallerySelectPhoto": "Show photo {index}",
+    "galleryMoreOnINaturalist": "More photos on iNaturalist",
     "viewOnINaturalist": "View on iNaturalist",
     "viewOnWikipedia": "View on Wikipedia",
     "treeDepth": "Tree depth",
