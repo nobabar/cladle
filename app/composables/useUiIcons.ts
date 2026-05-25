@@ -3,7 +3,7 @@ import { useReadableFont } from "~/composables/useReadableFont";
 import { uiIconHandDrawn, uiIconLucide } from "~/utils/uiIcons";
 
 /**
- * Icon names that follow the reading-comfort setting: Lucide when Lexend is on, hand-drawn otherwise.
+ * Icon names that follow the reading-comfort setting: Lucide when readable font is on, hand-drawn otherwise.
  * @returns Computed ref to the active icon map (same keys as {@link uiIconHandDrawn}).
  */
 export function useUiIcons() {
