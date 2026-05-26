@@ -26,15 +26,60 @@ const { t } = useI18n();
 const { hasCompletedOnboarding, startDailyTour, markOnboardingAsCompleted } = useOnboardingTour();
 const showOnboardingPrompt = ref(false);
 const ONBOARDING_PROMPT_DELAY_MS = 2000;
+/** Transient dismiss after this many meaningful game actions (not arbitrary clicks). */
+const ONBOARDING_PROMPT_DISMISS_AFTER_ACTIONS = 3;
+const ONBOARDING_SEARCH_ENGAGEMENT_MIN_CHARS = 2;
 let onboardingPromptTimer: ReturnType<typeof setTimeout> | null = null;
+let onboardingPromptActionCount = 0;
+let hasRecordedSearchEngagement = false;
+
+function resetOnboardingPromptActionCount() {
+  onboardingPromptActionCount = 0;
+  hasRecordedSearchEngagement = false;
+}
+
+function cancelOnboardingPrompt() {
+  if (onboardingPromptTimer) {
+    clearTimeout(onboardingPromptTimer);
+    onboardingPromptTimer = null;
+  }
+  resetOnboardingPromptActionCount();
+  showOnboardingPrompt.value = false;
+}
+
+/** Hide the entry prompt for this visit only (skip still persists dismissal). */
+function dismissOnboardingPromptForSession() {
+  cancelOnboardingPrompt();
+}
+
+function recordOnboardingPromptAction() {
+  if (!showOnboardingPrompt.value && !onboardingPromptTimer) {
+    return;
+  }
+  onboardingPromptActionCount += 1;
+  if (onboardingPromptActionCount >= ONBOARDING_PROMPT_DISMISS_AFTER_ACTIONS) {
+    dismissOnboardingPromptForSession();
+  }
+}
+
+function handleSearchInput(value: string) {
+  if (
+    hasRecordedSearchEngagement
+    || value.trim().length < ONBOARDING_SEARCH_ENGAGEMENT_MIN_CHARS
+  ) {
+    return;
+  }
+  hasRecordedSearchEngagement = true;
+  recordOnboardingPromptAction();
+}
 
 function handleStartOnboarding() {
-  showOnboardingPrompt.value = false;
+  cancelOnboardingPrompt();
   startDailyTour();
 }
 
 function handleSkipOnboarding() {
-  showOnboardingPrompt.value = false;
+  cancelOnboardingPrompt();
   markOnboardingAsCompleted();
 }
 
@@ -46,6 +91,7 @@ const guessHistory = computed(() => gameStore.guesses.map(g => g.animal));
  * @param animal - The validated animal
  */
 function handleAnimalSelect(animal: Animal) {
+  recordOnboardingPromptAction();
   try {
     // Clear any previous errors
     gameStore.clearError();
@@ -86,6 +132,7 @@ const selectedNode = ref<TreeNode | null>(null);
  * @param node - The tree node that was clicked
  */
 function handleNodeClick(node: TreeNode) {
+  recordOnboardingPromptAction();
   // If clicking the same node and panel is open, close it
   if (selectedNode.value?.id === node.id && isInformationPanelOpen.value) {
     isInformationPanelOpen.value = false;
@@ -353,7 +400,7 @@ onMounted(() => {
   nextTick(() => {
     checkAndInitializeDailyPuzzle();
     if (route.query.startTour === "1") {
-      showOnboardingPrompt.value = false;
+      cancelOnboardingPrompt();
       startDailyTour();
       const nextQuery = { ...route.query };
       delete nextQuery.startTour;
@@ -378,37 +425,39 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="notebook-layout">
-    <div
-      v-if="showOnboardingPrompt"
-      class="onboarding-entry-card fixed z-[1200] left-4 right-4 bottom-16 sm:bottom-6 sm:right-auto
-        sm:max-w-sm sm:w-auto
-        bg-[var(--color-paper)] border border-[var(--color-border-subtle)] rounded-lg
-        shadow-lg p-4"
-    >
-      <h2 class="text-base sm:text-lg font-semibold text-[var(--color-ink)] mb-2">
-        {{ t("onboarding.prompt.title") }}
-      </h2>
-      <p class="text-sm text-[var(--color-ink-muted)] mb-3">
-        {{ t("onboarding.prompt.body") }}
-      </p>
-      <div class="flex items-center gap-2 justify-end">
-        <UButton
-          variant="ghost"
-          color="neutral"
-          size="sm"
-          @click="handleSkipOnboarding"
-        >
-          {{ t("onboarding.prompt.skip") }}
-        </UButton>
-        <UButton
-          color="primary"
-          size="sm"
-          @click="handleStartOnboarding"
-        >
-          {{ t("onboarding.prompt.start") }}
-        </UButton>
+    <Transition name="onboarding-prompt">
+      <div
+        v-if="showOnboardingPrompt"
+        class="onboarding-entry-card fixed z-[1200] left-4 right-4 bottom-16 sm:bottom-6 sm:right-auto
+          sm:max-w-sm sm:w-auto
+          bg-[var(--color-paper)] border border-[var(--color-border-subtle)] rounded-lg
+          shadow-lg p-4"
+      >
+        <h2 class="text-base sm:text-lg font-semibold text-[var(--color-ink)] mb-2">
+          {{ t("onboarding.prompt.title") }}
+        </h2>
+        <p class="text-sm text-[var(--color-ink-muted)] mb-3">
+          {{ t("onboarding.prompt.body") }}
+        </p>
+        <div class="flex items-center gap-2 justify-end">
+          <UButton
+            variant="ghost"
+            color="neutral"
+            size="sm"
+            @click="handleSkipOnboarding"
+          >
+            {{ t("onboarding.prompt.skip") }}
+          </UButton>
+          <UButton
+            color="primary"
+            size="sm"
+            @click="handleStartOnboarding"
+          >
+            {{ t("onboarding.prompt.start") }}
+          </UButton>
+        </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- Notebook-style layout shell: desk background, paper sheet, and pattern -->
     <div class="notebook-sheet">
@@ -481,6 +530,7 @@ onBeforeUnmount(() => {
             :disabled="!gameStore.isPlaying || gameStore.isReplayMode"
             :placeholder="t('game.searchPlaceholder')"
             :guess-history="guessHistory"
+            @input="handleSearchInput"
             @select="handleAnimalSelect"
           />
           <!-- First-time user hint (progressive disclosure) -->

@@ -659,8 +659,12 @@ html {
   border-color: var(--color-paper, #FDFBF5) !important;
 }
 
-.onboarding-entry-card {
+.onboarding-prompt-enter-active {
   animation: onboarding-slide-in-left 260ms ease-out;
+}
+
+.onboarding-prompt-leave-active {
+  animation: onboarding-slide-out-left 260ms ease-in;
 }
 
 /*
@@ -681,5 +685,16 @@ html {
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+@keyframes onboarding-slide-out-left {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
   }
 }

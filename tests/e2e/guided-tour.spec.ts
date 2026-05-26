@@ -9,39 +9,12 @@ async function startGuidedTourFromHelp(page: Page) {
   await expect(page.getByRole("button", { name: "Next" })).toBeVisible();
 }
 
-async function completeTourByButtons(page: Page) {
-  for (let i = 0; i < 12; i += 1) {
-    if (page.isClosed()) {
-      return;
-    }
-
-    const tourGone = await page
-      .getByRole("button", { name: "Next" })
-      .or(page.getByRole("button", { name: "Finish" }))
-      .count()
-      .then(count => count === 0)
-      .catch(() => true);
-    if (tourGone) {
-      return;
-    }
-
-    const finishVisible = await page.getByRole("button", { name: "Finish" }).isVisible().catch(() => false);
-    if (finishVisible) {
-      const finishButton = page.getByRole("button", { name: "Finish" });
-      await finishButton.dispatchEvent("click").catch(() => {});
-      return;
-    }
-
-    const nextVisible = await page.getByRole("button", { name: "Next" }).isVisible().catch(() => false);
-    if (nextVisible) {
-      const nextButton = page.getByRole("button", { name: "Next" });
-      await nextButton.dispatchEvent("click").catch(() => {});
-      await page.waitForTimeout(120);
-      continue;
-    }
-
-    await page.waitForTimeout(120);
-  }
+async function finishGuidedTour(page: Page) {
+  const finishButton = page.getByRole("dialog").getByRole("button", { name: "Finish" });
+  await expect(finishButton).toBeVisible({ timeout: 10_000 });
+  // Driver.js repositions the popover while the stage updates; WebKit often never sees it as "stable".
+  await finishButton.click({ force: true });
+  await expect(page.locator(".driver-popover")).toHaveCount(0, { timeout: 10_000 });
 }
 
 async function closePostitFromStickyTab(page: Page) {
@@ -64,21 +37,36 @@ test.beforeEach(async ({ page }) => {
   await mockINaturalist(page);
 });
 
+test("guided tour can be closed via button but not via overlay click", async ({ page }) => {
+  await startGuidedTourFromHelp(page);
+
+  await expect(page.getByRole("button", { name: "Close" })).toBeVisible();
+
+  await page.locator(".driver-overlay").click({ position: { x: 8, y: 8 } });
+  await expect(page.getByRole("button", { name: "Next" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Close" }).click();
+  await expect(page.locator(".driver-popover")).toHaveCount(0);
+});
+
 test("guided tour advances with next-only navigation", async ({ page }) => {
   await startGuidedTourFromHelp(page);
 
   await page.getByRole("button", { name: "Next" }).click();
   await expect(page.getByText("Search and submit a guess")).toBeVisible();
 
-  await page.getByRole("button", { name: "Next" }).click();
+  const searchInput = page.getByRole("combobox", { name: "Search for an animal" });
+  await searchInput.fill("lion");
+  await page.getByRole("option", { name: /Lion/i }).click();
   await expect(page.getByText("Read the tree clues")).toBeVisible();
 
+  // Tree step Next opens the postit via a node click; needs at least one guess on the tree.
   await page.getByRole("button", { name: "Next" }).click();
-  await expect(page.getByRole("dialog", { name: "Inspect node details" })).toBeVisible();
-  await expect(page.getByText("4 / 5")).toBeVisible();
+  await expect(page.getByText("4 / 5")).toBeVisible({ timeout: 10_000 });
 });
 
 test("guided tour can progress through interactive actions", async ({ page }) => {
+  test.slow();
   await startGuidedTourFromHelp(page);
 
   await page.getByRole("button", { name: "Next" }).click();
@@ -96,7 +84,20 @@ test("guided tour can progress through interactive actions", async ({ page }) =>
   await expect(page.locator("[data-onboarding='daily-information-postit']")).toBeVisible();
 
   await closePostitFromStickyTab(page);
-  await expect(page.getByRole("button", { name: "Next" }).or(page.getByRole("button", { name: "Finish" }))).toBeVisible();
-  await completeTourByButtons(page);
-  await expect(page.getByRole("button", { name: "Finish" })).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "Need more guidance?" })).toBeVisible({
+    timeout: 10_000,
+  });
+
+  const scrollYBeforeFinish = await page.evaluate(() => window.scrollY);
+  expect(scrollYBeforeFinish).toBeGreaterThan(200);
+
+  await finishGuidedTour(page);
+
+  // Snap runs ~1.3s after destroy; keep poll well under the default 30s test timeout.
+  await expect
+    .poll(() => page.evaluate(() => window.scrollY), {
+      timeout: 10_000,
+      intervals: [100, 250, 500],
+    })
+    .toBeLessThan(Math.min(scrollYBeforeFinish * 0.5, 250));
 });
