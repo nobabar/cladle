@@ -11,6 +11,8 @@ export const uiIconHandDrawn = {
   moon: "i-cladle-moon",
   chevronRight: "i-cladle-arrow-single-right",
   chevronLeft: "i-cladle-arrow-single-left",
+  maximize: "i-cladle-maximize",
+  minimize: "i-cladle-minimize",
 
   return: "i-streamline-freehand-keyboard-arrow-return",
   history: "i-streamline-freehand-time-hourglass-triangle",
@@ -30,6 +32,8 @@ export const uiIconHandDrawn = {
   computer: "i-streamline-freehand-laptop-computer-smiley",
   phone: "i-streamline-freehand-mobile-phone-smartphone",
   zoomIn: "i-streamline-freehand-zoom-in-magnifier-1",
+  zoomOut: "i-streamline-freehand-zoom-out-magnifier-1",
+  fitView: "i-streamline-freehand-retract-shrink-arrow",
 } as const;
 
 /** Lucide set (Iconify `i-lucide-*`) */
@@ -57,6 +61,10 @@ export const uiIconLucide = {
   computer: "i-lucide-monitor",
   phone: "i-lucide-smartphone",
   zoomIn: "i-lucide-zoom-in",
+  zoomOut: "i-lucide-zoom-out",
+  maximize: "i-lucide-maximize",
+  minimize: "i-lucide-minimize",
+  fitView: "i-lucide-fullscreen",
 } as const;
 
 export type UiIconSet = typeof uiIconHandDrawn;

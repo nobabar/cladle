@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { TreeData, TreeLayoutConfig, TreeNode } from "~/types/tree";
-import {
-  calculateTreeLayout,
-  getViewBoxFromDimensions,
-} from "~/utils/treeLayoutCalculator";
+import { calculateTreeLayout } from "~/utils/treeLayoutCalculator";
 import { getTreeNodeBoxWidth } from "~/utils/treeNodeWidth";
 import { treeToMermaid } from "~/utils/mermaidExporter";
 import { DEFAULT_ROUGHNESS, resolveColor, useRoughSvg } from "~/composables/useRoughSvg";
+import { useTreeFullscreenPortal } from "~/composables/useTreeFullscreenPortal";
+import { useTreePointerGestures } from "~/composables/useTreePointerGestures";
+import { useTreeViewport } from "~/composables/useTreeViewport";
 import { useUiIcons } from "~/composables/useUiIcons";
 
 const props = withDefaults(defineProps<Props>(), {
@@ -45,6 +45,9 @@ const layoutConfig: TreeLayoutConfig = {
 
 const svgRef = ref<SVGSVGElement | null>(null);
 const containerRef = ref<HTMLDivElement | null>(null);
+const detailPortalRef = ref<HTMLDivElement | null>(null);
+const { enterFullscreen: enterTreeFullscreenPortal, exitFullscreen: exitTreeFullscreenPortal }
+  = useTreeFullscreenPortal();
 const containerWidth = ref(props.width || 800);
 const containerHeight = ref(props.height || 600);
 const focusedNodeId = ref<string | null>(null);
@@ -54,6 +57,8 @@ const isCopied = ref(false);
 
 const edgesGroupRef = ref<SVGGElement | null>(null);
 const nodesGroupRef = ref<SVGGElement | null>(null);
+const viewportGroupRef = ref<SVGGElement | null>(null);
+const isFullscreen = ref(false);
 const { getRoughGenerator } = useRoughSvg(svgRef);
 const lastRenderedLayoutHash = ref<string | null>(null);
 const isRendering = ref(false);
@@ -104,6 +109,66 @@ const computedNodes = computed(() => computedLayout.value?.nodes || new Map<stri
 
 const computedEdges = computed(() => computedLayout.value?.edges || []);
 
+const viewportBounds = computed(() => {
+  if (!computedLayout.value) {
+    return null;
+  }
+  const d = computedLayout.value.dimensions;
+  return {
+    minX: d.minX,
+    minY: d.minY,
+    width: d.width,
+    height: d.height,
+  };
+});
+
+const viewport = useTreeViewport({
+  bounds: viewportBounds,
+  containerWidth,
+  containerHeight,
+});
+
+const viewportTransform = viewport.transform;
+
+const gesturesEnabled = computed(() => hasTreeData.value);
+
+useTreePointerGestures({
+  svgRef,
+  viewport,
+  enabled: gesturesEnabled,
+});
+
+const fullscreenSupported = computed(
+  () => typeof document !== "undefined" && document.fullscreenEnabled === true,
+);
+
+const zoomPercentLabel = computed(() =>
+  t("game.treeZoomLevel", { percent: Math.round(viewport.scale.value * 100) }),
+);
+
+const svgViewBox = computed(
+  () => `0 0 ${containerWidth.value} ${containerHeight.value}`,
+);
+
+watch(
+  computedLayout,
+  (layout) => {
+    if (layout) {
+      nextTick(() => {
+        if (!viewport.userAdjusted.value) {
+          viewport.fitToView();
+        }
+      });
+    }
+  },
+);
+
+watch([containerWidth, containerHeight], () => {
+  if (computedLayout.value && !viewport.userAdjusted.value) {
+    viewport.fitToView();
+  }
+});
+
 /**
  * Calculate curved SVG path for an edge
  * Uses quadratic bezier curve for smooth connections
@@ -142,14 +207,6 @@ function calculateEdgePath(
   // Quadratic bezier curve: M (move to start), Q (quadratic curve to end via control point)
   return `M ${startX} ${startY} Q ${controlX} ${controlY} ${endX} ${endY}`;
 }
-
-const svgViewBox = computed(() => {
-  if (!computedLayout.value) {
-    return `0 0 ${containerWidth.value} ${containerHeight.value}`;
-  }
-
-  return getViewBoxFromDimensions(computedLayout.value.dimensions);
-});
 
 /**
  * Get node width based on text content
@@ -570,8 +627,94 @@ function handleNodeClick(node: TreeNode): void {
   emit("nodeClick", node);
 }
 
+function toggleFullscreen(): void {
+  const el = containerRef.value;
+  if (!el || !fullscreenSupported.value) {
+    return;
+  }
+  if (document.fullscreenElement === el) {
+    void document.exitFullscreen();
+  } else {
+    void el.requestFullscreen();
+  }
+}
+
+function onFullscreenChange(): void {
+  const active = document.fullscreenElement === containerRef.value;
+  isFullscreen.value = active;
+  if (active && detailPortalRef.value) {
+    enterTreeFullscreenPortal(detailPortalRef.value);
+  } else {
+    exitTreeFullscreenPortal();
+  }
+  nextTick(() => {
+    viewport.fitToView();
+  });
+}
+
+function handleToolbarZoomIn(): void {
+  const bounds = viewportBounds.value;
+  if (bounds) {
+    const focal = {
+      x: bounds.minX + bounds.width / 2,
+      y: bounds.minY + bounds.height / 2,
+    };
+    viewport.zoomIn(focal);
+  } else {
+    viewport.zoomIn();
+  }
+}
+
+function handleToolbarZoomOut(): void {
+  const bounds = viewportBounds.value;
+  if (bounds) {
+    const focal = {
+      x: bounds.minX + bounds.width / 2,
+      y: bounds.minY + bounds.height / 2,
+    };
+    viewport.zoomOut(focal);
+  } else {
+    viewport.zoomOut();
+  }
+}
+
 function handleKeyDown(event: KeyboardEvent): void {
   if (!hasTreeData.value || !props.treeData) {
+    return;
+  }
+
+  if (event.key === "Escape" && document.fullscreenElement) {
+    return;
+  }
+
+  if (event.key === "+" || event.key === "=" || event.key === "-") {
+    event.preventDefault();
+    const svg = svgRef.value;
+    const bounds = viewportBounds.value;
+    const focal = svg && bounds
+      ? viewport.clientToLayout(
+          containerRef.value!.getBoundingClientRect().left + containerWidth.value / 2,
+          containerRef.value!.getBoundingClientRect().top + containerHeight.value / 2,
+          svg,
+        )
+      : undefined;
+    if (event.key === "-") {
+      viewport.zoomOut(focal);
+    } else {
+      viewport.zoomIn(focal);
+    }
+    return;
+  }
+
+  if (event.key === "0") {
+    event.preventDefault();
+    viewport.resetView();
+    return;
+  }
+
+  if ((event.key === "f" || event.key === "F") && fullscreenSupported.value) {
+    event.preventDefault();
+    toggleFullscreen();
     return;
   }
 
@@ -722,15 +865,24 @@ onMounted(() => {
     resizeObserver.observe(containerRef.value);
   }
 
+  document.addEventListener("fullscreenchange", onFullscreenChange);
+
   // Initial render after mount
   nextTick(() => {
     renderTreeWithRough();
+    if (computedLayout.value) {
+      viewport.fitToView();
+    }
   });
 });
 
 onUnmounted(() => {
   if (resizeObserver) {
     resizeObserver.disconnect();
+  }
+  document.removeEventListener("fullscreenchange", onFullscreenChange);
+  if (isFullscreen.value) {
+    exitTreeFullscreenPortal();
   }
 });
 
@@ -756,26 +908,106 @@ async function copyTreeAsMermaid(): Promise<void> {
   <div
     ref="containerRef"
     class="tree-visualization"
-    :class="{ 'tree-visualization--empty': !hasTreeData }"
+    :class="{
+      'tree-visualization--empty': !hasTreeData,
+      'tree-visualization--fullscreen': isFullscreen,
+    }"
     role="tree"
     :aria-label="t('game.treeAriaRoot')"
     tabindex="0"
     @keydown="handleKeyDown"
   >
-    <!-- Copy Button (only in dev mode) -->
-    <button
-      v-if="hasTreeData && isDevMode"
-      type="button"
-      class="tree-visualization__copy-button"
-      :aria-label="isCopied ? t('game.treeCopied') : t('game.treeCopyMermaid')"
-      :title="isCopied ? t('game.treeCopied') : t('game.treeCopyMermaid')"
-      @click="copyTreeAsMermaid"
+    <div
+      ref="detailPortalRef"
+      class="tree-visualization__detail-portal"
+      data-testid="tree-detail-portal"
+      aria-hidden="true"
+    />
+
+    <div
+      v-if="hasTreeData"
+      class="tree-visualization__toolbar"
+      role="toolbar"
+      :aria-label="t('game.treeAriaSvg')"
     >
-      <Icon
-        :name="isCopied ? uiIcon.check : uiIcon.copy"
-        class="tree-visualization__copy-icon"
-      />
-    </button>
+      <button
+        type="button"
+        class="tree-visualization__toolbar-button"
+        :aria-label="t('game.treeZoomIn')"
+        :title="t('game.treeZoomIn')"
+        @click="handleToolbarZoomIn"
+      >
+        <Icon
+          :name="uiIcon.zoomIn"
+          class="tree-visualization__toolbar-icon"
+          aria-hidden="true"
+        />
+      </button>
+      <button
+        type="button"
+        class="tree-visualization__toolbar-button"
+        :aria-label="t('game.treeZoomOut')"
+        :title="t('game.treeZoomOut')"
+        @click="handleToolbarZoomOut"
+      >
+        <Icon
+          :name="uiIcon.zoomOut"
+          class="tree-visualization__toolbar-icon"
+          aria-hidden="true"
+        />
+      </button>
+      <button
+        type="button"
+        class="tree-visualization__toolbar-button"
+        :aria-label="t('game.treeFitView')"
+        :title="t('game.treeFitView')"
+        @click="viewport.resetView()"
+      >
+        <Icon
+          :name="uiIcon.fitView"
+          class="tree-visualization__toolbar-icon"
+          aria-hidden="true"
+        />
+      </button>
+      <button
+        v-if="fullscreenSupported"
+        type="button"
+        class="tree-visualization__toolbar-button"
+        :aria-label="isFullscreen ? t('game.treeExitFullscreen') : t('game.treeFullscreen')"
+        :title="isFullscreen ? t('game.treeExitFullscreen') : t('game.treeFullscreen')"
+        :aria-pressed="isFullscreen"
+        @click="toggleFullscreen"
+      >
+        <Icon
+          :name="isFullscreen ? uiIcon.minimize : uiIcon.maximize"
+          class="tree-visualization__toolbar-icon"
+          aria-hidden="true"
+        />
+      </button>
+      <button
+        v-if="isDevMode"
+        type="button"
+        class="tree-visualization__toolbar-button"
+        :aria-label="isCopied ? t('game.treeCopied') : t('game.treeCopyMermaid')"
+        :title="isCopied ? t('game.treeCopied') : t('game.treeCopyMermaid')"
+        @click="copyTreeAsMermaid"
+      >
+        <Icon
+          :name="isCopied ? uiIcon.check : uiIcon.copy"
+          class="tree-visualization__toolbar-icon"
+          aria-hidden="true"
+        />
+      </button>
+    </div>
+
+    <p
+      v-if="hasTreeData"
+      class="sr-only"
+      aria-live="polite"
+      aria-atomic="true"
+    >
+      {{ zoomPercentLabel }}
+    </p>
 
     <!-- Empty State -->
     <div v-if="!hasTreeData" class="tree-visualization__empty">
@@ -791,37 +1023,44 @@ async function copyTreeAsMermaid(): Promise<void> {
       :width="containerWidth"
       :height="containerHeight"
       :viewBox="svgViewBox"
+      preserveAspectRatio="none"
       class="tree-visualization__svg"
       xmlns="http://www.w3.org/2000/svg"
       :aria-label="t('game.treeAriaSvg')"
     >
-      <g ref="edgesGroupRef" class="tree-edges-rough" />
+      <g
+        ref="viewportGroupRef"
+        class="tree-viewport"
+        :transform="viewportTransform"
+      >
+        <g ref="edgesGroupRef" class="tree-edges-rough" />
 
-      <g ref="nodesGroupRef" class="tree-nodes-rough" />
+        <g ref="nodesGroupRef" class="tree-nodes-rough" />
 
-      <g v-if="computedLayout" class="tree-node-labels">
-        <template
-          v-for="node in computedNodes.values()"
-          :key="`label-${node.id}`"
-        >
-          <text
-            v-if="node.position"
-            class="tree-node__text"
-            :class="{
-              'tree-node__text--target': node.isTarget,
-              'tree-node__text--guess': node.isGuess,
-              'tree-node__text--lca': node.isLCA,
-            }"
-            :x="node.position.x"
-            :y="node.position.y"
-            text-anchor="middle"
-            dominant-baseline="middle"
-            :aria-hidden="true"
-            pointer-events="none"
+        <g v-if="computedLayout" class="tree-node-labels">
+          <template
+            v-for="node in computedNodes.values()"
+            :key="`label-${node.id}`"
           >
-            {{ node.isTarget && !props.showTarget ? "?" : node.name }}
-          </text>
-        </template>
+            <text
+              v-if="node.position"
+              class="tree-node__text"
+              :class="{
+                'tree-node__text--target': node.isTarget,
+                'tree-node__text--guess': node.isGuess,
+                'tree-node__text--lca': node.isLCA,
+              }"
+              :x="node.position.x"
+              :y="node.position.y"
+              text-anchor="middle"
+              dominant-baseline="middle"
+              :aria-hidden="true"
+              pointer-events="none"
+            >
+              {{ node.isTarget && !props.showTarget ? "?" : node.name }}
+            </text>
+          </template>
+        </g>
       </g>
     </svg>
 
@@ -855,12 +1094,32 @@ async function copyTreeAsMermaid(): Promise<void> {
   background: var(--color-surface, #f9fafb);
   border: 1px solid var(--color-border-subtle, #e5e7eb);
   border-radius: 8px;
-  overflow: auto;
+  overflow: hidden;
   outline: none;
-  /* Smooth scrolling for horizontal navigation */
-  scroll-behavior: smooth;
-  /* Enable momentum scrolling on iOS */
-  -webkit-overflow-scrolling: touch;
+  touch-action: none;
+}
+
+.tree-visualization--fullscreen {
+  border-radius: 0;
+  min-height: 100dvh;
+  height: 100dvh;
+}
+
+.tree-visualization--fullscreen .tree-visualization__svg {
+  min-height: 100dvh;
+  height: 100dvh;
+}
+
+.tree-visualization__detail-portal {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.tree-visualization__detail-portal > :deep(*) {
+  pointer-events: auto;
 }
 
 .dark .tree-visualization {
@@ -1125,11 +1384,19 @@ async function copyTreeAsMermaid(): Promise<void> {
   border-width: 0;
 }
 
-.tree-visualization__copy-button {
+.tree-visualization__toolbar {
   position: absolute;
   top: 8px;
   right: 8px;
   z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+  max-width: calc(100% - 16px);
+}
+
+.tree-visualization__toolbar-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1145,43 +1412,38 @@ async function copyTreeAsMermaid(): Promise<void> {
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  touch-action: manipulation; /* Prevent double-tap zoom */
+  touch-action: manipulation;
 }
 
-.dark .tree-visualization__copy-button {
+.dark .tree-visualization__toolbar-button {
   background: var(--color-surface-alt, #1f2937);
   border-color: var(--color-border-subtle, #4b5563);
   color: var(--color-ink, #f9fafb);
 }
 
-.tree-visualization__copy-button:hover {
+.tree-visualization__toolbar-button:hover {
   background: var(--color-surface-alt, #f9fafb);
   border-color: var(--color-border-subtle, #d1d5db);
   box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
 }
 
-.dark .tree-visualization__copy-button:hover {
+.dark .tree-visualization__toolbar-button:hover {
   background: var(--color-surface-alt, #4b5563);
   border-color: var(--color-muted, #6b7280);
 }
 
-.tree-visualization__copy-button:active {
+.tree-visualization__toolbar-button:active {
   transform: scale(0.95);
 }
 
-.tree-visualization__copy-button:focus {
+.tree-visualization__toolbar-button:focus {
   outline: 2px solid var(--color-focus-ring, #6b7f8e);
   outline-offset: 2px;
 }
 
-.tree-visualization__copy-icon {
+.tree-visualization__toolbar-icon {
   width: 18px;
   height: 18px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.tree-visualization__copy-button:hover .tree-visualization__copy-icon {
-  transform: scale(1.1);
 }
 
 /* Mobile optimizations (< 768px) */
@@ -1195,6 +1457,12 @@ async function copyTreeAsMermaid(): Promise<void> {
     min-height: 300px;
   }
 
+  .tree-visualization__toolbar {
+    top: auto;
+    bottom: 8px;
+    right: 8px;
+  }
+
   .tree-node__text {
     font-size: 12px;
   }
@@ -1204,16 +1472,7 @@ async function copyTreeAsMermaid(): Promise<void> {
     cursor: pointer;
   }
 
-  .tree-visualization__copy-button {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
-    top: 8px;
-    right: 8px;
-  }
-
-  .tree-visualization__copy-icon {
+  .tree-visualization__toolbar-icon {
     width: 20px;
     height: 20px;
   }
@@ -1238,7 +1497,7 @@ async function copyTreeAsMermaid(): Promise<void> {
     font-size: 13px;
   }
 
-  .tree-visualization__copy-button {
+  .tree-visualization__toolbar {
     top: 10px;
     right: 10px;
   }
@@ -1258,7 +1517,7 @@ async function copyTreeAsMermaid(): Promise<void> {
     font-size: 14px;
   }
 
-  .tree-visualization__copy-button {
+  .tree-visualization__toolbar {
     top: 12px;
     right: 12px;
   }
