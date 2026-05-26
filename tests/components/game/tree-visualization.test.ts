@@ -265,6 +265,104 @@ describe("treeVisualization", () => {
     });
   });
 
+  describe("viewport navigation", () => {
+    it("renders detail portal for fullscreen information panel", async () => {
+      const treeData = createSimpleTreeData();
+      const wrapper = mountWithStubs(TreeVisualization, {
+        props: { treeData },
+      });
+
+      await nextTick();
+
+      expect(wrapper.find("[data-testid='tree-detail-portal']").exists()).toBe(true);
+    });
+
+    it("renders toolbar with zoom controls when tree has data", async () => {
+      const treeData = createSimpleTreeData();
+      const wrapper = mountWithStubs(TreeVisualization, {
+        props: { treeData },
+      });
+
+      await nextTick();
+
+      const toolbar = wrapper.find(".tree-visualization__toolbar");
+      expect(toolbar.exists()).toBe(true);
+      expect(toolbar.findAll(".tree-visualization__toolbar-button").length).toBeGreaterThanOrEqual(3);
+    });
+
+    it("uses container-sized viewBox and viewport transform group", async () => {
+      const treeData = createSimpleTreeData();
+      const wrapper = mountWithStubs(TreeVisualization, {
+        props: { treeData, width: 640, height: 480 },
+      });
+
+      await nextTick();
+
+      const svg = wrapper.find(".tree-visualization__svg");
+      expect(svg.attributes("viewBox")).toBe("0 0 640 480");
+      expect(svg.attributes("preserveAspectRatio")).toBe("none");
+
+      const viewportGroup = wrapper.find(".tree-viewport");
+      expect(viewportGroup.exists()).toBe(true);
+      expect(viewportGroup.attributes("transform")).toMatch(/translate\([\d.-]+,[\d.-]+\) scale\([\d.]+\)/);
+    });
+
+    it("zoom in button updates viewport scale", async () => {
+      const treeData = createSimpleTreeData();
+      const wrapper = mountWithStubs(TreeVisualization, {
+        props: { treeData },
+      });
+
+      await nextTick();
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      const transformBefore = wrapper.find(".tree-viewport").attributes("transform") ?? "";
+      const scaleBefore = Number.parseFloat(transformBefore.match(/scale\(([\d.]+)\)/)?.[1] ?? "1");
+
+      const zoomInButton = wrapper.findAll(".tree-visualization__toolbar-button")[0];
+      await zoomInButton!.trigger("click");
+      await nextTick();
+
+      const transformAfter = wrapper.find(".tree-viewport").attributes("transform") ?? "";
+      const scaleAfter = Number.parseFloat(transformAfter.match(/scale\(([\d.]+)\)/)?.[1] ?? "1");
+
+      expect(scaleAfter).toBeGreaterThan(scaleBefore);
+    });
+
+    it("toggles fullscreen via requestFullscreen when supported", async () => {
+      const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+      const exitFullscreen = vi.fn().mockResolvedValue(undefined);
+
+      Object.defineProperty(document, "fullscreenEnabled", {
+        configurable: true,
+        value: true,
+      });
+      Object.defineProperty(document, "fullscreenElement", {
+        configurable: true,
+        writable: true,
+        value: null,
+      });
+      HTMLElement.prototype.requestFullscreen = requestFullscreen;
+      document.exitFullscreen = exitFullscreen;
+
+      const treeData = createSimpleTreeData();
+      const wrapper = mountWithStubs(TreeVisualization, {
+        props: { treeData },
+        attachTo: document.body,
+      });
+
+      await nextTick();
+
+      const buttons = wrapper.findAll(".tree-visualization__toolbar-button");
+      const fullscreenButton = buttons[buttons.length - 1];
+      await fullscreenButton!.trigger("click");
+
+      expect(requestFullscreen).toHaveBeenCalled();
+
+      wrapper.unmount();
+    });
+  });
+
   describe("layout Calculations", () => {
     it("calculates node positions correctly", async () => {
       const treeData = createSimpleTreeData();
