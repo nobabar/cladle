@@ -80,7 +80,7 @@ export function useOnboardingTour() {
     let didAdvanceFromTreeStep = false;
     let didAdvanceFromSearchStep = false;
     let didAdvanceFromPostitStep = false;
-    let shouldScrollTopOnDestroy = false;
+    let shouldScrollToTopAfterTour = false;
     let cleanupTreeStepListener: (() => void) | null = null;
     let cleanupSearchStepListener: (() => void) | null = null;
     let cleanupPostitStepListener: (() => void) | null = null;
@@ -290,14 +290,50 @@ export function useOnboardingTour() {
       onboardingDriver?.moveNext();
     }
 
-    function finishTourAndScrollTop() {
-      shouldScrollTopOnDestroy = true;
-      onboardingDriver?.destroy();
+    function snapPageToTop() {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      const scrollingElement = document.scrollingElement ?? document.documentElement;
+      scrollingElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      window.scrollTo(0, 0);
+    }
+
+    /** Scroll the window to the top (smooth when supported, then snap for reliability). */
+    function scrollPageToTop() {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+      window.setTimeout(snapPageToTop, 500);
+    }
+
+    /** Driver refocuses after teardown and can undo the scroll; retry smooth then snap. */
+    function scheduleScrollToTopAfterTeardown() {
+      window.setTimeout(() => {
+        scrollPageToTop();
+        window.setTimeout(snapPageToTop, 500);
+        window.setTimeout(() => {
+          snapPageToTop();
+          document.querySelector<HTMLElement>("[data-onboarding='daily-search'] input")
+            ?.focus({ preventScroll: true });
+        }, 900);
+      }, 400);
+    }
+
+    /**
+     * Must call `driver.destroy()` — default last-step handler only runs `onDestroyStarted`.
+     * @param tourDriver - Active Driver.js instance for this tour.
+     */
+    function completeTourAndScrollToTop(tourDriver: ReturnType<typeof driver>) {
+      shouldScrollToTopAfterTour = true;
+      scrollPageToTop();
+      tourDriver.destroy();
     }
 
     onboardingDriver = driver({
       showProgress: true,
-      allowClose: false,
+      // Close button + Escape; backdrop clicks are ignored via overlayClickBehavior.
+      allowClose: true,
+      overlayClickBehavior: () => {},
       nextBtnText: t("onboarding.next"),
       prevBtnText: t("onboarding.previous"),
       doneBtnText: t("onboarding.done"),
@@ -434,8 +470,8 @@ export function useOnboardingTour() {
             description: t("onboarding.daily.helpBody"),
             side: "top",
             align: "start",
-            onNextClick: () => {
-              finishTourAndScrollTop();
+            onNextClick: (_element, _step, { driver: tourDriver }) => {
+              completeTourAndScrollToTop(tourDriver);
             },
           },
         },
@@ -449,9 +485,9 @@ export function useOnboardingTour() {
           refreshRafId = null;
         }
         markOnboardingAsCompleted();
-        if (shouldScrollTopOnDestroy) {
-          window.scrollTo({ top: 0, behavior: "smooth" });
-          shouldScrollTopOnDestroy = false;
+        if (shouldScrollToTopAfterTour) {
+          shouldScrollToTopAfterTour = false;
+          scheduleScrollToTopAfterTeardown();
         }
       },
     });
