@@ -45,6 +45,8 @@ const uiIcon = useUiIcons();
 const searchQuery = ref("");
 const isOpen = ref(false);
 const highlightedIndex = ref(-1);
+/** When true, pointer hover must not override keyboard-driven highlight (combobox APG). */
+const keyboardNavigationActive = ref(false);
 const inputRef = ref<HTMLInputElement | null>(null);
 /** Root for input + all dropdown overlays (click-outside closes together). */
 const searchComboboxRef = ref<HTMLElement | null>(null);
@@ -123,6 +125,7 @@ function handleInput(event: Event) {
   }
   isOpen.value = true;
   highlightedIndex.value = -1;
+  keyboardNavigationActive.value = false;
   emit("input", searchQuery.value);
 }
 
@@ -203,16 +206,26 @@ function handleKeydown(event: KeyboardEvent) {
   switch (event.key) {
     case "ArrowDown":
       event.preventDefault();
-      highlightedIndex.value = Math.min(
-        highlightedIndex.value + 1,
-        filteredSuggestions.value.length - 1,
-      );
+      if (!keyboardNavigationActive.value) {
+        keyboardNavigationActive.value = true;
+        highlightedIndex.value = 0;
+      } else {
+        highlightedIndex.value = Math.min(
+          highlightedIndex.value + 1,
+          filteredSuggestions.value.length - 1,
+        );
+      }
       scrollToHighlighted();
       break;
 
     case "ArrowUp":
       event.preventDefault();
-      highlightedIndex.value = Math.max(highlightedIndex.value - 1, -1);
+      if (!keyboardNavigationActive.value) {
+        keyboardNavigationActive.value = true;
+        highlightedIndex.value = filteredSuggestions.value.length - 1;
+      } else {
+        highlightedIndex.value = Math.max(highlightedIndex.value - 1, -1);
+      }
       scrollToHighlighted();
       break;
 
@@ -249,6 +262,9 @@ function shouldSyncHighlightFromPointerHover(event: PointerEvent): boolean {
 }
 
 function onSuggestionPointerEnter(index: number, event: PointerEvent) {
+  if (keyboardNavigationActive.value) {
+    return;
+  }
   if (!shouldSyncHighlightFromPointerHover(event)) {
     return;
   }
@@ -270,6 +286,7 @@ function scrollToHighlighted() {
 function closeSuggestions() {
   isOpen.value = false;
   highlightedIndex.value = -1;
+  keyboardNavigationActive.value = false;
 }
 
 function clearInput() {
@@ -443,6 +460,7 @@ watch(searchQuery, (newQuery) => {
   } else {
     isOpen.value = false;
     highlightedIndex.value = -1;
+    keyboardNavigationActive.value = false;
     if (useApi.value) {
       apiAnimals.value = [];
     }

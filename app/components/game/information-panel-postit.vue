@@ -8,6 +8,7 @@ import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 import { useResponsive } from "~/composables/useResponsive";
 import { useUiIcons } from "~/composables/useUiIcons";
 import { ONBOARDING_DAILY_TOUR_COMPLETE_KEY } from "~/composables/useOnboardingTour";
+import { useTreeFullscreenPortal } from "~/composables/useTreeFullscreenPortal";
 import { sanitizeBasicHTML } from "~/utils/sanitizeBasicHTML";
 
 const props = withDefaults(defineProps<Props>(), {
@@ -34,6 +35,7 @@ interface Props {
 }
 
 const { isMobile } = useResponsive();
+const { teleportTarget, isTreeFullscreen } = useTreeFullscreenPortal();
 
 const containerRef = ref<HTMLElement | null>(null);
 
@@ -643,7 +645,7 @@ export function hasInformationPopupBeenDismissedThisSession(): boolean {
   </div>
 
   <!-- Post-it Note and Image Card Container -->
-  <Teleport to="body">
+  <Teleport :to="teleportTarget">
     <Transition
       enter-active-class="postit-enter-active"
       enter-from-class="postit-enter-from"
@@ -660,6 +662,7 @@ export function hasInformationPopupBeenDismissedThisSession(): boolean {
         :class="{
           'information-panel-container--dragging': isDragging,
           'information-panel-container--left': props.positionSide === 'left',
+          'information-panel-container--tree-fullscreen': isTreeFullscreen,
         }"
       >
         <!-- Sticky Tab (adhesive part - always on top) -->
@@ -1011,6 +1014,16 @@ export function hasInformationPopupBeenDismissedThisSession(): boolean {
 
 .information-panel-container--dragging {
   transition: none;
+}
+
+.information-panel-container--tree-fullscreen {
+  max-width: min(400px, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
+}
+
+.information-panel-container--tree-fullscreen .information-panel-postit__content {
+  max-height: min(50vh, calc(100dvh - 12rem));
+  overflow-y: auto;
 }
 
 /* Post-it Note Container */
