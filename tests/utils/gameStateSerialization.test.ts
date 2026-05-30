@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GuessEntry } from "~/stores/gameStore";
 import { PERSISTED_GAME_STATE_SCHEMA_VERSION } from "~/types/gamePersistence";
+import type { HintEntry } from "~/types/hint";
 import type { TreeData, TreeNode } from "~/types/tree";
 import {
   parsePersistedGameState,
@@ -13,6 +14,14 @@ function mockAnimal(id: string, name: string) {
     name,
     scientificName: "S. name",
     taxonomy: ["Animalia", "Chordata", "Mammalia"],
+  };
+}
+
+function mockHint(): HintEntry {
+  return {
+    timestamp: 1_700_000_000_001,
+    cost: 3,
+    revealedClade: null,
   };
 }
 
@@ -57,6 +66,7 @@ describe("gameStateSerialization", () => {
       status: "playing" as const,
       target: mockAnimal("1", "Tiger"),
       guesses: [mockGuess()],
+      hints: [mockHint()],
       maxGuesses: 20,
       treeData: minimalTreeData(),
       puzzleDate: "2026-03-22",
@@ -77,6 +87,8 @@ describe("gameStateSerialization", () => {
     });
     expect(parsed!.dailyState!.guesses).toHaveLength(1);
     expect(parsed!.dailyState!.guesses[0]!.animal.id).toBe("2");
+    expect(parsed!.dailyState!.hints).toHaveLength(1);
+    expect(parsed!.dailyState!.hints[0]!.cost).toBe(3);
     expect(parsed!.dailyState!.treeData).not.toBeNull();
     expect(parsed!.dailyState!.treeData!.root.id).toBe("root");
     expect(parsed!.freePlayState).toBeNull();
@@ -91,6 +103,25 @@ describe("gameStateSerialization", () => {
   it("returns null for malformed JSON", () => {
     expect(parsePersistedGameState("{")).toBeNull();
     expect(parsePersistedGameState("not-json")).toBeNull();
+  });
+
+  it("defaults hints to empty array when field is omitted", () => {
+    const raw = JSON.stringify({
+      version: PERSISTED_GAME_STATE_SCHEMA_VERSION,
+      gameMode: "daily",
+      dailyState: {
+        status: "playing",
+        target: mockAnimal("1", "Tiger"),
+        guesses: [],
+        maxGuesses: 20,
+        treeData: null,
+        puzzleDate: "2026-03-22",
+      },
+      freePlayState: null,
+    });
+    const parsed = parsePersistedGameState(raw);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.dailyState!.hints).toEqual([]);
   });
 
   it("returns null for unknown version", () => {
@@ -132,6 +163,7 @@ describe("gameStateSerialization", () => {
     expect(parsed).not.toBeNull();
     expect(parsed!.version).toBe(PERSISTED_GAME_STATE_SCHEMA_VERSION);
     expect(parsed!.dailyState!.status).toBe("won");
+    expect(parsed!.dailyState!.hints).toEqual([]);
   });
 
   it("rejects invalid gameMode in legacy payload", () => {
@@ -154,6 +186,7 @@ describe("gameStateSerialization", () => {
         status: "playing",
         target: null,
         guesses: [],
+        hints: [],
         maxGuesses: 20,
         treeData: tree,
         puzzleDate: "2026-03-22",

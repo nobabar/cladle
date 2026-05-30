@@ -8,8 +8,15 @@ import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 import { apiErrorToGameError } from "~/utils/errorMessages";
 import { selectRandomTargetAnimal } from "~/utils/puzzleSelector";
 import { useUiIcons } from "~/composables/useUiIcons";
+import { useHintRequest } from "~/composables/useHintRequest";
 
 const gameStore = useGameStore();
+const {
+  hintAnnouncement,
+  hintDisabledReasonKey,
+  isHintControlDisabled,
+  handleHintConfirm,
+} = useHintRequest();
 const api = useBiologicalAPI();
 const { isDesktop } = useResponsive();
 const { t } = useI18n();
@@ -432,12 +439,23 @@ onMounted(() => {
 
         <!-- Animal Search Component -->
         <div class="max-w-2xl mx-auto mb-4 sm:mb-6 md:mb-8">
-          <GameAnimalSearch
-            :disabled="!gameStore.isPlaying"
-            :placeholder="t('game.searchPlaceholder')"
-            :guess-history="guessHistory"
-            @select="handleAnimalSelect"
-          />
+          <div class="flex items-center gap-2">
+            <div class="min-w-0 flex-1">
+              <GameAnimalSearch
+                :disabled="!gameStore.isPlaying"
+                :placeholder="t('game.searchPlaceholder')"
+                :guess-history="guessHistory"
+                @select="handleAnimalSelect"
+              />
+            </div>
+            <GameHintControl
+              v-if="gameStore.isPlaying"
+              :disabled="isHintControlDisabled"
+              :disabled-reason="hintDisabledReasonKey"
+              :announcement="hintAnnouncement"
+              @confirm="handleHintConfirm"
+            />
+          </div>
           <!-- First-time user hint (progressive disclosure) -->
           <p
             v-if="gameStore.isPlaying && gameStore.guesses.length === 0"

@@ -34,6 +34,7 @@ export const uiIconHandDrawn = {
   zoomIn: "i-streamline-freehand-zoom-in-magnifier-1",
   zoomOut: "i-streamline-freehand-zoom-out-magnifier-1",
   fitView: "i-streamline-freehand-retract-shrink-arrow",
+  hint: "i-streamline-freehand-creativity-idea-bulb",
 } as const;
 
 /** Lucide set (Iconify `i-lucide-*`) */
@@ -65,6 +66,7 @@ export const uiIconLucide = {
   maximize: "i-lucide-maximize",
   minimize: "i-lucide-minimize",
   fitView: "i-lucide-fullscreen",
+  hint: "i-lucide-lightbulb",
 } as const;
 
 export type UiIconSet = typeof uiIconHandDrawn;
