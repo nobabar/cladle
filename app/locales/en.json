@@ -90,7 +90,22 @@
     "searchOutage": "iNaturalist is currently unavailable, so taxonomy and media search is temporarily degraded.",
     "searchRetry": "Retry",
     "searchRetryAria": "Retry search",
-    "searchCheckInaturalist": "Check iNaturalist"
+    "searchCheckInaturalist": "Check iNaturalist",
+    "hint": {
+      "button": "Need a hint? (−{cost} guesses)",
+      "buttonAria": "Request a hint",
+      "confirmTitle": "Use a hint?",
+      "confirmBody": "Spend {cost} guesses to reveal the next clade on the path toward the mystery animal.",
+      "confirm": "Reveal clade",
+      "cancel": "Cancel",
+      "success": "Hint: {clade} revealed on the tree.",
+      "disabled": {
+        "replay": "Hints aren't available while viewing a past puzzle.",
+        "gameEnded": "Hints are only available during an active game.",
+        "insufficientGuesses": "You need more than {cost} guesses left to use a hint.",
+        "unavailable": "No more clades to reveal right now, try a guess first or get closer."
+      }
+    }
   },
   "footer": {
     "ariaNav": "Footer links",

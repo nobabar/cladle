@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { getGameStore } from "#test/helpers/gameStore";
+import { HINT_GUESS_COST } from "~/types/hint";
 import type { Animal } from "~/types/animal";
 import type { TreeNode } from "~/types/tree";
 
@@ -867,6 +868,118 @@ describe("gameStore", () => {
       expect(store.target?.id).toBe(wolf.id);
       expect(store.status).toBe("playing");
       expect(store.guesses.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("hint mechanics", () => {
+    it("starts with empty hints and canRequestHint when playing", () => {
+      const store = getGameStore();
+      store.startGame(tiger, 20);
+      expect(store.hints).toHaveLength(0);
+      expect(store.hintCount).toBe(0);
+      expect(store.canRequestHint).toBe(true);
+    });
+
+    it("requestHint reduces guesses remaining by HINT_GUESS_COST", () => {
+      const store = getGameStore();
+      store.startGame(tiger, 20);
+      store.requestHint();
+      expect(store.hints).toHaveLength(1);
+      expect(store.hints[0]!.cost).toBe(HINT_GUESS_COST);
+      expect(store.hints[0]!.revealedClade).toBe("Chordata");
+      expect(store.hints[0]!.rank).toBe("phylum");
+      expect(store.hints[0]!.depth).toBe(1);
+      expect(store.guessesRemaining).toBe(20 - HINT_GUESS_COST);
+    });
+
+    it("requestHint reveals Felidae on tree after Wolf guess", () => {
+      const store = getGameStore();
+      store.startGame(tiger, 20);
+      store.processGuess(wolf);
+      store.requestHint();
+      expect(store.hints[0]!.revealedClade).toBe("Felidae");
+      expect(store.cladeMap.has("felidae")).toBe(true);
+    });
+
+    it("requestHint throws when no hint available and does not charge", () => {
+      const store = getGameStore();
+      store.startGame(tiger, 20);
+      store.processGuess(lion);
+      expect(store.hasHintAvailable).toBe(false);
+      expect(() => store.requestHint()).toThrow(/no hint available/i);
+      expect(store.hints).toHaveLength(0);
+      expect(store.guessesRemaining).toBe(19);
+    });
+
+    it("requestHint throws when not enough guesses remain and leaves state unchanged", () => {
+      const store = getGameStore();
+      store.startGame(tiger, 2);
+      expect(() => store.requestHint()).toThrow(/not enough guesses/i);
+      expect(store.hints).toHaveLength(0);
+      expect(store.guessesRemaining).toBe(2);
+    });
+
+    it("does not allow hint when only HINT_GUESS_COST guesses remain", () => {
+      const store = getGameStore();
+      store.startGame(tiger, HINT_GUESS_COST);
+      expect(store.canRequestHint).toBe(false);
+      expect(() => store.requestHint()).toThrow(/not enough guesses/i);
+      expect(store.hints).toHaveLength(0);
+      expect(store.status).toBe("playing");
+    });
+
+    it("requestHint throws when game is not playing", () => {
+      const store = getGameStore();
+      store.startGame(tiger, 20);
+      store.processGuess(tiger);
+      expect(store.status).toBe("won");
+      expect(() => store.requestHint()).toThrow(/not active/i);
+      expect(store.hints).toHaveLength(0);
+    });
+
+    it("requestHint throws in replay mode", () => {
+      const store = getGameStore();
+      store.loadReplayFromHistory({
+        puzzleDate: "2026-02-14",
+        targetAnimal: tiger,
+        completionStatus: "won",
+        guesses: [],
+        treeData: null,
+        completedAt: Date.now(),
+      });
+      expect(() => store.requestHint()).toThrow(/replay/i);
+    });
+
+    it("allows hint when more than HINT_GUESS_COST guesses remain and leaves a buffer", () => {
+      const store = getGameStore();
+      store.startGame(tiger, HINT_GUESS_COST + 1);
+      expect(store.canRequestHint).toBe(true);
+      store.requestHint();
+      expect(store.guessesRemaining).toBe(1);
+      expect(store.status).toBe("playing");
+    });
+
+    it("combines animal guesses and hint costs for guessesRemaining", () => {
+      const store = getGameStore();
+      store.startGame(tiger, 10);
+      store.processGuess(wolf);
+      store.requestHint();
+      expect(store.guessesRemaining).toBe(10 - 1 - HINT_GUESS_COST);
+    });
+
+    it("saveModeState and restoreModeState preserve hints", () => {
+      const store = getGameStore();
+      store.initializeGame(tiger, 20, "2026-03-20", "daily");
+      store.requestHint();
+      store.saveModeState("daily");
+      store.$patch({
+        hints: [],
+        status: "idle",
+        target: null,
+      });
+      store.restoreModeState("daily");
+      expect(store.hints).toHaveLength(1);
+      expect(store.guessesRemaining).toBe(20 - HINT_GUESS_COST);
     });
   });
 

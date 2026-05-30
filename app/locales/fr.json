@@ -90,7 +90,22 @@
     "searchOutage": "iNaturalist est momentanément indisponible : recherche taxonomique et médias temporairement limités.",
     "searchRetry": "Réessayer",
     "searchRetryAria": "Réessayer la recherche",
-    "searchCheckInaturalist": "Visiter iNaturalist"
+    "searchCheckInaturalist": "Visiter iNaturalist",
+    "hint": {
+      "button": "Besoin d'un indice ? (−{cost} essais)",
+      "buttonAria": "Demander un indice",
+      "confirmTitle": "Utiliser un indice ?",
+      "confirmBody": "Dépensez {cost} essais pour révéler le prochain clade sur le chemin vers l'animal mystère.",
+      "confirm": "Révéler le clade",
+      "cancel": "Annuler",
+      "success": "Indice : {clade} révélé sur l'arbre.",
+      "disabled": {
+        "replay": "Les indices ne sont plus disponibles sur une partie passée.",
+        "gameEnded": "Les indices sont disponibles uniquement pendant la partie.",
+        "insufficientGuesses": "Il vous faut plus de {cost} essais restants pour utiliser un indice.",
+        "unavailable": "Aucun clade supplémentaire à révéler pour l'instant."
+      }
+    }
   },
   "footer": {
     "ariaNav": "Liens de pied de page",

@@ -8,6 +8,9 @@ import { getCurrentDateUTC, isMidnightPassed } from "~/utils/dateUtils";
 import type { PuzzleHistoryEntry } from "~/types/puzzleHistory";
 import { gameStorePersistSerializer } from "~/utils/piniaGameStorePersistence";
 import { createSafeLocalStorageForPinia } from "~/utils/storageSafe";
+import type { HintEntry } from "~/types/hint";
+import { HINT_GUESS_COST } from "~/types/hint";
+import { buildHintCladeSelectorInput, selectHintClade } from "~/utils/hintCladeSelector";
 
 export const DEFAULT_MAX_GUESSES = 20;
 
@@ -31,6 +34,8 @@ interface ModeGameState {
   target: Animal | null;
   /** History of guesses */
   guesses: GuessEntry[];
+  /** Paid hints (separate from animal guesses) */
+  hints: HintEntry[];
   /** Maximum number of guesses allowed */
   maxGuesses: number;
   /** Tree data structure */
@@ -52,6 +57,8 @@ interface GameState {
   target: Animal | null;
   /** History of guesses */
   guesses: GuessEntry[];
+  /** Paid hints (separate from animal guesses) */
+  hints: HintEntry[];
   /** Maximum number of guesses allowed */
   maxGuesses: number;
   /** Tree data structure */
@@ -85,6 +92,7 @@ export const useGameStore = defineStore("game", {
     status: "idle",
     target: null,
     guesses: [],
+    hints: [],
     maxGuesses: DEFAULT_MAX_GUESSES,
     treeData: null,
     nodeMap: new Map(),
@@ -113,8 +121,12 @@ export const useGameStore = defineStore("game", {
   },
 
   getters: {
+    hintsTotalCost(): number {
+      return this.hints.reduce((sum, hint) => sum + hint.cost, 0);
+    },
+
     guessesRemaining(): number {
-      return Math.max(0, this.maxGuesses - this.guesses.length);
+      return Math.max(0, this.maxGuesses - this.guesses.length - this.hintsTotalCost);
     },
 
     isPlaying(): boolean {
@@ -147,6 +159,32 @@ export const useGameStore = defineStore("game", {
 
     guessCount(): number {
       return this.guesses.length;
+    },
+
+    hintCount(): number {
+      return this.hints.length;
+    },
+
+    hasHintAvailable(): boolean {
+      if (!this.target || this.status !== "playing" || this.isReplayMode) {
+        return false;
+      }
+      return selectHintClade(buildHintCladeSelectorInput({
+        target: this.target,
+        guesses: this.guesses,
+        hints: this.hints,
+        revealedCladeNames: Array.from(this.cladeMap.keys()),
+      })) !== null;
+    },
+
+    canRequestHint(): boolean {
+      return (
+        this.status === "playing"
+        && !this.isReplayMode
+        && this.target !== null
+        && this.guessesRemaining > HINT_GUESS_COST
+        && this.hasHintAvailable
+      );
     },
 
     completionStatus(): CompletionStatus {
@@ -309,10 +347,13 @@ export const useGameStore = defineStore("game", {
       // Deep clone guesses
       const savedGuesses = this.guesses.map(guess => JSON.parse(JSON.stringify(guess)));
 
+      const savedHints = this.hints.map(hint => JSON.parse(JSON.stringify(hint)));
+
       const state: ModeGameState = {
         status: this.status,
         target: savedTarget,
         guesses: savedGuesses,
+        hints: savedHints,
         maxGuesses: this.maxGuesses,
         treeData: savedTreeData,
         // Store maps as empty - we'll rebuild them from tree when restoring
@@ -336,6 +377,7 @@ export const useGameStore = defineStore("game", {
         status: clonedState.status,
         target: clonedState.target,
         guesses: clonedState.guesses,
+        hints: clonedState.hints ?? [],
         maxGuesses: clonedState.maxGuesses,
         treeData: clonedState.treeData,
         nodeMap: new Map(),
@@ -364,6 +406,7 @@ export const useGameStore = defineStore("game", {
         this.status = state.status;
         this.target = state.target;
         this.guesses = state.guesses;
+        this.hints = state.hints ?? [];
         this.maxGuesses = state.maxGuesses;
         this.puzzleDate = state.puzzleDate;
 
@@ -391,6 +434,7 @@ export const useGameStore = defineStore("game", {
         this.status = "idle";
         this.target = null;
         this.guesses = [];
+        this.hints = [];
         this.maxGuesses = DEFAULT_MAX_GUESSES;
         this.treeData = null;
         this.nodeMap = new Map();
@@ -410,6 +454,7 @@ export const useGameStore = defineStore("game", {
       this.status = entry.completionStatus as GameStatus;
       this.target = entry.targetAnimal;
       this.guesses = entry.guesses as GuessEntry[];
+      this.hints = [];
       this.maxGuesses = DEFAULT_MAX_GUESSES;
       this.puzzleDate = entry.puzzleDate;
       if (entry.treeData) {
@@ -462,6 +507,7 @@ export const useGameStore = defineStore("game", {
     startGame(target: Animal, maxGuesses: number = DEFAULT_MAX_GUESSES): void {
       this.target = target;
       this.guesses = [];
+      this.hints = [];
       this.status = "playing";
       this.maxGuesses = maxGuesses;
       this.nodeMap = new Map();
@@ -529,6 +575,7 @@ export const useGameStore = defineStore("game", {
       if (shouldInitializeNew) {
         this.setTargetAnimal(target);
         this.guesses = [];
+        this.hints = [];
         this.status = "playing";
         this.maxGuesses = maxGuesses;
         this.nodeMap = new Map();
@@ -625,6 +672,7 @@ export const useGameStore = defineStore("game", {
       this.status = "idle";
       this.target = null;
       this.guesses = [];
+      this.hints = [];
       this.treeData = null;
       this.nodeMap = new Map();
       this.cladeMap = new Map();
@@ -733,14 +781,65 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
-     * Update tree structure with a new guess
-     * Only adds the guessed animal and the LCA clade (not the full path)
-     * Moves target animal under LCA only if the new LCA is more specific than current
-     * Also computes LCA with previous guesses that share the same LCA with target
-     * @param guess - The guessed animal
-     * @param lcaResult - LCA result between guess and target
+     * Spend guess budget for a paid hint and reveal the next clade on the target path.
+     * @throws Error when game is inactive, replay, insufficient guesses, or no hint available
      */
-    updateTreeWithGuess(guess: Animal, lcaResult: LCAResult): void {
+    requestHint(): void {
+      if (this.isReplayMode) {
+        throw new Error("Hints are not available in replay mode");
+      }
+
+      if (this.status !== "playing") {
+        throw new Error("Game is not active");
+      }
+
+      if (!this.target) {
+        throw new Error("No target animal set");
+      }
+
+      if (this.guessesRemaining <= HINT_GUESS_COST) {
+        throw new Error("Not enough guesses remaining for a hint");
+      }
+
+      const selected = selectHintClade(buildHintCladeSelectorInput({
+        target: this.target,
+        guesses: this.guesses,
+        hints: this.hints,
+        revealedCladeNames: Array.from(this.cladeMap.keys()),
+      }));
+      if (!selected) {
+        throw new Error("No hint available");
+      }
+
+      const hintEntry: HintEntry = {
+        timestamp: Date.now(),
+        cost: HINT_GUESS_COST,
+        revealedClade: selected.clade,
+        rank: selected.rank,
+        depth: selected.depth,
+        path: [...selected.path],
+      };
+
+      this.hints.push(hintEntry);
+      this.revealCladeOnTree(selected);
+
+      if (this.guessesRemaining <= 0) {
+        this.status = "lost";
+      }
+
+      if (this.gameMode) {
+        setTimeout(() => {
+          this.saveModeState(this.gameMode!);
+        }, 0);
+      }
+    },
+
+    /**
+     * Reveal a clade on the phylogeny (hint or guess LCA) without adding an animal guess node.
+     * @param lcaResult
+     * @returns Resolved LCA clade node used for placement
+     */
+    revealCladeOnTree(lcaResult: LCAResult): TreeNode {
       if (!this.treeData) {
         throw new Error("Tree not initialized");
       }
@@ -781,6 +880,46 @@ export const useGameStore = defineStore("game", {
         lcaNode = this.treeData.root;
       }
 
+      const targetNode = this.treeData.target;
+      if (targetNode && lcaNode) {
+        const currentLCADepth = this.getCurrentTargetLCADepth(targetNode);
+        const newLCADepth = lcaResult.depth;
+
+        if (newLCADepth > currentLCADepth && this.isAncestorOfTarget(lcaResult)) {
+          this.moveTargetToLCANode(targetNode, lcaNode);
+        }
+      }
+
+      this.buildNodeMap(this.treeData.root);
+
+      const allNodes = Array.from(this.nodeMap.values());
+      const guessNodes = allNodes.filter(node => node.isGuess);
+
+      this.treeData = {
+        root: this.treeData.root,
+        target: this.treeData.target,
+        nodes: allNodes,
+        guesses: guessNodes,
+      };
+
+      return lcaNode;
+    },
+
+    /**
+     * Update tree structure with a new guess
+     * Only adds the guessed animal and the LCA clade (not the full path)
+     * Moves target animal under LCA only if the new LCA is more specific than current
+     * Also computes LCA with previous guesses that share the same LCA with target
+     * @param guess - The guessed animal
+     * @param lcaResult - LCA result between guess and target
+     */
+    updateTreeWithGuess(guess: Animal, lcaResult: LCAResult): void {
+      if (!this.treeData) {
+        throw new Error("Tree not initialized");
+      }
+
+      const lcaNode = this.revealCladeOnTree(lcaResult);
+
       // Create guess node with correct depth based on LCA node
       const guessNode: TreeNode = {
         id: `animal-${guess.id}`,
@@ -793,20 +932,6 @@ export const useGameStore = defineStore("game", {
       };
 
       this.computeLCAWithRelatedGuesses(guess, lcaResult, guessNode);
-
-      // Move target animal to LCA node only if new LCA is more specific (deeper)
-      const targetNode = this.treeData.target;
-      if (targetNode && lcaNode) {
-        const currentLCADepth = this.getCurrentTargetLCADepth(targetNode);
-        const newLCADepth = lcaResult.depth;
-
-        // Only move target if new LCA is more specific (deeper) than current
-        // Deeper means higher depth number (e.g., depth 4 is deeper than depth 2)
-        // Also verify that the new LCA is actually an ancestor of the target
-        if (newLCADepth > currentLCADepth && this.isAncestorOfTarget(lcaResult)) {
-          this.moveTargetToLCANode(targetNode, lcaNode);
-        }
-      }
 
       // Add guess node to LCA node only if it wasn't already moved by computeLCAWithRelatedGuesses
       // (i.e., if it doesn't have a parent yet)
@@ -1381,6 +1506,7 @@ export const useGameStore = defineStore("game", {
       this.status = "idle";
       this.target = null;
       this.guesses = [];
+      this.hints = [];
       this.treeData = null;
       this.nodeMap = new Map();
       this.cladeMap = new Map();

@@ -14,8 +14,15 @@ import {
   clearOldHistory,
   savePuzzleToHistory,
 } from "~/utils/puzzleHistory";
+import { useHintRequest } from "~/composables/useHintRequest";
 
 const gameStore = useGameStore();
+const {
+  hintAnnouncement,
+  hintDisabledReasonKey,
+  isHintControlDisabled,
+  handleHintConfirm,
+} = useHintRequest();
 const route = useRoute();
 const router = useRouter();
 const isDevMode = computed(() => import.meta.dev);
@@ -526,13 +533,24 @@ onBeforeUnmount(() => {
           data-onboarding="daily-search"
           class="max-w-2xl mx-auto mb-4 sm:mb-6 md:mb-8"
         >
-          <GameAnimalSearch
-            :disabled="!gameStore.isPlaying || gameStore.isReplayMode"
-            :placeholder="t('game.searchPlaceholder')"
-            :guess-history="guessHistory"
-            @input="handleSearchInput"
-            @select="handleAnimalSelect"
-          />
+          <div class="flex items-center gap-2">
+            <div class="min-w-0 flex-1">
+              <GameAnimalSearch
+                :disabled="!gameStore.isPlaying || gameStore.isReplayMode"
+                :placeholder="t('game.searchPlaceholder')"
+                :guess-history="guessHistory"
+                @input="handleSearchInput"
+                @select="handleAnimalSelect"
+              />
+            </div>
+            <GameHintControl
+              v-if="gameStore.isPlaying"
+              :disabled="isHintControlDisabled"
+              :disabled-reason="hintDisabledReasonKey"
+              :announcement="hintAnnouncement"
+              @confirm="handleHintConfirm"
+            />
+          </div>
           <!-- First-time user hint (progressive disclosure) -->
           <p
             v-if="gameStore.isPlaying && gameStore.guesses.length === 0"

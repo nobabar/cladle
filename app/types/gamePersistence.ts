@@ -1,4 +1,5 @@
 import type { Animal } from "./animal";
+import type { StoredHintEntry } from "./hint";
 import type { StoredGuessEntry, StoredTreeData } from "./puzzleHistory";
 
 /**
@@ -21,6 +22,7 @@ export interface PersistedModeGameState {
   status: PersistedGameStatus;
   target: Animal | null;
   guesses: StoredGuessEntry[];
+  hints: StoredHintEntry[];
   maxGuesses: number;
   treeData: StoredTreeData | null;
   puzzleDate: string;

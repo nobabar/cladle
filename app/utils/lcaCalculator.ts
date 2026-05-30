@@ -15,7 +15,7 @@ export interface LCAResult {
  * This mapping helps determine the rank based on taxonomy depth
  * Special case: -1 maps to "root" for edge cases (no common ancestor)
  */
-const TAXONOMIC_RANKS: Record<number, string> = {
+export const TAXONOMIC_RANKS: Record<number, string> = {
   "-1": "root",
   "0": "kingdom",
   "1": "phylum",
@@ -25,6 +25,31 @@ const TAXONOMIC_RANKS: Record<number, string> = {
   "5": "genus",
   "6": "species",
 };
+
+/**
+ * Rank label for a taxonomy depth, or `"unknown"`.
+ * @param depth - A taxonomy depth.
+ * @returns The rank label for the taxonomy depth.
+ */
+export function taxonomicRankAtDepth(depth: number): string {
+  return TAXONOMIC_RANKS[depth] ?? "unknown";
+}
+
+/**
+ * Build an LCA-shaped result for a clade on the target's taxonomy path.
+ * @param target - The target animal.
+ * @param depth - A taxonomy depth.
+ * @returns The LCA-shaped result for the clade on the target's taxonomy path.
+ */
+export function lcaResultFromTargetPath(target: Animal, depth: number): LCAResult {
+  const clade = target.taxonomy[depth] ?? "";
+  return {
+    clade,
+    rank: taxonomicRankAtDepth(depth),
+    depth,
+    path: target.taxonomy.slice(0, depth + 1),
+  };
+}
 
 /**
  * Calculate the Last Common Ancestor (LCA) between two animals
