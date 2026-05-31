@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { gotoDailyAndWaitForShell, reloadWithStaleDailyPuzzle } from "./helpers/daily-shell";
 import { mockINaturalist } from "./helpers/inaturalist";
+import { skipOnboardingPrompt } from "./helpers/onboarding";
 
 async function dismissOnboardingPromptIfPresent(page: Page) {
   const skipButton = page.getByRole("button", { name: "I'll explore on my own" });
@@ -10,34 +11,54 @@ async function dismissOnboardingPromptIfPresent(page: Page) {
   }
 }
 
+async function mockClipboardForShare(page: Page) {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (text: string) => {
+          (window as unknown as { __lastShareText?: string }).__lastShareText = text;
+        },
+        readText: async () => "",
+      },
+    });
+    (window as unknown as { __lastShareText?: string }).__lastShareText = "";
+  });
+}
+
+/**
+ * WebKit can hang on pointer clicks while the win panel is still settling.
+ * @param page - Playwright page.
+ */
+async function clickShareCopyButton(page: Page) {
+  await expect(page.getByTestId("win-state-share-ready")).toBeVisible();
+
+  const copyButton = page.getByRole("button", { name: "Copy results to clipboard" });
+  await expect(copyButton).toBeVisible();
+  await expect(copyButton).toBeEnabled();
+
+  await copyButton.click({ timeout: 5_000 }).catch(async () => {
+    await copyButton.focus();
+    await copyButton.press("Enter");
+  });
+}
+
 test.beforeEach(async ({ page }) => {
   await mockINaturalist(page);
+  await skipOnboardingPrompt(page);
 });
 
 test("daily puzzle happy path + spoiler-safe share copy", async ({ page }) => {
-  await page.addInitScript(() => {
-    const clipboard = navigator.clipboard as { writeText?: (text: string) => Promise<void> };
-    if (!clipboard.writeText) {
-      clipboard.writeText = async () => {};
-    }
-    (window as unknown as { __lastShareText?: string }).__lastShareText = "";
-    clipboard.writeText = async (text: string) => {
-      (window as unknown as { __lastShareText?: string }).__lastShareText = text;
-      return Promise.resolve();
-    };
-  });
+  await mockClipboardForShare(page);
 
   await gotoDailyAndWaitForShell(page);
-  await dismissOnboardingPromptIfPresent(page);
 
   const searchInput = page.getByRole("combobox", { name: "Search for an animal" });
   await searchInput.fill("tiger");
   await page.getByRole("option", { name: /Tiger/i }).click();
 
   await expect(page.getByRole("heading", { name: /You Won!/ })).toBeVisible();
-  const copyButton = page.getByRole("button", { name: "Copy results to clipboard" });
-  await expect(copyButton).toBeVisible();
-  await copyButton.click();
+  await clickShareCopyButton(page);
 
   await expect(page.getByRole("button", { name: "Results copied to clipboard" })).toBeVisible();
 
