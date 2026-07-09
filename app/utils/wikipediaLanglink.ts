@@ -1,5 +1,5 @@
 /**
- * MediaWiki `langlinks` — map an article title from one Wikipedia to another language edition.
+ * MediaWiki `langlinks`: map an article title from one Wikipedia to another language edition.
  * @see https://www.mediawiki.org/wiki/API:Langlinks
  */
 

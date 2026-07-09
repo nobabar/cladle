@@ -25,6 +25,7 @@ import {
   resolveWikipediaArticleUrlForLocale,
   resolveWikipediaDescriptionForLocale,
 } from "~/utils/wikipediaResolve";
+import { buildLineageFromAncestors } from "~/utils/taxonLineage";
 
 const INATURALIST_BASE_URL = "https://api.inaturalist.org/v1";
 // ~1 request / second to respect iNaturalist API recommended practices.
@@ -84,6 +85,7 @@ interface INaturalistTaxon {
   name: string;
   preferred_common_name?: string;
   rank: string;
+  rank_level?: number;
   ancestry?: string;
   ancestor_ids?: number[];
   ancestors?: INaturalistTaxon[];
@@ -180,7 +182,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
    * taxon and bridge via Wikipedia langlinks + REST. If the localized summary already cleans to a
    * usable paragraph but the URL is missing, only fills `wikipedia_url`. If the summary is empty
    * or junk after cleaning, replaces both URL and summary from the resolved target-language article.
-   * When a URL exists but the summary is unusable, this does nothing — {@link enrichEntityWikipediaRestIfNeeded} runs after mapping.
+   * When a URL exists but the summary is unusable, this does nothing - {@link enrichEntityWikipediaRestIfNeeded} runs after mapping.
    * @param id - iNaturalist taxon ID
    * @param primary - iNaturalist taxon fields for the requested locale
    * @param localeKey - App locale (`fr`, `en`, …)
@@ -442,7 +444,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
     }
 
     // 2. Cache miss - fetch from API
-    // Include ancestor information to build taxonomy
+    // Include ancestor information to build lineage
     const url = this.withLocaleParams(`${INATURALIST_BASE_URL}/taxa/${id}?include_ancestors=true`);
 
     try {
@@ -531,7 +533,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       const response = await this.makeRequest<INaturalistSearchResponse>(url);
 
       if (!response.results || response.results.length === 0) {
-        // HTTP succeeded but no hits — counts as a healthy provider response for outage heuristics.
+        // HTTP succeeded but no hits - counts as a healthy provider response for outage heuristics.
         this.recordSearchOutcome(true);
         return { data: [], error: null };
       }
@@ -1079,10 +1081,10 @@ class INaturalistAPIClient implements BiologicalAPIClient {
   }
 
   /**
-   * Map iNaturalist taxon to Animal (lightweight version for search)
-   * Does NOT fetch taxonomy - use this for search results to keep it fast
+   * Map iNaturalist taxon to Animal (lightweight version for search).
+   * Does not fetch lineage - use when the animal is only shown in search results.
    * @param taxon - iNaturalist taxon object
-   * @returns Animal object with minimal data (empty taxonomy array)
+   * @returns Animal object with minimal data (empty `lineage`)
    */
   private mapToAnimalLightweight(taxon: INaturalistTaxon): Animal {
     const scientificName = taxon.name;
@@ -1092,7 +1094,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       id: String(taxon.id),
       name,
       scientificName,
-      taxonomy: [],
+      lineage: [],
       url: `https://www.inaturalist.org/taxa/${taxon.id}`,
       wikipediaUrl: taxon.wikipedia_url,
       imageUrl: taxon.default_photo?.medium_url,
@@ -1104,21 +1106,21 @@ class INaturalistAPIClient implements BiologicalAPIClient {
   }
 
   /**
-   * Map iNaturalist taxon to Animal (full version with taxonomy)
-   * Fetches complete taxonomy - use this when animal is selected
+   * Map iNaturalist taxon to Animal (full version with lineage).
+   * Fetches complete lineage - use when an animal is selected or loaded as a target.
    * @param taxon - iNaturalist taxon object
-   * @returns Promise resolving to Animal object with mapped fields including taxonomy
+   * @returns Animal with mapped fields including `lineage`
    */
   private async mapToAnimal(taxon: INaturalistTaxon): Promise<Animal> {
     const scientificName = taxon.name;
     const name = taxon.preferred_common_name || taxon.name;
-    const taxonomy = await this.parseTaxonomy(taxon);
+    const lineage = await this.parseLineage(taxon);
 
     return {
       id: String(taxon.id),
       name,
       scientificName,
-      taxonomy,
+      lineage,
       url: `https://www.inaturalist.org/taxa/${taxon.id}`,
       wikipediaUrl: taxon.wikipedia_url,
       imageUrl: taxon.default_photo?.medium_url,
@@ -1152,25 +1154,24 @@ class INaturalistAPIClient implements BiologicalAPIClient {
   }
 
   /**
-   * Parse ancestry to taxonomy array
-   * Fetches ancestor taxa to build complete taxonomy
+   * Parse iNaturalist ancestry into `Animal.lineage`.
+   * Fetches ancestor taxa when `include_ancestors` is not present on the taxon payload.
    * @param taxon - iNaturalist taxon object with ancestry or ancestor_ids
-   * @returns Promise resolving to array of taxonomy names from kingdom to the taxon
+   * @returns Lineage array from kingdom (or Animalia) through species
    */
-  private async parseTaxonomy(taxon: INaturalistTaxon): Promise<string[]> {
-    // If ancestors array is already available (from include_ancestors=true), use it
+  private async parseLineage(taxon: INaturalistTaxon): Promise<Animal["lineage"]> {
     if (taxon.ancestors && Array.isArray(taxon.ancestors) && taxon.ancestors.length > 0) {
-      return this.buildTaxonomyFromAncestors(taxon.ancestors, taxon);
+      return buildLineageFromAncestors(taxon.ancestors, taxon);
     }
 
     // Otherwise, fetch ancestors using ancestor_ids or ancestry string
     const ancestorIds = this.extractAncestorIds(taxon);
     if (ancestorIds.length === 0) {
-      return [];
+      return buildLineageFromAncestors([], taxon);
     }
 
     const ancestors = await this.fetchAncestorTaxa(ancestorIds);
-    return this.buildTaxonomyFromAncestors(ancestors, taxon);
+    return buildLineageFromAncestors(ancestors, taxon);
   }
 
   /**
@@ -1217,7 +1218,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
         return [];
       }
 
-      // Return results in the order they were requested (important for taxonomy order)
+      // Return results in the order they were requested (important for lineage order)
       const taxaMap = new Map(response.results.map(t => [t.id, t]));
       return ancestorIds
         .map(id => taxaMap.get(id))
@@ -1229,33 +1230,6 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       });
       return [];
     }
-  }
-
-  /**
-   * Build taxonomy array from ancestor taxa
-   * Filters to standard taxonomic ranks and orders them correctly
-   * @param ancestors - Array of ancestor taxon objects
-   * @param taxon - Current taxon object
-   * @returns Array of taxonomy names
-   */
-  private buildTaxonomyFromAncestors(
-    ancestors: INaturalistTaxon[],
-    taxon: INaturalistTaxon,
-  ): string[] {
-    const standardRanks = ["kingdom", "phylum", "class", "order", "family", "genus", "species"];
-    const taxonomy: string[] = [];
-
-    for (const ancestor of ancestors) {
-      if (ancestor.rank && standardRanks.includes(ancestor.rank)) {
-        taxonomy.push(ancestor.name);
-      }
-    }
-
-    if (taxon.rank && standardRanks.includes(taxon.rank)) {
-      taxonomy.push(taxon.name);
-    }
-
-    return taxonomy;
   }
 
   /**
@@ -1374,7 +1348,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
  * Create API Client Factory Function
  * Allows for dependency injection and testing
  * @param forcedLocale - When set (e.g. `"fr"`), bypasses Nuxt and uses this locale for iNaturalist
- *   `locale=` and IndexedDB locale keys — intended for Vitest only.
+ *   `locale=` and IndexedDB locale keys - intended for Vitest only.
  * @returns New BiologicalAPIClient instance
  */
 export function createApiClient(forcedLocale?: string): BiologicalAPIClient {

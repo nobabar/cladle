@@ -8,7 +8,7 @@ function mockAnimal(id: string, name: string) {
     id,
     name,
     scientificName: "S. name",
-    taxonomy: ["Animalia", "Chordata"],
+    lineage: [{ id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 }, { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 }],
   };
 }
 

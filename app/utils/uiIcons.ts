@@ -4,7 +4,7 @@
  * **Hand-drawn:** local cladle SVGs + Streamline Freehand (Iconify).
  * **Lucide:** used when reading-comfort font is on (`useUiIcons()`), matching pre–1e1eb35 names.
  *
- * @see https://icon-sets.iconify.design/streamline-freehand/ — CC BY 4.0
+ * @see https://icon-sets.iconify.design/streamline-freehand/ (CC BY 4.0)
  */
 export const uiIconHandDrawn = {
   sun: "i-cladle-sun",

@@ -86,7 +86,7 @@ const headerMobileMenuItems = computed(() => {
 
 <template>
   <div>
-    <!-- Daily: date + next-puzzle timer — top-left. -->
+    <!-- Daily: date + next-puzzle timer on top-left. -->
     <div
       v-if="props.gameMode === 'daily' && props.puzzleDate"
       class="absolute top-0 left-0 z-[1] sm:top-5 sm:left-2 flex flex-col gap-1

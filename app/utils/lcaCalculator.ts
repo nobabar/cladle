@@ -1,4 +1,5 @@
 import type { Animal } from "~/types/animal";
+import { lineagePath } from "~/utils/taxonLineage";
 
 /**
  * Result of Last Common Ancestor (LCA) calculation
@@ -10,142 +11,172 @@ export interface LCAResult {
   path: string[];
 }
 
-/**
- * Standard taxonomic ranks indexed by position
- * This mapping helps determine the rank based on taxonomy depth
- * Special case: -1 maps to "root" for edge cases (no common ancestor)
- */
-export const TAXONOMIC_RANKS: Record<number, string> = {
-  "-1": "root",
-  "0": "kingdom",
-  "1": "phylum",
-  "2": "class",
-  "3": "order",
-  "4": "family",
-  "5": "genus",
-  "6": "species",
+const LIFE_ROOT: LCAResult = {
+  clade: "Life",
+  rank: "root",
+  depth: -1,
+  path: [],
 };
 
 /**
- * Rank label for a taxonomy depth, or `"unknown"`.
- * @param depth - A taxonomy depth.
- * @returns The rank label for the taxonomy depth.
- */
-export function taxonomicRankAtDepth(depth: number): string {
-  return TAXONOMIC_RANKS[depth] ?? "unknown";
-}
-
-/**
- * Build an LCA-shaped result for a clade on the target's taxonomy path.
+ * Build an LCA-shaped result for a clade on the target's lineage path.
  * @param target - The target animal.
- * @param depth - A taxonomy depth.
- * @returns The LCA-shaped result for the clade on the target's taxonomy path.
+ * @param depth - Index into target.lineage.
+ * @returns The LCA result.
  */
 export function lcaResultFromTargetPath(target: Animal, depth: number): LCAResult {
-  const clade = target.taxonomy[depth] ?? "";
+  const lineage = target.lineage ?? [];
+  const entry = lineage[depth];
+  if (!entry) {
+    return {
+      clade: "",
+      rank: "unknown",
+      depth,
+      path: [],
+    };
+  }
   return {
-    clade,
-    rank: taxonomicRankAtDepth(depth),
+    clade: entry.name,
+    rank: entry.rank,
     depth,
-    path: target.taxonomy.slice(0, depth + 1),
+    path: lineagePath(lineage, depth),
   };
 }
 
 /**
- * Calculate the Last Common Ancestor (LCA) between two animals
- *
- * This function finds the most recent common taxonomic level shared by two animals
- * by comparing their taxonomy arrays from broadest to most specific classification.
- *
- * Algorithm:
- * 1. Iterate through both taxonomy arrays in parallel
- * 2. Find the first index where taxonomies diverge
- * 3. The LCA is the taxonomic level just before divergence
- * 4. Return LCA name, rank, depth, and full path
- *
- * @param animal1 - First animal with taxonomy classification
- * @param animal2 - Second animal with taxonomy classification
- * @returns LCAResult containing clade name, rank, depth, and path
- *
- * @example
- * ```typescript
- * const tiger = { taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae"] };
- * const wolf = { taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Canidae"] };
- * const lca = calculateLCA(tiger, wolf);
- * // Returns: { clade: "Carnivora", rank: "order", depth: 3, path: [...] }
- * ```
+ * Deepest taxon on the target lineage whose id appears in the guess lineage.
+ * Depth is always an index into target.lineage.
+ * @param guess - The guess animal.
+ * @param target - The target animal.
+ * @returns The LCA result.
  */
-export function calculateLCA(animal1: Animal, animal2: Animal): LCAResult {
-  // Handle edge case: missing or invalid taxonomy data
-  if (
-    !animal1.taxonomy
-    || !animal2.taxonomy
-    || animal1.taxonomy.length === 0
-    || animal2.taxonomy.length === 0
-  ) {
-    return {
-      clade: "Life",
-      rank: "root",
-      depth: -1,
-      path: [],
-    };
+export function calculateLCA(guess: Animal, target: Animal): LCAResult {
+  const guessLineage = guess.lineage ?? [];
+  const targetLineage = target.lineage ?? [];
+
+  if (guessLineage.length === 0 || targetLineage.length === 0) {
+    return LIFE_ROOT;
   }
 
-  // Keep original taxonomies for return values, but normalize for comparison
-  const taxonomy1Original = animal1.taxonomy;
-  const taxonomy2Original = animal2.taxonomy;
-  const taxonomy1 = taxonomy1Original.map(t => t.trim());
-  const taxonomy2 = taxonomy2Original.map(t => t.trim());
+  const guessIds = new Set(guessLineage.map(t => t.id));
+  let deepestMatch = -1;
 
-  // Find the length of the shorter taxonomy (we can only compare up to this point)
-  const minLength = Math.min(taxonomy1.length, taxonomy2.length);
-
-  // Last index where both paths still agree (case-insensitive); first mismatch ends the shared prefix.
-  let lastCommonIndex = -1;
-
-  for (let i = 0; i < minLength; i++) {
-    const taxon1 = taxonomy1[i]?.trim();
-    const taxon2 = taxonomy2[i]?.trim();
-
-    if (taxon1 && taxon2 && taxon1.toLowerCase() === taxon2.toLowerCase()) {
-      lastCommonIndex = i;
-    } else {
-      // Found divergence point - stop here
-      break;
+  for (let i = 0; i < targetLineage.length; i++) {
+    if (guessIds.has(targetLineage[i]!.id)) {
+      deepestMatch = i;
     }
   }
 
-  if (lastCommonIndex === -1) {
-    return {
-      clade: "Life",
-      rank: "root",
-      depth: -1,
-      path: [],
-    };
+  if (deepestMatch === -1) {
+    return LIFE_ROOT;
   }
 
-  // Identical paths: LCA is the deepest rank (both lists match through the end).
-  if (lastCommonIndex === minLength - 1 && taxonomy1.length === taxonomy2.length) {
-    // Return the deepest level (most specific) as LCA
-    const depth = taxonomy1.length - 1;
-    return {
-      clade: taxonomy1Original[depth]!,
-      rank: TAXONOMIC_RANKS[depth] || "unknown",
-      depth,
-      path: [...taxonomy1Original],
-    };
+  return lcaResultFromTargetPath(target, deepestMatch);
+}
+
+/**
+ * Taxon id at an LCA depth on the reference animal's lineage.
+ * @param lca - LCA result whose `depth` indexes into `referenceAnimal.lineage`.
+ * @param referenceAnimal - Animal whose lineage supplied the depth index.
+ * @returns Matched taxon id, or `null` when depth is invalid.
+ */
+export function lcaTaxonId(lca: LCAResult, referenceAnimal: Animal): string | null {
+  if (lca.depth < 0) {
+    return null;
+  }
+  return referenceAnimal.lineage?.[lca.depth]?.id ?? null;
+}
+
+/**
+ * Index of a taxon id on an animal's lineage.
+ * @param animal - Animal whose lineage to search.
+ * @param taxonId - iNaturalist taxon id.
+ * @returns Zero-based index, or `-1` when absent.
+ */
+export function lineageIndexForTaxonId(animal: Animal, taxonId: string): number {
+  return (animal.lineage ?? []).findIndex(t => t.id === taxonId);
+}
+
+/**
+ * Map an LCA (computed on `referenceAnimal`) to its index on `target.lineage`.
+ * @param lca - LCA result relative to `referenceAnimal`.
+ * @param referenceAnimal - Animal used as the second argument to `calculateLCA`.
+ * @param target - Game target (normalization reference).
+ * @returns Index on `target.lineage`, or `-1` when the taxon is absent.
+ */
+export function lcaDepthOnTarget(
+  lca: LCAResult,
+  referenceAnimal: Animal,
+  target: Animal,
+): number {
+  const taxonId = lcaTaxonId(lca, referenceAnimal);
+  if (!taxonId) {
+    return -1;
+  }
+  return lineageIndexForTaxonId(target, taxonId);
+}
+
+/**
+ * Whether `candidate` is phylogenetically more specific than `anchor` on `target`.
+ * Compares taxon identity on the target lineage when present; otherwise falls back to
+ * iNaturalist `rankLevel` on the matched taxon entries.
+ * @param candidate - LCA between the new guess and a previous guess.
+ * @param candidateReference - Previous guess (second arg to `calculateLCA`).
+ * @param anchor - LCA between the new guess and the target.
+ * @param target - Game target animal.
+ * @returns `true` when candidate is strictly more specific than anchor.
+ */
+export function isLCAMoreSpecificOnTarget(
+  candidate: LCAResult,
+  candidateReference: Animal,
+  anchor: LCAResult,
+  target: Animal,
+): boolean {
+  if (candidate.rank === "species" || candidate.depth < 0) {
+    return false;
   }
 
-  // Prefer original strings for display; comparison used trimmed/lowercase only above.
-  const lcaClade = taxonomy1Original[lastCommonIndex]!;
-  const lcaDepth = lastCommonIndex;
-  const lcaRank = TAXONOMIC_RANKS[lcaDepth] || "unknown";
-  const lcaPath = taxonomy1Original.slice(0, lastCommonIndex + 1);
+  const depthOnTarget = lcaDepthOnTarget(candidate, candidateReference, target);
+  if (depthOnTarget > anchor.depth) {
+    return true;
+  }
 
-  return {
-    clade: lcaClade,
-    rank: lcaRank,
-    depth: lcaDepth,
-    path: lcaPath,
-  };
+  if (depthOnTarget >= 0 || anchor.depth < 0) {
+    return false;
+  }
+
+  const candidateEntry = candidateReference.lineage?.[candidate.depth];
+  const anchorEntry = target.lineage?.[anchor.depth];
+  if (
+    candidateEntry?.rankLevel !== undefined
+    && anchorEntry?.rankLevel !== undefined
+  ) {
+    return candidateEntry.rankLevel < anchorEntry.rankLevel;
+  }
+
+  return false;
+}
+
+/**
+ * Sort key for related-guess LCAs: higher means more specific.
+ * Prefers target-lineage index; falls back to inverted `rankLevel`.
+ * @param lca - LCA result.
+ * @param referenceAnimal - The animal to compare to.
+ * @param target - The game target animal.
+ * @returns A score indicating how specific the LCA is.
+ */
+export function lcaSpecificityScore(
+  lca: LCAResult,
+  referenceAnimal: Animal,
+  target: Animal,
+): number {
+  const onTarget = lcaDepthOnTarget(lca, referenceAnimal, target);
+  if (onTarget >= 0) {
+    return onTarget * 1000;
+  }
+  const rankLevel = referenceAnimal.lineage?.[lca.depth]?.rankLevel;
+  if (rankLevel !== undefined) {
+    return 500 - rankLevel;
+  }
+  return lca.depth;
 }

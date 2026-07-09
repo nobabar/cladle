@@ -32,7 +32,7 @@ export interface PhylogeneticMetrics {
    * Smaller means closer to the target; a correct guess typically yields 0 when store LCA aligns.
    *
    * If every guess has an invalid LCA (`depth < 0`), this is **`targetMax + 1`** where
-   * `targetMax` is the deepest taxonomy index for the target (or 0 if taxonomy is empty) —
+   * `targetMax` is the deepest lineage index for the target (or 0 if lineage is empty) -
    * a conservative "unknown / far" bucket when distance cannot be inferred from LCAs.
    */
   evolutionaryDistance: number;
@@ -45,7 +45,7 @@ export interface PhylogeneticMetrics {
    * guess (min), we choose the *most distant* animal (max).
    *
    * Definition (clamped to stay >= 0):
-   * `remaining = targetMax - lca.depth`, where `targetMax` is the deepest taxonomy
+   * `remaining = targetMax - lca.depth`, where `targetMax` is the deepest lineage
    * index of the target, and `lca.depth` comes from `calculateLCA(animal, target)`.
    *
    * When `treeData` is unavailable, the computation falls back to using each
@@ -96,8 +96,8 @@ function computeTreeDepth(treeData: TreeData | null, guesses: GuessEntry[]): num
 }
 
 function computeEvolutionaryDistance(guesses: GuessEntry[], target: Animal): number {
-  const taxonomy = target.taxonomy ?? [];
-  const targetMax = taxonomy.length === 0 ? 0 : taxonomy.length - 1;
+  const lineage = target.lineage ?? [];
+  const targetMax = lineage.length === 0 ? 0 : lineage.length - 1;
 
   const validGuesses = guesses.filter(g => g.lca.depth >= 0);
   if (validGuesses.length === 0) {
@@ -115,8 +115,8 @@ function computeFurthestEvolutionaryDistance(
   guesses: GuessEntry[],
   target: Animal,
 ): number {
-  const taxonomy = target.taxonomy ?? [];
-  const targetMax = taxonomy.length === 0 ? 0 : taxonomy.length - 1;
+  const lineage = target.lineage ?? [];
+  const targetMax = lineage.length === 0 ? 0 : lineage.length - 1;
 
   const distances: number[] = [];
 

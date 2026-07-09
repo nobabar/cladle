@@ -3,7 +3,7 @@ import { nextTick, onMounted, onUnmounted, useTemplateRef } from "vue";
 import { useUiIcons } from "~/composables/useUiIcons";
 
 defineProps<{
-  /** `aria-labelledby` — id of the document heading inside the slot */
+  /** id of the document heading inside the slot, for `aria-labelledby` */
   labelledBy?: string;
   /** Show dim backdrop over the background page. */
   withBackdrop?: boolean;

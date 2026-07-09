@@ -320,7 +320,7 @@ export function useOnboardingTour() {
     }
 
     /**
-     * Must call `driver.destroy()` — default last-step handler only runs `onDestroyStarted`.
+     * Must call `driver.destroy()`: the default last-step handler only runs `onDestroyStarted`.
      * @param tourDriver - Active Driver.js instance for this tour.
      */
     function completeTourAndScrollToTop(tourDriver: ReturnType<typeof driver>) {

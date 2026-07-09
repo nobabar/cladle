@@ -1,11 +1,13 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
+import { waitForDailyGameReady } from "./helpers/daily-shell";
 import { mockINaturalist } from "./helpers/inaturalist";
 
 async function startGuidedTourFromHelp(page: Page) {
   await page.goto("/help");
   await page.getByRole("button", { name: "Start guided tour" }).click();
   await expect(page).toHaveURL(/\/(\?.*)?$/);
+  await waitForDailyGameReady(page);
   await expect(page.getByRole("button", { name: "Next" })).toBeVisible();
 }
 

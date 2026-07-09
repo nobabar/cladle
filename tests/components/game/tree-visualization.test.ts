@@ -12,6 +12,7 @@ import TreeVisualization from "~/components/game/tree-visualization.vue";
 import type { TreeData, TreeNode } from "~/types/tree";
 import type { Animal } from "~/types/animal";
 import type { Clade } from "~/types/clade";
+import { lineageFromNames } from "~/utils/taxonLineage";
 
 // Mock useColorMode globally for tests
 (globalThis as Record<string, unknown>).useColorMode = () => ({
@@ -23,15 +24,15 @@ import type { Clade } from "~/types/clade";
  * Helper function to create a mock animal
  * @param name - Animal name
  * @param scientificName - Animal scientific name
- * @param taxonomy - Animal taxonomy
+ * @param lineageNames - Animal lineage display names
  * @returns Mock animal for testing
  */
-function createMockAnimal(name: string, scientificName: string, taxonomy: string[]): Animal {
+function createMockAnimal(name: string, scientificName: string, lineageNames: string[]): Animal {
   return {
     id: `animal-${name.toLowerCase().replace(/\s+/g, "-")}`,
     name,
     scientificName,
-    taxonomy,
+    lineage: lineageFromNames(lineageNames),
   };
 }
 

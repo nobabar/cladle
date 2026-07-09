@@ -14,7 +14,11 @@ function createMockGuessEntry(animalId: string, animalName: string): GuessEntry 
       id: animalId,
       name: animalName,
       scientificName: "Species name",
-      taxonomy: ["Animalia", "Chordata", "Mammalia"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+        { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+      ],
     },
     lca: { clade: "Mammalia", rank: "class", depth: 2, path: ["Animalia", "Chordata", "Mammalia"] },
     timestamp: Date.now(),
@@ -26,7 +30,15 @@ function createMockTargetAnimal() {
     id: "41967",
     name: "Tiger",
     scientificName: "Panthera tigris",
-    taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera tigris"],
+    lineage: [
+      { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+      { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+      { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+      { id: "taxon-3", name: "Carnivora", rank: "order", rankLevel: 40 },
+      { id: "taxon-4", name: "Felidae", rank: "family", rankLevel: 30 },
+      { id: "taxon-5", name: "Panthera", rank: "genus", rankLevel: 20 },
+      { id: "taxon-6", name: "Panthera tigris", rank: "species", rankLevel: 10 },
+    ],
   };
 }
 

@@ -55,25 +55,41 @@ vi.mock("~/composables/useBiologicalAPI", () => ({
           id: "1",
           name: "African Elephant",
           scientificName: "Loxodonta africana",
-          taxonomy: ["Animalia", "Chordata", "Mammalia"],
+          lineage: [
+            { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+            { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+            { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+          ],
         },
         {
           id: "2",
           name: "Tiger",
           scientificName: "Panthera tigris",
-          taxonomy: ["Animalia", "Chordata", "Mammalia"],
+          lineage: [
+            { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+            { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+            { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+          ],
         },
         {
           id: "3",
           name: "Bald Eagle",
           scientificName: "Haliaeetus leucocephalus",
-          taxonomy: ["Animalia", "Chordata", "Aves"],
+          lineage: [
+            { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+            { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+            { id: "taxon-2", name: "Aves", rank: "class", rankLevel: 50 },
+          ],
         },
         {
           id: "4",
           name: "African Lion",
           scientificName: "Panthera leo",
-          taxonomy: ["Animalia", "Chordata", "Mammalia"],
+          lineage: [
+            { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+            { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+            { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+          ],
         },
       ];
       const animal = mockAnimals.find(a => a.id === id);
@@ -154,25 +170,41 @@ describe("animalSearch", () => {
       id: "1",
       name: "African Elephant",
       scientificName: "Loxodonta africana",
-      taxonomy: ["Animalia", "Chordata", "Mammalia"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+        { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+      ],
     },
     {
       id: "2",
       name: "Tiger",
       scientificName: "Panthera tigris",
-      taxonomy: ["Animalia", "Chordata", "Mammalia"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+        { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+      ],
     },
     {
       id: "3",
       name: "Bald Eagle",
       scientificName: "Haliaeetus leucocephalus",
-      taxonomy: ["Animalia", "Chordata", "Aves"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+        { id: "taxon-2", name: "Aves", rank: "class", rankLevel: 50 },
+      ],
     },
     {
       id: "4",
       name: "African Lion",
       scientificName: "Panthera leo",
-      taxonomy: ["Animalia", "Chordata", "Mammalia"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+        { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+      ],
     },
   ];
 
@@ -348,19 +380,27 @@ describe("animalSearch", () => {
           id: "5",
           name: "Ant",
           scientificName: "Formicidae",
-          taxonomy: ["Animalia", "Arthropoda"],
+          lineage: [{ id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 }, { id: "taxon-1", name: "Arthropoda", rank: "phylum", rankLevel: 60 }],
         },
         {
           id: "6",
           name: "Ape",
           scientificName: "Hominoidea",
-          taxonomy: ["Animalia", "Chordata", "Mammalia"],
+          lineage: [
+            { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+            { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+            { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+          ],
         },
         {
           id: "7",
           name: "Alligator",
           scientificName: "Alligator mississippiensis",
-          taxonomy: ["Animalia", "Chordata", "Reptilia"],
+          lineage: [
+            { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+            { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+            { id: "taxon-2", name: "Reptilia", rank: "class", rankLevel: 50 },
+          ],
         },
       ];
 

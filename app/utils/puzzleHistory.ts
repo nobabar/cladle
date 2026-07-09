@@ -1,5 +1,6 @@
 /** Puzzle history in localStorage: save/load by date, prune by age. */
 
+import type { Animal } from "~/types/animal";
 import type { TreeData } from "~/types/tree";
 import type { PuzzleHistoryEntry } from "~/types/puzzleHistory";
 import type { CompletionStatus, GuessEntry } from "~/stores/gameStore";
@@ -19,7 +20,7 @@ const DEFAULT_DAYS_TO_KEEP = 30;
  * @param targetAnimal.id - Target animal ID
  * @param targetAnimal.name - Target animal name
  * @param targetAnimal.scientificName - Target animal scientific name
- * @param targetAnimal.taxonomy - Target animal taxonomy
+ * @param targetAnimal.lineage - Target animal lineage
  * @param completionStatus - Completion status
  * @param guesses - Guesses
  * @param treeData - Tree data
@@ -27,7 +28,7 @@ const DEFAULT_DAYS_TO_KEEP = 30;
  */
 export function buildHistoryEntry(
   puzzleDate: string,
-  targetAnimal: { id: string; name: string; scientificName: string; taxonomy: string[] },
+  targetAnimal: { id: string; name: string; scientificName: string; lineage: Animal["lineage"] },
   completionStatus: CompletionStatus,
   guesses: GuessEntry[],
   treeData: TreeData | null,

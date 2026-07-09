@@ -168,6 +168,58 @@ describe("api client", () => {
       expect(consoleErrorSpy).toHaveBeenCalled();
     });
 
+    it("should map full lineage from embedded ancestors with rank_level filtering", async () => {
+      /* eslint-disable camelcase */
+      const mockAnimalResponse = {
+        results: [{
+          id: 41967,
+          name: "Panthera tigris",
+          preferred_common_name: "Tiger",
+          rank: "species",
+          rank_level: 10,
+          ancestors: [
+            { id: 99, name: "Life", rank: "stateofmatter", rank_level: 100 },
+            { id: 1, name: "Animalia", rank: "kingdom", rank_level: 70 },
+            { id: 2, name: "Chordata", rank: "phylum", rank_level: 60 },
+            { id: 355675, name: "Vertebrata", rank: "subphylum", rank_level: 57 },
+            { id: 40151, name: "Mammalia", rank: "class", rank_level: 50 },
+            { id: 848324, name: "Laurasiatheria", rank: "superorder", rank_level: 43 },
+            { id: 41573, name: "Carnivora", rank: "order", rank_level: 40 },
+            { id: 41944, name: "Felidae", rank: "family", rank_level: 30 },
+            { id: 41962, name: "Panthera", rank: "genus", rank_level: 20 },
+            { id: 99999, name: "Panthera tigris altaica", rank: "subspecies", rank_level: 5 },
+          ],
+        }],
+      };
+      /* eslint-enable camelcase */
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockAnimalResponse,
+      } as Response);
+
+      const promise = client.fetchAnimalData("41967");
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      expect(result.error).toBeNull();
+      expect(result.data?.lineage.map(t => t.name)).toEqual([
+        "Animalia",
+        "Chordata",
+        "Vertebrata",
+        "Mammalia",
+        "Laurasiatheria",
+        "Carnivora",
+        "Felidae",
+        "Panthera",
+        "Panthera tigris",
+      ]);
+      expect(result.data?.lineage.every(t => t.rank !== "subspecies")).toBe(true);
+      expect(result.data?.lineage.some(t => t.rank === "superorder")).toBe(true);
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    });
+
     it("should handle empty results", async () => {
       // Arrange
       const mockResponse = {
@@ -1339,7 +1391,7 @@ describe("api client", () => {
         id: "42",
         name: "Tiger",
         scientificName: "Panthera tigris",
-        taxonomy: [],
+        lineage: [],
         url: "https://www.inaturalist.org/taxa/42",
       };
 

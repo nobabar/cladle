@@ -14,6 +14,7 @@ import { createPinia, setActivePinia } from "pinia";
 import type { Animal } from "~/types/animal";
 import type { TreeData, TreeNode } from "~/types/tree";
 import { calculateLCA } from "~/utils/lcaCalculator";
+import { lineageFromNames } from "~/utils/taxonLineage";
 
 // Stub GameTreeVisualization component
 const GameTreeVisualizationStub = {
@@ -79,15 +80,15 @@ function mountWithStubs(component: any, options: any = {}) {
  * Helper function to create a mock animal
  * @param name - Animal name
  * @param scientificName - Animal scientific name
- * @param taxonomy - Animal taxonomy
+ * @param lineageNames - Animal lineage display names
  * @returns Mock animal for testing
  */
-function createMockAnimal(name: string, scientificName: string, taxonomy: string[]): Animal {
+function createMockAnimal(name: string, scientificName: string, lineageNames: string[]): Animal {
   return {
     id: `animal-${name.toLowerCase().replace(/\s+/g, "-")}`,
     name,
     scientificName,
-    taxonomy,
+    lineage: lineageFromNames(lineageNames),
   };
 }
 

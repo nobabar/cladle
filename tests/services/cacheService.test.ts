@@ -418,7 +418,13 @@ describe("cacheService", () => {
       const complexData = {
         id: "1",
         name: "Tiger",
-        taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae"],
+        lineage: [
+          { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+          { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+          { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+          { id: "taxon-3", name: "Carnivora", rank: "order", rankLevel: 40 },
+          { id: "taxon-4", name: "Felidae", rank: "family", rankLevel: 30 },
+        ],
         metadata: {
           imageUrl: "https://example.com/tiger.jpg",
           wikipediaUrl: "https://en.wikipedia.org/wiki/Tiger",

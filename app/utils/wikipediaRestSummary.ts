@@ -1,5 +1,5 @@
 /**
- * Wikipedia REST API (summary) — used when iNaturalist omits `wikipedia_summary`
+ * Wikipedia REST API (summary), used when iNaturalist omits `wikipedia_summary`
  * for a locale but still exposes a `wikipedia_url` (often EN-only).
  * @see https://www.mediawiki.org/wiki/API:REST_API/Reference
  */

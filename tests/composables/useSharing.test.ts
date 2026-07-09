@@ -15,14 +15,30 @@ describe("useSharing", () => {
     id: "1",
     name: "Tiger",
     scientificName: "Panthera tigris",
-    taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera tigris"],
+    lineage: [
+      { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+      { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+      { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+      { id: "taxon-3", name: "Carnivora", rank: "order", rankLevel: 40 },
+      { id: "taxon-4", name: "Felidae", rank: "family", rankLevel: 30 },
+      { id: "taxon-5", name: "Panthera", rank: "genus", rankLevel: 20 },
+      { id: "taxon-6", name: "Panthera tigris", rank: "species", rankLevel: 10 },
+    ],
   };
 
   const wolf: Animal = {
     id: "2",
     name: "Wolf",
     scientificName: "Canis lupus",
-    taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Canidae", "Canis", "Canis lupus"],
+    lineage: [
+      { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+      { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+      { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+      { id: "taxon-3", name: "Carnivora", rank: "order", rankLevel: 40 },
+      { id: "taxon-4", name: "Canidae", rank: "family", rankLevel: 30 },
+      { id: "taxon-5", name: "Canis", rank: "genus", rankLevel: 20 },
+      { id: "taxon-6", name: "Canis lupus", rank: "species", rankLevel: 10 },
+    ],
   };
 
   function guessEntry(animal: Animal, target: Animal, timestamp: number): GuessEntry {

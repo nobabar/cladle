@@ -12,7 +12,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 import {
-  isValidTaxonomy,
+  isValidLineage,
   validateAnimalData,
   validateCladeData,
 } from "~/utils/dataValidation";
@@ -23,7 +23,11 @@ describe("validateAnimalData", () => {
       id: "123",
       name: "Tiger",
       scientificName: "Panthera tigris",
-      taxonomy: ["Animalia", "Chordata", "Mammalia"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+        { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+      ],
       imageUrl: "https://example.com/tiger.jpg",
       description: "A large cat species",
       url: "https://example.com/tiger",
@@ -38,7 +42,8 @@ describe("validateAnimalData", () => {
     expect(result.data?.id).toBe("123");
     expect(result.data?.name).toBe("Tiger");
     expect(result.data?.scientificName).toBe("Panthera tigris");
-    expect(result.data?.taxonomy).toEqual(["Animalia", "Chordata", "Mammalia"]);
+    expect(result.data?.lineage).toHaveLength(3);
+    expect(result.data?.lineage[0]?.name).toBe("Animalia");
     expect(result.data?.imageUrl).toBe("https://example.com/tiger.jpg");
     expect(result.data?.description).toBe("A large cat species");
   });
@@ -48,7 +53,11 @@ describe("validateAnimalData", () => {
       id: "123",
       name: "Tiger",
       scientificName: "Panthera tigris",
-      taxonomy: ["Animalia", "Chordata", "Mammalia"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+        { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+      ],
     };
 
     const result = validateAnimalData(minimalData);
@@ -66,7 +75,11 @@ describe("validateAnimalData", () => {
       id: 123,
       name: "Tiger",
       scientificName: "Panthera tigris",
-      taxonomy: ["Animalia", "Chordata", "Mammalia"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+        { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+      ],
     };
 
     const result = validateAnimalData(dataWithNumericId);
@@ -80,7 +93,11 @@ describe("validateAnimalData", () => {
       id: 0,
       name: "Tiger",
       scientificName: "Panthera tigris",
-      taxonomy: ["Animalia", "Chordata", "Mammalia"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+        { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+      ],
     };
 
     const result = validateAnimalData(dataWithZeroId);
@@ -93,7 +110,11 @@ describe("validateAnimalData", () => {
     const dataWithOnlyScientificName = {
       id: "123",
       scientificName: "Panthera tigris",
-      taxonomy: ["Animalia", "Chordata", "Mammalia"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+        { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+      ],
     };
 
     const result = validateAnimalData(dataWithOnlyScientificName);
@@ -107,7 +128,11 @@ describe("validateAnimalData", () => {
     const dataWithOnlyName = {
       id: "123",
       name: "Tiger",
-      taxonomy: ["Animalia", "Chordata", "Mammalia"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+        { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+      ],
     };
 
     const result = validateAnimalData(dataWithOnlyName);
@@ -122,7 +147,11 @@ describe("validateAnimalData", () => {
       id: "  123  ",
       name: "  Tiger  ",
       scientificName: "  Panthera tigris  ",
-      taxonomy: ["Animalia", "Chordata", "Mammalia"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+        { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+      ],
       description: "  A large cat  ",
     };
 
@@ -135,25 +164,32 @@ describe("validateAnimalData", () => {
     expect(result.data?.description).toBe("A large cat");
   });
 
-  it("should filter out empty taxonomy terms", () => {
-    const dataWithEmptyTaxonomyTerms = {
+  it("should reject lineage entries with empty names", () => {
+    const dataWithEmptyLineageTerms = {
       id: "123",
       name: "Tiger",
       scientificName: "Panthera tigris",
-      taxonomy: ["Animalia", "", "Mammalia", "   ", "Carnivora"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "", rank: "phylum", rankLevel: 60 },
+      ],
     };
 
-    const result = validateAnimalData(dataWithEmptyTaxonomyTerms);
+    const result = validateAnimalData(dataWithEmptyLineageTerms);
 
-    expect(result.valid).toBe(true);
-    expect(result.data?.taxonomy).toEqual(["Animalia", "Mammalia", "Carnivora"]);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain("Invalid lineage entries");
   });
 
   it("should fail validation for missing ID", () => {
     const invalidData = {
       name: "Tiger",
       scientificName: "Panthera tigris",
-      taxonomy: ["Animalia", "Chordata", "Mammalia"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+        { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+      ],
     };
 
     const result = validateAnimalData(invalidData);
@@ -167,7 +203,11 @@ describe("validateAnimalData", () => {
   it("should fail validation for missing name and scientificName", () => {
     const invalidData = {
       id: "123",
-      taxonomy: ["Animalia", "Chordata", "Mammalia"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+        { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+      ],
     };
 
     const result = validateAnimalData(invalidData);
@@ -177,49 +217,47 @@ describe("validateAnimalData", () => {
     expect(result.errors).toContain("Missing animal name (name or scientificName required)");
   });
 
-  it("should fail validation for missing taxonomy", () => {
+  it("should allow missing lineage for search-only animals", () => {
+    const searchHit = {
+      id: "123",
+      name: "Tiger",
+      scientificName: "Panthera tigris",
+    };
+
+    const result = validateAnimalData(searchHit);
+
+    expect(result.valid).toBe(true);
+    expect(result.data?.lineage).toEqual([]);
+  });
+
+  it("should fail validation for invalid lineage format", () => {
     const invalidData = {
       id: "123",
       name: "Tiger",
       scientificName: "Panthera tigris",
+      lineage: "not-an-array",
     };
 
     const result = validateAnimalData(invalidData);
 
     expect(result.valid).toBe(false);
     expect(result.data).toBeNull();
-    expect(result.errors).toContain("Missing taxonomy");
+    expect(result.errors).toContain("Invalid lineage format");
   });
 
-  it("should fail validation for invalid taxonomy format", () => {
-    const invalidData = {
+  it("should accept empty lineage array", () => {
+    const dataWithEmptyLineage = {
       id: "123",
       name: "Tiger",
       scientificName: "Panthera tigris",
-      taxonomy: "not-an-array",
+      lineage: [],
     };
 
-    const result = validateAnimalData(invalidData);
+    const result = validateAnimalData(dataWithEmptyLineage);
 
-    expect(result.valid).toBe(false);
-    expect(result.data).toBeNull();
-    expect(result.errors).toContain("Invalid taxonomy format");
-  });
-
-  it("should handle empty taxonomy array with fallback", () => {
-    const dataWithEmptyTaxonomy = {
-      id: "123",
-      name: "Tiger",
-      scientificName: "Panthera tigris",
-      taxonomy: [],
-    };
-
-    const result = validateAnimalData(dataWithEmptyTaxonomy);
-
-    // Empty taxonomy coerces to ["Animalia"]
     expect(result.valid).toBe(true);
     expect(result.data).not.toBeNull();
-    expect(result.data?.taxonomy).toEqual(["Animalia"]);
+    expect(result.data?.lineage).toEqual([]);
   });
 
   it("should fail validation for non-object data", () => {
@@ -245,7 +283,11 @@ describe("validateAnimalData", () => {
       id: "123",
       name: "Tiger",
       scientificName: "Panthera tigris",
-      taxonomy: ["Animalia", "Chordata", "Mammalia"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+        { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+      ],
       imageUrl: "",
       description: "   ",
       url: "",
@@ -423,48 +465,41 @@ describe("validateCladeData", () => {
   });
 });
 
-describe("isValidTaxonomy", () => {
-  it("should validate correct taxonomy array", () => {
-    expect(isValidTaxonomy(["Animalia", "Chordata", "Mammalia"])).toBe(true);
+describe("isValidLineage", () => {
+  const validEntry = {
+    id: "1",
+    name: "Animalia",
+    rank: "kingdom",
+    rankLevel: 70,
+  };
+
+  it("should validate correct lineage entries", () => {
+    expect(isValidLineage([validEntry])).toBe(true);
+    expect(isValidLineage([
+      validEntry,
+      { id: "2", name: "Chordata", rank: "phylum", rankLevel: 60 },
+    ])).toBe(true);
   });
 
-  it("should reject empty array", () => {
-    expect(isValidTaxonomy([])).toBe(false);
+  it("should accept empty array for search-only animals", () => {
+    expect(isValidLineage([])).toBe(true);
   });
 
   it("should reject non-array", () => {
-    expect(isValidTaxonomy("not-an-array")).toBe(false);
-    expect(isValidTaxonomy(123)).toBe(false);
-    expect(isValidTaxonomy(null)).toBe(false);
-    expect(isValidTaxonomy(undefined)).toBe(false);
-    expect(isValidTaxonomy({})).toBe(false);
+    expect(isValidLineage("not-an-array")).toBe(false);
+    expect(isValidLineage(123)).toBe(false);
+    expect(isValidLineage(null)).toBe(false);
+    expect(isValidLineage(undefined)).toBe(false);
+    expect(isValidLineage({})).toBe(false);
   });
 
-  it("should reject array with empty strings", () => {
-    expect(isValidTaxonomy(["Animalia", "", "Mammalia"])).toBe(false);
-    expect(isValidTaxonomy(["Animalia", "   ", "Mammalia"])).toBe(false);
+  it("should reject entries with empty names", () => {
+    expect(isValidLineage([{ id: "1", name: "", rank: "kingdom" }])).toBe(false);
+    expect(isValidLineage([{ id: "1", name: "   ", rank: "kingdom" }])).toBe(false);
   });
 
-  it("should reject array with non-strings", () => {
-    expect(isValidTaxonomy(["Animalia", 123, "Mammalia"])).toBe(false);
-    expect(isValidTaxonomy(["Animalia", null, "Mammalia"])).toBe(false);
-    expect(isValidTaxonomy(["Animalia", {}, "Mammalia"])).toBe(false);
-  });
-
-  it("should accept single-element array", () => {
-    expect(isValidTaxonomy(["Animalia"])).toBe(true);
-  });
-
-  it("should accept long taxonomy arrays", () => {
-    const longTaxonomy = [
-      "Animalia",
-      "Chordata",
-      "Mammalia",
-      "Carnivora",
-      "Felidae",
-      "Panthera",
-      "Panthera tigris",
-    ];
-    expect(isValidTaxonomy(longTaxonomy)).toBe(true);
+  it("should reject entries missing rank or id", () => {
+    expect(isValidLineage([{ name: "Animalia", rank: "kingdom" }])).toBe(false);
+    expect(isValidLineage([{ id: "1", name: "Animalia" }])).toBe(false);
   });
 });

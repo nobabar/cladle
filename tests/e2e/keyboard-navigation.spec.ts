@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { gotoDailyAndWaitForShell } from "./helpers/daily-shell";
 import { mockINaturalist } from "./helpers/inaturalist";
 
 test.beforeEach(async ({ page }) => {
@@ -6,7 +7,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("keyboard-only flow navigates search suggestions", async ({ page }) => {
-  await page.goto("/");
+  await gotoDailyAndWaitForShell(page);
 
   const searchInput = page.getByRole("combobox", { name: "Search for an animal" });
   await searchInput.click();
@@ -20,7 +21,7 @@ test("keyboard-only flow navigates search suggestions", async ({ page }) => {
 });
 
 test("keyboard Enter selects highlighted suggestion", async ({ page }) => {
-  await page.goto("/");
+  await gotoDailyAndWaitForShell(page);
 
   const searchInput = page.getByRole("combobox", { name: "Search for an animal" });
   await searchInput.click();
@@ -37,7 +38,7 @@ test("keyboard Enter selects highlighted suggestion", async ({ page }) => {
 });
 
 test("Escape closes suggestions then blurs input on second press", async ({ page }) => {
-  await page.goto("/");
+  await gotoDailyAndWaitForShell(page);
 
   const searchInput = page.getByRole("combobox", { name: "Search for an animal" });
   await searchInput.click();
@@ -55,7 +56,7 @@ test("Escape closes suggestions then blurs input on second press", async ({ page
 });
 
 test("Arrow keys update active descendant in suggestions", async ({ page }) => {
-  await page.goto("/");
+  await gotoDailyAndWaitForShell(page);
 
   const searchInput = page.getByRole("combobox", { name: "Search for an animal" });
   await searchInput.click();

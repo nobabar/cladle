@@ -19,7 +19,7 @@ function fetchUrl(input: RequestInfo | URL): string {
   return String(input);
 }
 
-describe("api client — French locale Wikipedia bridge", () => {
+describe("api client French locale Wikipedia bridge", () => {
   let client: BiologicalAPIClient;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 

@@ -60,21 +60,33 @@ const testAnimal1: Animal = {
   id: "1",
   name: "African Elephant",
   scientificName: "Loxodonta africana",
-  taxonomy: ["Animalia", "Chordata", "Mammalia"],
+  lineage: [
+    { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+    { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+    { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+  ],
 };
 
 const testAnimal2: Animal = {
   id: "2",
   name: "Tiger",
   scientificName: "Panthera tigris",
-  taxonomy: ["Animalia", "Chordata", "Mammalia"],
+  lineage: [
+    { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+    { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+    { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+  ],
 };
 
 const testAnimal3: Animal = {
   id: "3",
   name: "Lion",
   scientificName: "Panthera leo",
-  taxonomy: ["Animalia", "Chordata", "Mammalia"],
+  lineage: [
+    { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+    { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+    { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+  ],
 };
 
 describe("validateAnimalGuess", () => {
@@ -125,7 +137,7 @@ describe("validateAnimalGuess", () => {
         id: "999",
         name: "NonExistent Animal",
         scientificName: "Non existens",
-        taxonomy: [],
+        lineage: [],
       };
       const result = await validateAnimalGuess(nonExistentAnimal, [], apiClient);
 
@@ -237,7 +249,7 @@ describe("validateAnimalGuess", () => {
         id: "999",
         name: "Invalid Animal",
         scientificName: "Invalidus animalis",
-        taxonomy: [],
+        lineage: [],
       };
       const result = await validateAnimalGuess(invalidAnimal, guessHistory, apiClient);
 
@@ -274,7 +286,7 @@ describe("validateAnimalGuess", () => {
         id: "999",
         name: "NonExistent",
         scientificName: "Non existens",
-        taxonomy: [],
+        lineage: [],
       };
       const result = await validateAnimalGuess(nonExistentAnimal, [], apiClient);
 

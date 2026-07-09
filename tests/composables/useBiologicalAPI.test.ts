@@ -49,7 +49,15 @@ describe("useBiologicalAPI", () => {
         id: "12345",
         name: "African Elephant",
         scientificName: "Loxodonta africana",
-        taxonomy: ["Animalia", "Chordata", "Mammalia", "Proboscidea", "Elephantidae", "Loxodonta", "Loxodonta africana"],
+        lineage: [
+          { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+          { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+          { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+          { id: "taxon-3", name: "Proboscidea", rank: "order", rankLevel: 40 },
+          { id: "taxon-4", name: "Elephantidae", rank: "family", rankLevel: 30 },
+          { id: "taxon-5", name: "Loxodonta", rank: "genus", rankLevel: 20 },
+          { id: "taxon-6", name: "Loxodonta africana", rank: "species", rankLevel: 10 },
+        ],
         url: "https://www.inaturalist.org/taxa/12345",
         wikipediaUrl: "https://en.wikipedia.org/wiki/African_elephant",
         imageUrl: "https://example.com/elephant.jpg",
@@ -204,7 +212,7 @@ describe("useBiologicalAPI", () => {
             id,
             name: "Test Animal",
             scientificName: "Testus animalus",
-            taxonomy: ["Animalia", "Chordata"],
+            lineage: [{ id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 }, { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 }],
           },
           error: null,
         }),
@@ -232,7 +240,7 @@ describe("useBiologicalAPI", () => {
         id: "123",
         name: "Minimal Animal",
         scientificName: "Minimus animalus",
-        taxonomy: ["Animalia"],
+        lineage: [{ id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 }],
       };
 
       const mockResponse: ApiResponse<Animal> = {
