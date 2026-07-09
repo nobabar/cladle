@@ -1,10 +1,11 @@
 /**
  * Validation functions for API response data.
- * Returns ValidationResult with errors; weak shapes are coerced where needed (e.g. empty taxonomy → ["Animalia"]).
+ * Returns ValidationResult with errors; missing lineage is normalized to an empty array.
  */
 
 import type { Animal } from "~/types/animal";
 import type { Clade } from "~/types/clade";
+import type { TaxonInLineage } from "~/types/taxonInLineage";
 
 /** Validation result structure. */
 export interface ValidationResult<T> {
@@ -37,7 +38,7 @@ const VALID_TAXONOMIC_RANKS = [
  * Required fields:
  * - id: Must be present and convertible to string
  * - name or scientificName: At least one must be present
- * - taxonomy: Must be a non-empty array of strings
+ * - lineage: Array of taxon entries (may be empty for search-only animals)
  *
  * Optional fields:
  * - imageUrl, description, url, wikipediaUrl: May be missing
@@ -87,18 +88,11 @@ export function validateAnimalData(
     errors.push("Missing animal name (name or scientificName required)");
   }
 
-  // Taxonomy: required field, but empty or all-blank entries are coerced to a minimal lineage below.
-  if (!data.taxonomy) {
-    errors.push("Missing taxonomy");
-  } else if (!Array.isArray(data.taxonomy)) {
-    errors.push("Invalid taxonomy format");
-  } else {
-    // Check if there's at least one valid taxonomy term
-    const validTerms = data.taxonomy.filter(
-      (term: any) => typeof term === "string" && term.trim().length > 0,
-    );
-    if (validTerms.length === 0) {
-      // No usable terms: still valid; animal builder substitutes ["Animalia"] (common for lightweight search hits).
+  if (data.lineage !== undefined && data.lineage !== null) {
+    if (!Array.isArray(data.lineage)) {
+      errors.push("Invalid lineage format");
+    } else if (!isValidLineage(data.lineage)) {
+      errors.push("Invalid lineage entries");
     }
   }
 
@@ -117,15 +111,7 @@ export function validateAnimalData(
     scientificName: hasScientificName
       ? data.scientificName.trim()
       : (data.name?.trim() || ""),
-    taxonomy: (() => {
-      if (!Array.isArray(data.taxonomy)) {
-        return ["Animalia"];
-      }
-      const validTerms = data.taxonomy
-        .filter((term: any) => typeof term === "string" && term.trim().length > 0)
-        .map((term: string) => term.trim());
-      return validTerms.length > 0 ? validTerms : ["Animalia"];
-    })(),
+    lineage: normalizeLineageFromRaw(data.lineage),
     // Optional fields - use undefined if not present (not empty strings)
     url: data.url && typeof data.url === "string" && data.url.trim().length > 0
       ? data.url.trim()
@@ -255,36 +241,51 @@ export function validateCladeData(data: any): ValidationResult<Clade> {
   };
 }
 
-/**
- * Check if taxonomy array is valid
- *
- * A valid taxonomy:
- * - Must be an array
- * - Must have at least one element
- * - All elements must be non-empty strings
- *
- * @param taxonomy - Taxonomy data to validate
- * @returns True if taxonomy is valid, false otherwise
- *
- * @example
- * ```typescript
- * isValidTaxonomy(['Animalia', 'Chordata', 'Mammalia']) // true
- * isValidTaxonomy([]) // false
- * isValidTaxonomy(['Animalia', '', 'Mammalia']) // false
- * isValidTaxonomy('not-an-array') // false
- * ```
- */
-export function isValidTaxonomy(taxonomy: any): boolean {
-  if (!Array.isArray(taxonomy)) {
+function isValidLineageEntry(entry: unknown): entry is TaxonInLineage {
+  if (!entry || typeof entry !== "object") {
     return false;
   }
-
-  if (taxonomy.length === 0) {
-    return false;
-  }
-
-  // All elements must be non-empty strings
-  return taxonomy.every(
-    term => typeof term === "string" && term.trim().length > 0,
+  const e = entry as Record<string, unknown>;
+  return (
+    (typeof e.id === "string" || typeof e.id === "number")
+    && typeof e.name === "string"
+    && e.name.trim().length > 0
+    && typeof e.rank === "string"
+    && e.rank.trim().length > 0
   );
+}
+
+/**
+ * Check whether a lineage array is valid.
+ *
+ * Each entry must have a non-empty `id`, `name`, and `rank`.
+ *
+ * @param lineage - Lineage data to validate
+ * @returns `true` when every entry is a valid {@link TaxonInLineage} shape
+ */
+export function isValidLineage(lineage: unknown): boolean {
+  if (!Array.isArray(lineage)) {
+    return false;
+  }
+  return lineage.every(isValidLineageEntry);
+}
+
+function normalizeLineageFromRaw(raw: unknown): TaxonInLineage[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw.map((item) => {
+    if (!isValidLineageEntry(item)) {
+      throw new Error("normalizeLineageFromRaw: invalid lineage entry after validation");
+    }
+    const entry: TaxonInLineage = {
+      id: String(item.id).trim(),
+      name: item.name.trim(),
+      rank: item.rank.trim(),
+    };
+    if (item.rankLevel !== undefined && !Number.isNaN(item.rankLevel)) {
+      entry.rankLevel = item.rankLevel;
+    }
+    return entry;
+  });
 }

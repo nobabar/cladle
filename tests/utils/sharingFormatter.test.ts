@@ -4,28 +4,21 @@ import { buildShareableText, calculatePhylogeneticMetrics } from "~/utils/sharin
 import type { GameStatus, GuessEntry } from "~/stores/gameStore";
 import type { Animal } from "~/types/animal";
 import type { TreeData, TreeNode } from "~/types/tree";
+import {
+  lion as lionFixture,
+  TIGER_LINEAGE,
+  tiger as tigerFixture,
+  wolf as wolfFixture,
+} from "#test/helpers/animalFixtures";
 
 describe("calculatePhylogeneticMetrics", () => {
-  const tiger: Animal = {
-    id: "1",
-    name: "Tiger",
-    scientificName: "Panthera tigris",
-    taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera tigris"],
-  };
-
-  const wolf: Animal = {
-    id: "2",
-    name: "Wolf",
-    scientificName: "Canis lupus",
-    taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Canidae", "Canis", "Canis lupus"],
-  };
-
-  const lion: Animal = {
-    id: "3",
-    name: "Lion",
-    scientificName: "Panthera leo",
-    taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera leo"],
-  };
+  const tiger = tigerFixture();
+  const wolf = wolfFixture();
+  const lion = lionFixture();
+  const targetMax = TIGER_LINEAGE.length - 1;
+  const carnivoraDepth = TIGER_LINEAGE.findIndex(t => t.name === "Carnivora");
+  const pantheraDepth = TIGER_LINEAGE.findIndex(t => t.name === "Panthera");
+  const speciesDepth = targetMax;
 
   function guessEntry(animal: Animal, target: Animal, timestamp: number): GuessEntry {
     return {
@@ -90,8 +83,7 @@ describe("calculatePhylogeneticMetrics", () => {
     const guesses = [guessEntry(wolf, tiger, 1)];
     const result = calculatePhylogeneticMetrics(null, guesses, tiger, "lost");
     expect(result).not.toBeNull();
-    // Wolf vs tiger LCA Carnivora at depth 3 → depth + 1 = 4
-    expect(result!.treeDepth).toBe(4);
+    expect(result!.treeDepth).toBe(carnivoraDepth + 1);
   });
 
   it("uses tree depth fallback when treeData exists but guess nodes lack numeric depth", () => {
@@ -104,11 +96,11 @@ describe("calculatePhylogeneticMetrics", () => {
     const guesses = [guessEntry(wolf, tiger, 1)];
     const result = calculatePhylogeneticMetrics(treeWithoutDepths, guesses, tiger, "won");
     expect(result).not.toBeNull();
-    expect(result!.treeDepth).toBe(4);
+    expect(result!.treeDepth).toBe(carnivoraDepth + 1);
   });
 
   it("winning guess yields evolutionary distance 0 and matches fixed fixture on repeat", () => {
-    const treeData = makeTreeData([6]);
+    const treeData = makeTreeData([speciesDepth]);
     const guesses = [guessEntry(tiger, tiger, 1)];
     const a = calculatePhylogeneticMetrics(treeData, guesses, tiger, "won");
     const b = calculatePhylogeneticMetrics(treeData, guesses, tiger, "won");
@@ -122,8 +114,8 @@ describe("calculatePhylogeneticMetrics", () => {
     const result = calculatePhylogeneticMetrics(null, guesses, tiger, "lost");
     expect(result).not.toBeNull();
     // Wolf: LCA depth 3 → 6 - 3 = 3; Lion: depth 5 → 6 - 5 = 1
-    expect(result!.evolutionaryDistance).toBe(1);
-    expect(result!.furthestEvolutionaryDistance).toBe(3);
+    expect(result!.evolutionaryDistance).toBe(targetMax - pantheraDepth);
+    expect(result!.furthestEvolutionaryDistance).toBe(targetMax - carnivoraDepth);
   });
 
   it("treats empty target taxonomy as targetMax 0 for evolutionary distance", () => {
@@ -131,7 +123,7 @@ describe("calculatePhylogeneticMetrics", () => {
       id: "x",
       name: "X",
       scientificName: "X sp",
-      taxonomy: [],
+      lineage: [],
     };
     const badGuess: GuessEntry = {
       animal: wolf,
@@ -154,8 +146,8 @@ describe("calculatePhylogeneticMetrics", () => {
     const result = calculatePhylogeneticMetrics(null, guesses, tiger, "lost");
     expect(result).not.toBeNull();
     expect(result!.treeDepth).toBe(0);
-    expect(result!.evolutionaryDistance).toBe(7);
-    expect(result!.furthestEvolutionaryDistance).toBe(7);
+    expect(result!.evolutionaryDistance).toBe(targetMax + 1);
+    expect(result!.furthestEvolutionaryDistance).toBe(targetMax + 1);
   });
 
   it("when every guess has lca.depth < 0 but treeData has depths, tree depth still uses tree", () => {
@@ -169,55 +161,15 @@ describe("calculatePhylogeneticMetrics", () => {
     const treeData = makeTreeData([4]);
     const result = calculatePhylogeneticMetrics(treeData, guesses, tiger, "won");
     expect(result!.treeDepth).toBe(4);
-    expect(result!.evolutionaryDistance).toBe(7);
+    expect(result!.evolutionaryDistance).toBe(targetMax + 1);
   });
 });
 
 describe("buildShareableText", () => {
-  const tiger: Animal = {
-    id: "1",
-    name: "Tiger",
-    scientificName: "Panthera tigris",
-    taxonomy: [
-      "Animalia",
-      "Chordata",
-      "Mammalia",
-      "Carnivora",
-      "Felidae",
-      "Panthera",
-      "Panthera tigris",
-    ],
-  };
-
-  const wolf: Animal = {
-    id: "2",
-    name: "Wolf",
-    scientificName: "Canis lupus",
-    taxonomy: [
-      "Animalia",
-      "Chordata",
-      "Mammalia",
-      "Carnivora",
-      "Canidae",
-      "Canis",
-      "Canis lupus",
-    ],
-  };
-
-  const lion: Animal = {
-    id: "3",
-    name: "Lion",
-    scientificName: "Panthera leo",
-    taxonomy: [
-      "Animalia",
-      "Chordata",
-      "Mammalia",
-      "Carnivora",
-      "Felidae",
-      "Panthera",
-      "Panthera leo",
-    ],
-  };
+  const tiger = tigerFixture();
+  const wolf = wolfFixture();
+  const lion = lionFixture();
+  const targetMax = TIGER_LINEAGE.length - 1;
 
   function guessEntry(animal: Animal, target: Animal, timestamp: number): GuessEntry {
     return {
@@ -252,7 +204,7 @@ describe("buildShareableText", () => {
       status: "won",
       target: tiger,
       guesses: [guessEntry(tiger, tiger, 1)],
-      treeData: makeTreeData([6]),
+      treeData: makeTreeData([targetMax]),
       gameMode: "daily",
       puzzleDate: "2026-03-25",
       maxGuesses: 20,
@@ -263,7 +215,7 @@ describe("buildShareableText", () => {
       [
         "Cladle",
         "Daily puzzle: 2026-03-25",
-        "Tree depth: 6",
+        "Tree depth: 11",
         "Evolutionary distance: 0",
         "Furthest evolutionary distance: 0",
         "Outcome: Solved in 1 guesses.",
@@ -293,7 +245,7 @@ describe("buildShareableText", () => {
         "Cladle",
         "Tree depth: 5",
         "Evolutionary distance: 1",
-        "Furthest evolutionary distance: 3",
+        "Furthest evolutionary distance: 4",
         "Outcome: Did not solve in 2 guesses.",
       ].join("\n"),
     );
@@ -316,7 +268,7 @@ describe("buildShareableText", () => {
       status: "playing",
       target: tiger,
       guesses: [guessEntry(tiger, tiger, 1)],
-      treeData: makeTreeData([6]),
+      treeData: makeTreeData([targetMax]),
       gameMode: "daily",
       puzzleDate: "2026-03-25",
       maxGuesses: 20,

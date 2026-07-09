@@ -1,9 +1,7 @@
 import type { Animal } from "~/types/animal";
 import type { LCAResult } from "~/utils/lcaCalculator";
-import {
-  lcaResultFromTargetPath,
-  taxonomicRankAtDepth,
-} from "~/utils/lcaCalculator";
+import { lcaResultFromTargetPath } from "~/utils/lcaCalculator";
+import { SPECIES_RANK_LEVEL } from "~/utils/taxonLineage";
 
 export interface HintCladeSelectorGuess {
   lca: LCAResult;
@@ -70,20 +68,20 @@ function buildRevealedSet(input: HintCladeSelectorInput): Set<string> {
 
 /**
  * Deepest rank on the target path already known from guesses, hints, or the tree.
- * @param taxonomy - The taxonomy of the target animal.
+ * @param lineage - The lineage of the target animal.
  * @param revealedSet - The set of revealed clades.
  * @param guessDepths - The depths of the guesses.
  * @returns The deepest depth on the target path already known from guesses, hints, or the tree.
  */
 function deepestDiscoveredDepthOnTargetPath(
-  taxonomy: string[],
+  lineage: Animal["lineage"],
   revealedSet: Set<string>,
   guessDepths: number[],
 ): number {
   let maxDepth = guessDepths.length > 0 ? Math.max(...guessDepths) : -1;
 
-  for (let d = 0; d < taxonomy.length; d++) {
-    const clade = taxonomy[d];
+  for (let d = 0; d < lineage.length; d++) {
+    const clade = lineage[d]?.name;
     if (clade?.trim() && revealedSet.has(normalizeCladeName(clade))) {
       maxDepth = Math.max(maxDepth, d);
     }
@@ -92,40 +90,46 @@ function deepestDiscoveredDepthOnTargetPath(
   return maxDepth;
 }
 
+function isSpeciesRank(rank: string, rankLevel?: number): boolean {
+  if (rankLevel !== undefined) {
+    return rankLevel <= SPECIES_RANK_LEVEL && rank === "species";
+  }
+  return rank === "species";
+}
+
 /**
- * Reveal the clade **one rank toward the target** above the deepest discovery so far
+ * Reveal the clade one rank toward the target above the deepest discovery so far.
  * Never reveals species.
  *
  * @param input - The input for the hint clade selector.
  * @returns LCA-shaped result for the chosen clade, or `null` when no step remains.
  */
 export function selectHintClade(input: HintCladeSelectorInput): LCAResult | null {
-  const taxonomy = input.target.taxonomy;
-  if (!taxonomy?.length) {
+  const lineage = input.target.lineage;
+  if (!lineage?.length) {
     return null;
   }
 
-  const targetSpeciesDepth = taxonomy.length - 1;
+  const targetSpeciesDepth = lineage.length - 1;
   const revealedSet = buildRevealedSet(input);
   const guessDepths = input.guesses.map(g => g.lca.depth);
-  const anchorDepth = deepestDiscoveredDepthOnTargetPath(taxonomy, revealedSet, guessDepths);
+  const anchorDepth = deepestDiscoveredDepthOnTargetPath(lineage, revealedSet, guessDepths);
   const candidateDepth = anchorDepth + 1;
 
   if (candidateDepth >= targetSpeciesDepth) {
     return null;
   }
 
-  const rank = taxonomicRankAtDepth(candidateDepth);
-  if (rank === "species") {
+  const candidate = lineage[candidateDepth];
+  if (!candidate?.name?.trim()) {
     return null;
   }
 
-  const cladeName = taxonomy[candidateDepth];
-  if (!cladeName?.trim()) {
+  if (isSpeciesRank(candidate.rank, candidate.rankLevel)) {
     return null;
   }
 
-  if (revealedSet.has(normalizeCladeName(cladeName))) {
+  if (revealedSet.has(normalizeCladeName(candidate.name))) {
     return null;
   }
 

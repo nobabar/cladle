@@ -37,7 +37,7 @@ function handleAnimalSelect(animal: Animal) {
     // Set tree rendering state
     gameStore.setRenderingTree(true);
 
-    // Animal already has full taxonomy data from validation
+    // Animal already has full lineage data from validation
     gameStore.processGuess(animal);
 
     // Clear tree rendering state after a short delay to allow animation
@@ -124,50 +124,38 @@ async function startNewGame() {
     try {
       targetAnimalId = selectRandomTargetAnimal();
     } catch (error) {
-      // If puzzle selector fails, fallback to default animal
       console.error("Failed to select target animal:", error);
-      targetAnimalId = "41967"; // Tiger as fallback
-    }
-
-    // Fetch full animal data from API to ensure we have complete data
-    const animalResponse = await api.fetchAnimalData(targetAnimalId);
-
-    if (animalResponse.error || !animalResponse.data) {
-      // Convert API error to GameError
-      if (animalResponse.error) {
-        const gameError = apiErrorToGameError(animalResponse.error);
-        gameStore.setError(gameError);
-      }
-
-      // Fallback to hardcoded data if API fails
-      const fallbackTarget: Animal = {
-        id: targetAnimalId,
-        name: "Tiger",
-        scientificName: "Panthera tigris",
-        taxonomy: [
-          "Animalia",
-          "Chordata",
-          "Mammalia",
-          "Carnivora",
-          "Felidae",
-          "Panthera",
-          "Panthera tigris",
-        ],
-      };
-      // Free play mode: use empty string for puzzleDate to indicate it's not a daily puzzle
-      gameStore.initializeGame(fallbackTarget, DEFAULT_MAX_GUESSES, "", "free-play");
+      gameStore.setError({
+        message: t("errors.gameStart"),
+        code: "GAME_START_ERROR",
+        type: "data",
+        details: error,
+      });
       gameStore.setLoading(false);
       return;
     }
 
-    // Use the real animal data from the API
-    // Free play mode: use empty string for puzzleDate to indicate it's not a daily puzzle
+    const animalResponse = await api.fetchAnimalData(targetAnimalId);
+
+    if (animalResponse.error || !animalResponse.data) {
+      if (animalResponse.error) {
+        gameStore.setError(apiErrorToGameError(animalResponse.error));
+      } else {
+        gameStore.setError({
+          message: t("errors.gameStart"),
+          code: "GAME_START_ERROR",
+          type: "network",
+        });
+      }
+      gameStore.setLoading(false);
+      return;
+    }
+
     gameStore.initializeGame(animalResponse.data, DEFAULT_MAX_GUESSES, "", "free-play");
     gameStore.setLoading(false);
   } catch (error) {
     gameStore.setLoading(false);
 
-    // Convert error to GameError
     if (error instanceof Error) {
       gameStore.setError({
         message: t("errors.gameStart"),
@@ -176,24 +164,6 @@ async function startNewGame() {
         details: error,
       });
     }
-
-    // Fallback to hardcoded data on error
-    const fallbackTarget: Animal = {
-      id: "41967",
-      name: "Tiger",
-      scientificName: "Panthera tigris",
-      taxonomy: [
-        "Animalia",
-        "Chordata",
-        "Mammalia",
-        "Carnivora",
-        "Felidae",
-        "Panthera",
-        "Panthera tigris",
-      ],
-    };
-    // Free play mode: use empty string for puzzleDate
-    gameStore.initializeGame(fallbackTarget, DEFAULT_MAX_GUESSES, "", "free-play");
   }
 }
 
@@ -213,38 +183,29 @@ async function resetGame() {
     try {
       targetAnimalId = selectRandomTargetAnimal();
     } catch (error) {
-      // If puzzle selector fails, fallback to default animal
       console.error("Failed to select target animal:", error);
-      targetAnimalId = "41967"; // Tiger as fallback
+      gameStore.setError({
+        message: t("errors.gameStart"),
+        code: "GAME_START_ERROR",
+        type: "data",
+        details: error,
+      });
+      gameStore.setLoading(false);
+      return;
     }
 
-    // Fetch full animal data from API to ensure we have complete data
     const animalResponse = await api.fetchAnimalData(targetAnimalId);
 
     if (animalResponse.error || !animalResponse.data) {
-      // Convert API error to GameError
       if (animalResponse.error) {
-        const gameError = apiErrorToGameError(animalResponse.error);
-        gameStore.setError(gameError);
+        gameStore.setError(apiErrorToGameError(animalResponse.error));
+      } else {
+        gameStore.setError({
+          message: t("errors.gameStart"),
+          code: "GAME_START_ERROR",
+          type: "network",
+        });
       }
-
-      // Fallback to hardcoded data if API fails
-      const fallbackTarget: Animal = {
-        id: targetAnimalId,
-        name: "Tiger",
-        scientificName: "Panthera tigris",
-        taxonomy: [
-          "Animalia",
-          "Chordata",
-          "Mammalia",
-          "Carnivora",
-          "Felidae",
-          "Panthera",
-          "Panthera tigris",
-        ],
-      };
-      // Force new game by passing forceNew flag
-      gameStore.initializeGame(fallbackTarget, DEFAULT_MAX_GUESSES, "", "free-play", true);
       gameStore.setLoading(false);
       return;
     }
@@ -255,7 +216,6 @@ async function resetGame() {
   } catch (error) {
     gameStore.setLoading(false);
 
-    // Convert error to GameError
     if (error instanceof Error) {
       gameStore.setError({
         message: t("errors.gameStart"),
@@ -264,24 +224,6 @@ async function resetGame() {
         details: error,
       });
     }
-
-    // Fallback to hardcoded data on error
-    const fallbackTarget: Animal = {
-      id: "41967",
-      name: "Tiger",
-      scientificName: "Panthera tigris",
-      taxonomy: [
-        "Animalia",
-        "Chordata",
-        "Mammalia",
-        "Carnivora",
-        "Felidae",
-        "Panthera",
-        "Panthera tigris",
-      ],
-    };
-    // Force new game by passing forceNew flag
-    gameStore.initializeGame(fallbackTarget, DEFAULT_MAX_GUESSES, "", "free-play", true);
   }
 }
 

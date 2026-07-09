@@ -2,14 +2,33 @@ import { expect } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
 /**
- * Nuxt dev cold start can exceed heading-only timeouts; combobox marks interactive readiness.
+ * Wait until the animal search is interactive (daily or free-play).
+ * @param page - The Playwright page object.
+ */
+export async function waitForGameSearchReady(page: Page) {
+  const searchInput = page.getByRole("combobox", { name: "Search for an animal" });
+  await expect(searchInput).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("status", { name: "Loading game data..." })).toHaveCount(0, {
+    timeout: 60_000,
+  });
+  await expect(searchInput).toBeEnabled({ timeout: 60_000 });
+}
+
+/**
+ * Daily shell is painted before the target animal fetch completes; wait until play is possible.
+ * @param page - The Playwright page object.
+ */
+export async function waitForDailyGameReady(page: Page) {
+  await waitForGameSearchReady(page);
+}
+
+/**
+ * Nuxt dev cold start can exceed heading-only timeouts; combobox enabled state marks interactive readiness.
  * @param page - The Playwright page object.
  */
 export async function gotoDailyAndWaitForShell(page: Page) {
   await page.goto("/");
-  await expect(page.getByRole("combobox", { name: "Search for an animal" })).toBeVisible({
-    timeout: 30_000,
-  });
+  await waitForDailyGameReady(page);
 }
 
 const STALE_DAILY_PUZZLE_DATE = "1999-01-01";

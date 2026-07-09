@@ -3,6 +3,9 @@ import type { Page } from "@playwright/test";
 /** Must match `playwright.config.ts` webServer port / baseURL origin. */
 const E2E_ORIGIN = "http://localhost:4173";
 
+const RANK_LEVEL_BY_INDEX = [70, 60, 50, 40, 30, 20, 10];
+const RANK_BY_INDEX = ["kingdom", "phylum", "class", "order", "family", "genus", "species"];
+
 /**
  * Force English UI for E2E (aligns with @nuxtjs/i18n `cladle_locale` cookie).
  * Call before the first navigation in a test.
@@ -40,18 +43,19 @@ const TAXA_BY_ID: Record<string, {
   id: number;
   scientificName: string;
   commonName: string;
-  taxonomy: string[];
+  taxonomy: readonly string[];
 }> = {
-  41967: { id: 41967, scientificName: "Panthera tigris", commonName: "Tiger", taxonomy: [...TAXONOMY.tiger] },
-  41964: { id: 41964, scientificName: "Panthera leo", commonName: "Lion", taxonomy: [...TAXONOMY.lion] },
-  42051: { id: 42051, scientificName: "Canis lupus", commonName: "Gray Wolf", taxonomy: [...TAXONOMY.wolf] },
+  41967: { id: 41967, scientificName: "Panthera tigris", commonName: "Tiger", taxonomy: TAXONOMY.tiger },
+  41964: { id: 41964, scientificName: "Panthera leo", commonName: "Lion", taxonomy: TAXONOMY.lion },
+  42051: { id: 42051, scientificName: "Canis lupus", commonName: "Gray Wolf", taxonomy: TAXONOMY.wolf },
 };
 
-function toAncestors(taxonomy: string[]) {
+function toAncestors(taxonomy: readonly string[]) {
   return taxonomy.slice(0, -1).map((name, index) => ({
     id: 1000 + index,
     name,
-    rank: ["kingdom", "phylum", "class", "order", "family", "genus"][index],
+    rank: RANK_BY_INDEX[index] ?? "class",
+    rank_level: RANK_LEVEL_BY_INDEX[index] ?? 50,
   }));
 }
 
@@ -62,25 +66,22 @@ function createTaxonResponse(id: string) {
   }
   return {
     results: [{
+      /* eslint-disable camelcase */
       id: selected.id,
       name: selected.scientificName,
-      // eslint-disable-next-line camelcase -- matches iNaturalist API payload
       preferred_common_name: selected.commonName,
       rank: "species",
-      // eslint-disable-next-line camelcase -- matches iNaturalist API payload
+      rank_level: 10,
       ancestor_ids: [48460],
       ancestors: toAncestors(selected.taxonomy),
-      // eslint-disable-next-line camelcase -- matches iNaturalist API payload
       iconic_taxon_name: "Animalia",
-      // eslint-disable-next-line camelcase -- matches iNaturalist API payload
       observations_count: 900000,
-      // eslint-disable-next-line camelcase -- matches iNaturalist API payload
       wikipedia_url: `https://en.wikipedia.org/wiki/${selected.commonName.replace(/\s+/g, "_")}`,
-      // eslint-disable-next-line camelcase -- matches iNaturalist API payload
+      wikipedia_summary: `${selected.commonName} is a fixture animal used in Cladle end-to-end tests.`,
       default_photo: {
-        // eslint-disable-next-line camelcase -- matches iNaturalist API payload
         medium_url: "https://example.com/fake-photo.jpg",
       },
+      /* eslint-enable camelcase */
     }],
   };
 }

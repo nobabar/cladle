@@ -4,70 +4,118 @@ import { getGameStore } from "#test/helpers/gameStore";
 import { HINT_GUESS_COST } from "~/types/hint";
 import type { Animal } from "~/types/animal";
 import type { TreeNode } from "~/types/tree";
+import {
+  bear as bearFixture,
+  lineageFromNames,
+  lion as lionFixture,
+  TIGER_LINEAGE,
+  tiger as tigerFixture,
+  wolf as wolfFixture,
+} from "#test/helpers/animalFixtures";
 
 describe("gameStore", () => {
-  // Test fixtures
-  const tiger: Animal = {
-    id: "1",
-    name: "Tiger",
-    scientificName: "Panthera tigris",
-    taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera tigris"],
-  };
-
-  const wolf: Animal = {
-    id: "2",
-    name: "Wolf",
-    scientificName: "Canis lupus",
-    taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Canidae", "Canis", "Canis lupus"],
-  };
-
-  const lion: Animal = {
-    id: "3",
-    name: "Lion",
-    scientificName: "Panthera leo",
-    taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera leo"],
-  };
+  const tiger = tigerFixture();
+  const wolf = wolfFixture();
+  const lion = lionFixture();
 
   const eagle: Animal = {
     id: "4",
     name: "Bald Eagle",
     scientificName: "Haliaeetus leucocephalus",
-    taxonomy: ["Animalia", "Chordata", "Aves", "Accipitriformes", "Accipitridae", "Haliaeetus", "Haliaeetus leucocephalus"],
+    lineage: lineageFromNames(
+      [
+        "Animalia",
+        "Chordata",
+        "Aves",
+        "Accipitriformes",
+        "Accipitridae",
+        "Haliaeetus",
+        "Haliaeetus leucocephalus",
+      ],
+      { ids: ["1", "2", "aves", "accip", "accip-fam", "haliaeetus", "haliaeetus-leuco"] },
+    ),
   };
 
-  const bear: Animal = {
-    id: "5",
-    name: "Brown Bear",
-    scientificName: "Ursus arctos",
-    taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Ursidae", "Ursus", "Ursus arctos"],
-  };
+  const bear = bearFixture();
 
   const shoebill: Animal = {
     id: "100",
     name: "Shoebill",
     scientificName: "Balaeniceps rex",
-    taxonomy: ["Animalia", "Chordata", "Aves", "Pelecaniformes", "Balaenicipitidae", "Balaeniceps", "Balaeniceps rex"],
+    lineage: lineageFromNames(
+      [
+        "Animalia",
+        "Chordata",
+        "Aves",
+        "Pelecaniformes",
+        "Balaenicipitidae",
+        "Balaeniceps",
+        "Balaeniceps rex",
+      ],
+      {
+        ids: ["48460", "1", "aves", "pelecaniformes", "balaenicipitidae", "balaeniceps", "balaeniceps-rex"],
+      },
+    ),
   };
 
   const greatBlueHeron: Animal = {
     id: "101",
     name: "Great Blue Heron",
     scientificName: "Ardea herodias",
-    taxonomy: ["Animalia", "Chordata", "Aves", "Pelecaniformes", "Ardeidae", "Ardea", "Ardea herodias"],
+    lineage: lineageFromNames(
+      [
+        "Animalia",
+        "Chordata",
+        "Aves",
+        "Pelecaniformes",
+        "Ardeidae",
+        "Ardea",
+        "Ardea herodias",
+      ],
+      {
+        ids: ["48460", "1", "aves", "pelecaniformes", "ardeidae", "ardea", "ardea-herodias"],
+      },
+    ),
   };
 
   const greyHeron: Animal = {
     id: "102",
     name: "Grey Heron",
     scientificName: "Ardea cinerea",
-    taxonomy: ["Animalia", "Chordata", "Aves", "Pelecaniformes", "Ardeidae", "Ardea", "Ardea cinerea"],
+    lineage: lineageFromNames(
+      [
+        "Animalia",
+        "Chordata",
+        "Aves",
+        "Pelecaniformes",
+        "Ardeidae",
+        "Ardea",
+        "Ardea cinerea",
+      ],
+      {
+        ids: ["48460", "1", "aves", "pelecaniformes", "ardeidae", "ardea", "ardea-cinerea"],
+      },
+    ),
   };
 
   const greenHeron: Animal = {
     id: "103",
     name: "Green Heron",
     scientificName: "Butorides virescens",
-    taxonomy: ["Animalia", "Chordata", "Aves", "Pelecaniformes", "Ardeidae", "Butorides", "Butorides virescens"],
+    lineage: lineageFromNames(
+      [
+        "Animalia",
+        "Chordata",
+        "Aves",
+        "Pelecaniformes",
+        "Ardeidae",
+        "Butorides",
+        "Butorides virescens",
+      ],
+      {
+        ids: ["48460", "1", "aves", "pelecaniformes", "ardeidae", "butorides", "butorides-virescens"],
+      },
+    ),
   };
 
   beforeEach(() => {
@@ -198,7 +246,7 @@ describe("gameStore", () => {
       const guess = store.guesses[0];
       expect(guess?.lca.clade).toBe("Carnivora");
       expect(guess?.lca.rank).toBe("order");
-      expect(guess?.lca.depth).toBe(3);
+      expect(guess?.lca.depth).toBe(TIGER_LINEAGE.findIndex(t => t.name === "Carnivora"));
     });
 
     it("should throw error if game is not active", () => {
@@ -374,49 +422,91 @@ describe("gameStore", () => {
         id: "31419",
         name: "Agame barbu de l'Est",
         scientificName: "Pogona barbata",
-        taxonomy: ["Animalia", "Chordata", "Reptilia", "Squamata", "Agamidae", "Pogona", "Pogona barbata"],
+        lineage: lineageFromNames(
+          ["Animalia", "Chordata", "Reptilia", "Squamata", "Agamidae", "Pogona", "Pogona barbata"],
+          { ids: ["48460", "1", "reptilia", "squamata", "agamidae", "pogona", "pogona-barbata"] },
+        ),
       };
 
       const californiaSeaLion: Animal = {
         id: "41740",
         name: "California Sea Lion",
         scientificName: "Zalophus californianus",
-        taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Otariidae", "Zalophus", "Zalophus californianus"],
+        lineage: lineageFromNames(
+          [
+            "Animalia",
+            "Chordata",
+            "Mammalia",
+            "Carnivora",
+            "Otariidae",
+            "Zalophus",
+            "Zalophus californianus",
+          ],
+          { ids: ["48460", "1", "2", "3", "otariidae", "zalophus", "zalophus-cal"] },
+        ),
       };
 
       const mountainLion: Animal = {
         id: "42007",
         name: "Mountain Lion",
         scientificName: "Puma concolor",
-        taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Puma", "Puma concolor"],
+        lineage: lineageFromNames(
+          ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Puma", "Puma concolor"],
+          { ids: ["48460", "1", "2", "3", "4", "puma", "puma-concolor"] },
+        ),
       };
 
-      const lion: Animal = {
+      const africanLion: Animal = {
         id: "41964",
         name: "Lion",
         scientificName: "Panthera leo",
-        taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera leo"],
+        lineage: lineageFromNames(
+          ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera leo"],
+          { ids: ["48460", "1", "2", "3", "4", "5", "10"] },
+        ),
       };
 
       const southernLion: Animal = {
         id: "557401",
         name: "Southern Lion",
         scientificName: "Neofelis diardi",
-        taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Neofelis", "Neofelis diardi"],
+        lineage: lineageFromNames(
+          [
+            "Animalia",
+            "Chordata",
+            "Mammalia",
+            "Carnivora",
+            "Felidae",
+            "Neofelis",
+            "Neofelis diardi",
+          ],
+          { ids: ["48460", "1", "2", "3", "4", "neofelis", "neofelis-diardi"] },
+        ),
       };
 
       const maroonLeggedLionFly: Animal = {
         id: "55773",
         name: "Maroon-legged Lion Fly",
         scientificName: "Neoscatella grisea",
-        taxonomy: ["Animalia", "Arthropoda", "Insecta", "Diptera", "Scatopsidae", "Neoscatella", "Neoscatella grisea"],
+        lineage: lineageFromNames(
+          [
+            "Animalia",
+            "Arthropoda",
+            "Insecta",
+            "Diptera",
+            "Scatopsidae",
+            "Neoscatella",
+            "Neoscatella grisea",
+          ],
+          { ids: ["48460", "arthropoda", "insecta", "diptera", "scatopsidae", "neoscatella", "neoscatella-grisea"] },
+        ),
       };
 
       const store = getGameStore();
       store.startGame(easternBeardedDragon, 20);
 
       store.processGuess(californiaSeaLion);
-      store.processGuess(lion);
+      store.processGuess(africanLion);
       store.processGuess(mountainLion);
       store.processGuess(southernLion);
       store.processGuess(maroonLeggedLionFly);
@@ -528,7 +618,7 @@ describe("gameStore", () => {
         id: "10",
         name: "Unknown Animal",
         scientificName: "Unknown",
-        taxonomy: [],
+        lineage: [],
       };
 
       const store = getGameStore();
@@ -543,7 +633,7 @@ describe("gameStore", () => {
         id: "10",
         name: "Unknown Animal",
         scientificName: "Unknown",
-        taxonomy: [],
+        lineage: [],
       };
 
       const store = getGameStore();

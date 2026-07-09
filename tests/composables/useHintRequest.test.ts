@@ -9,22 +9,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { useGameStore } from "~/stores/gameStore";
 import { useHintRequest } from "~/composables/useHintRequest";
 import { HINT_GUESS_COST } from "~/types/hint";
-import type { Animal } from "~/types/animal";
-
-const tiger: Animal = {
-  id: "41967",
-  name: "Tiger",
-  scientificName: "Panthera tigris",
-  taxonomy: [
-    "Animalia",
-    "Chordata",
-    "Mammalia",
-    "Carnivora",
-    "Felidae",
-    "Panthera",
-    "Panthera tigris",
-  ],
-};
+import { tiger } from "#test/helpers/animalFixtures";
 
 function mountHintRequestHarness() {
   let api: ReturnType<typeof useHintRequest>;
@@ -45,7 +30,7 @@ describe("useHintRequest", () => {
 
   it("skips request when confirm is stale and hint is no longer allowed", () => {
     const store = useGameStore();
-    store.initializeGame(tiger, HINT_GUESS_COST + 1, "", "free-play", true);
+    store.initializeGame({ ...tiger(), id: "41967" }, HINT_GUESS_COST + 1, "", "free-play", true);
     store.requestHint();
 
     const { handleHintConfirm, hintAnnouncement } = mountHintRequestHarness();
@@ -56,7 +41,7 @@ describe("useHintRequest", () => {
 
   it("announces clade on successful hint", () => {
     const store = useGameStore();
-    store.initializeGame(tiger, 20, "", "free-play", true);
+    store.initializeGame(tiger(), 20, "", "free-play", true);
 
     const { handleHintConfirm, hintAnnouncement } = mountHintRequestHarness();
     handleHintConfirm();
@@ -65,7 +50,7 @@ describe("useHintRequest", () => {
 
   it("disables when insufficient guesses remain", () => {
     const store = useGameStore();
-    store.initializeGame(tiger, HINT_GUESS_COST, "", "free-play", true);
+    store.initializeGame(tiger(), HINT_GUESS_COST, "", "free-play", true);
 
     const { isHintControlDisabled, hintDisabledReasonKey } = mountHintRequestHarness();
     expect(isHintControlDisabled.value).toBe(true);

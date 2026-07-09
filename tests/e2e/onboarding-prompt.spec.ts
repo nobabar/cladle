@@ -29,8 +29,8 @@ test("onboarding prompt dismisses after several game actions without persisting 
   await expect(promptTitle).toBeVisible({ timeout: 5_000 });
 
   const searchInput = page.getByRole("combobox", { name: "Search for an animal" });
-  await searchInput.fill("tig");
-  await page.getByRole("option", { name: /Tiger/i }).click();
+  await searchInput.fill("lio");
+  await page.getByRole("option", { name: /Lion/i }).click();
 
   const treeNode = page
     .locator("[data-onboarding='daily-tree'] .tree-node-group-rough[role='button']")

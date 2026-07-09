@@ -1,7 +1,12 @@
 import { defineStore } from "pinia";
 import type { Animal } from "~/types/animal";
 import type { TreeData, TreeNode } from "~/types/tree";
-import { calculateLCA } from "~/utils/lcaCalculator";
+import {
+  calculateLCA,
+  isLCAMoreSpecificOnTarget,
+  lcaDepthOnTarget,
+  lcaSpecificityScore,
+} from "~/utils/lcaCalculator";
 import type { LCAResult } from "~/utils/lcaCalculator";
 import type { GameError } from "~/utils/errorMessages";
 import { getCurrentDateUTC, isMidnightPassed } from "~/utils/dateUtils";
@@ -272,7 +277,7 @@ export const useGameStore = defineStore("game", {
       if (node.name && this.target) {
         const depth = this.getCladeDepthInTaxonomy(this.target, node.name);
         if (depth >= 0) {
-          return this.target.taxonomy.slice(0, depth + 1);
+          return this.target.lineage.slice(0, depth + 1).map(t => t.name);
         }
       }
 
@@ -970,7 +975,7 @@ export const useGameStore = defineStore("game", {
 
       // Filter out species-level LCAs - we don't want to create clade nodes for species
       // Species names like "Panthera leo" or "Bubo virginianus" should not be clades
-      if (lcaResult.rank === "species" || lcaResult.depth === 6) {
+      if (lcaResult.rank === "species") {
         return null;
       }
 
@@ -1199,22 +1204,35 @@ export const useGameStore = defineStore("game", {
         };
       });
 
-      // Filter to only LCAs that are more specific than the guess-target LCA
-      // and not species-level
-      const moreSpecificLCAs = guessLCAs.filter(
-        ({ lca }) => lca.depth > guessTargetLCA.depth && lca.rank !== "species",
+      const target = this.target;
+      if (!target) {
+        return;
+      }
+
+      // Filter to LCAs more specific than the guess-target LCA, normalized on the target lineage
+      const moreSpecificLCAs = guessLCAs.filter(({ previousGuess, lca }) =>
+        isLCAMoreSpecificOnTarget(lca, previousGuess, guessTargetLCA, target),
       );
 
       if (moreSpecificLCAs.length === 0) {
         return;
       }
 
-      // Sort by LCA depth (deeper = more specific = higher priority)
-      moreSpecificLCAs.sort((a, b) => b.lca.depth - a.lca.depth);
+      // Sort by phylogenetic specificity (deeper on target, else rankLevel)
+      moreSpecificLCAs.sort(
+        (a, b) =>
+          lcaSpecificityScore(b.lca, b.previousGuess, target)
+          - lcaSpecificityScore(a.lca, a.previousGuess, target),
+      );
 
       // Use the most specific LCA found
       const mostSpecific = moreSpecificLCAs[0]!;
       const { lca: relatedLCA } = mostSpecific;
+      const relatedDepthOnTarget = lcaDepthOnTarget(
+        relatedLCA,
+        mostSpecific.previousGuess,
+        target,
+      );
 
       const relatedLCANode = this.findOrCreateLCANode(relatedLCA);
       if (!relatedLCANode) {
@@ -1245,9 +1263,9 @@ export const useGameStore = defineStore("game", {
         if (relatedGuessNode && relatedGuessNode.parent?.id !== relatedLCANode.id) {
           // Preserve existing more specific parent clades for this guess
           const currentParentName = relatedGuessNode.parent?.name;
-          if (currentParentName) {
-            const currentParentDepth = this.getCladeDepthInTaxonomy(otherGuess, currentParentName);
-            if (currentParentDepth > relatedLCA.depth) {
+          if (currentParentName && relatedDepthOnTarget >= 0) {
+            const parentDepthOnTarget = this.getCladeDepthInTaxonomy(target, currentParentName);
+            if (parentDepthOnTarget > relatedDepthOnTarget) {
               continue;
             }
           }
@@ -1298,9 +1316,9 @@ export const useGameStore = defineStore("game", {
         return false;
       }
 
-      // Check if the LCA clade appears in the target's taxonomy at the correct depth
-      if (lcaResult.depth >= 0 && lcaResult.depth < this.target.taxonomy.length) {
-        const targetCladeAtDepth = this.target.taxonomy[lcaResult.depth];
+      // Check if the LCA clade appears in the target's lineage at the correct depth
+      if (lcaResult.depth >= 0 && lcaResult.depth < this.target.lineage.length) {
+        const targetCladeAtDepth = this.target.lineage[lcaResult.depth]?.name;
         const targetCladeNormalized = targetCladeAtDepth
           ? this.normalizeCladeName(targetCladeAtDepth)
           : "";
@@ -1396,15 +1414,15 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
-     * Find clade depth in an animal taxonomy using normalized comparison.
+     * Find clade depth in an animal lineage using normalized comparison.
      * @param animal - Animal to inspect
      * @param cladeName - Clade name to search
      * @returns Taxonomy depth, or -1 when absent
      */
     getCladeDepthInTaxonomy(animal: Animal, cladeName: string): number {
       const normalizedTarget = this.normalizeCladeName(cladeName);
-      return animal.taxonomy.findIndex(
-        taxon => this.normalizeCladeName(taxon) === normalizedTarget,
+      return (animal.lineage ?? []).findIndex(
+        taxon => this.normalizeCladeName(taxon.name) === normalizedTarget,
       );
     },
 
@@ -1466,24 +1484,6 @@ export const useGameStore = defineStore("game", {
       for (const child of node.children) {
         this.buildNodeMap(child, node);
       }
-    },
-
-    /**
-     * Get taxonomic rank for a given depth
-     * @param depth - Depth in taxonomy (0-based)
-     * @returns Rank name
-     */
-    getRankForDepth(depth: number): string {
-      const ranks: Record<number, string> = {
-        0: "kingdom",
-        1: "phylum",
-        2: "class",
-        3: "order",
-        4: "family",
-        5: "genus",
-        6: "species",
-      };
-      return ranks[depth] || "unknown";
     },
 
     setLoading(loading: boolean): void {

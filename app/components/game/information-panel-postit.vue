@@ -618,7 +618,7 @@ onUnmounted(() => {
 <script lang="ts">
 /**
  * Shared across all mounts of this component until page reload (not persisted).
- * Kept outside `<script setup>` because setup runs per instance — a bare `let` there would reset each mount.
+ * Kept outside `<script setup>` because setup runs per instance, a bare `let` would reset each mount.
  */
 let informationPopupDismissedThisSession = false;
 

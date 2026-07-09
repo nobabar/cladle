@@ -1,6 +1,6 @@
 /**
  * Sanitize HTML to only allow basic formatting tags (<b>, <i>).
- * Uses DOM API for secure parsing — intended for Wikipedia / iNaturalist summaries.
+ * Uses the DOM API for secure parsing of Wikipedia and iNaturalist summaries.
  */
 
 /**

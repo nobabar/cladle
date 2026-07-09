@@ -2,39 +2,26 @@ import { describe, expect, it } from "vitest";
 import { calculateLCA } from "~/utils/lcaCalculator";
 import type { HintCladeSelectorInput } from "~/utils/hintCladeSelector";
 import { normalizeCladeName, selectHintClade } from "~/utils/hintCladeSelector";
-import type { Animal } from "~/types/animal";
+import {
+  bear,
+  LION_LINEAGE,
+  lion as lionFixture,
+  TIGER_LINEAGE,
+  tiger as tigerFixture,
+  wolf as wolfFixture,
+} from "#test/helpers/animalFixtures";
 
 describe("selectHintClade", () => {
-  const tiger: Animal = {
-    id: "1",
-    name: "Tiger",
-    scientificName: "Panthera tigris",
-    taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera tigris"],
-  };
+  const tiger = tigerFixture();
+  const wolf = wolfFixture();
+  const lion = lionFixture();
 
-  const wolf: Animal = {
-    id: "2",
-    name: "Wolf",
-    scientificName: "Canis lupus",
-    taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Canidae", "Canis", "Canis lupus"],
-  };
-
-  const lion: Animal = {
-    id: "3",
-    name: "Lion",
-    scientificName: "Panthera leo",
-    taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera leo"],
-  };
-
-  const bear: Animal = {
-    id: "5",
-    name: "Brown Bear",
-    scientificName: "Ursus arctos",
-    taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Ursidae", "Ursus", "Ursus arctos"],
-  };
+  const carnivoraDepth = LION_LINEAGE.findIndex(t => t.name === "Carnivora");
+  const felidaeDepth = LION_LINEAGE.findIndex(t => t.name === "Felidae");
+  const pantherinaeDepth = TIGER_LINEAGE.findIndex(t => t.name === "Pantherinae");
 
   function input(
-    target: Animal,
+    target: typeof tiger,
     overrides: Partial<HintCladeSelectorInput> = {},
   ): HintCladeSelectorInput {
     return {
@@ -56,9 +43,9 @@ describe("selectHintClade", () => {
   });
 
   it("reveals Felidae one rank above Carnivora after a bear guess toward lion", () => {
-    const bearLca = calculateLCA(bear, lion);
+    const bearLca = calculateLCA(bear(), lion);
     expect(bearLca.clade).toBe("Carnivora");
-    expect(bearLca.depth).toBe(3);
+    expect(bearLca.depth).toBe(carnivoraDepth);
 
     const result = selectHintClade(input(lion, {
       guesses: [{ lca: bearLca }],
@@ -67,7 +54,7 @@ describe("selectHintClade", () => {
     expect(result).not.toBeNull();
     expect(result!.clade).toBe("Felidae");
     expect(result!.rank).toBe("family");
-    expect(result!.depth).toBe(4);
+    expect(result!.depth).toBe(felidaeDepth);
   });
 
   it("returns Felidae one rank above Carnivora after Wolf guess toward tiger", () => {
@@ -78,7 +65,7 @@ describe("selectHintClade", () => {
     }));
 
     expect(result!.clade).toBe("Felidae");
-    expect(result!.depth).toBe(4);
+    expect(result!.depth).toBe(felidaeDepth);
   });
 
   it("steps to genus when family was already revealed after Carnivora anchor", () => {
@@ -93,13 +80,13 @@ describe("selectHintClade", () => {
       ],
     }));
 
-    expect(result!.clade).toBe("Panthera");
-    expect(result!.depth).toBe(5);
+    expect(result!.clade).toBe("Pantherinae");
+    expect(result!.depth).toBe(pantherinaeDepth);
   });
 
   it("returns null when the next rank would be species", () => {
     const lionOnTiger = calculateLCA(lion, tiger);
-    expect(lionOnTiger.depth).toBe(5);
+    expect(lionOnTiger.depth).toBe(TIGER_LINEAGE.findIndex(t => t.name === "Panthera"));
 
     const result = selectHintClade(input(tiger, {
       guesses: [{ lca: lionOnTiger }],
@@ -131,8 +118,8 @@ describe("selectHintClade", () => {
       ],
     }));
 
-    expect(second!.clade).toBe("Panthera");
-    expect(second!.rank).toBe("genus");
-    expect(second!.depth).toBe(5);
+    expect(second!.clade).toBe("Pantherinae");
+    expect(second!.rank).toBe("subfamily");
+    expect(second!.depth).toBe(pantherinaeDepth);
   });
 });

@@ -63,7 +63,7 @@ function getErrorMessage(
  * 3. Animal has not been guessed before (duplicate check)
  *
  * Uses ID-based validation for reliability and efficiency.
- * This ensures we get the complete animal data with taxonomy in one call.
+ * This ensures we get the complete animal data with lineage in one call.
  *
  * @param animal - Animal object to validate (must have an ID)
  * @param guessHistory - Array of previously guessed animals

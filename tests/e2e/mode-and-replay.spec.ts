@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { goToDailyFromFreePlay, goToFreePlayFromDaily, openPuzzleHistoryFromDaily } from "./helpers/daily-header";
+import { gotoDailyAndWaitForShell, waitForGameSearchReady } from "./helpers/daily-shell";
 import { getTodayUtcDate, mockINaturalist } from "./helpers/inaturalist";
 
 test.beforeEach(async ({ page }) => {
@@ -7,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("free play entry is accessible from daily page", async ({ page }) => {
-  await page.goto("/");
+  await gotoDailyAndWaitForShell(page);
   await goToFreePlayFromDaily(page);
   await expect(page).toHaveURL(/\/free-play/);
   await expect(page.getByText("Free Play Mode")).toBeVisible();
@@ -21,13 +22,29 @@ test("replay mode from history and return to today", async ({ page }) => {
       id: "41967",
       name: "Tiger",
       scientificName: "Panthera tigris",
-      taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera tigris"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+        { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+        { id: "taxon-3", name: "Carnivora", rank: "order", rankLevel: 40 },
+        { id: "taxon-4", name: "Felidae", rank: "family", rankLevel: 30 },
+        { id: "taxon-5", name: "Panthera", rank: "genus", rankLevel: 20 },
+        { id: "taxon-6", name: "Panthera tigris", rank: "species", rankLevel: 10 },
+      ],
     };
     const lion = {
       id: "41964",
       name: "Lion",
       scientificName: "Panthera leo",
-      taxonomy: ["Animalia", "Chordata", "Mammalia", "Carnivora", "Felidae", "Panthera", "Panthera leo"],
+      lineage: [
+        { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+        { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+        { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+        { id: "taxon-3", name: "Carnivora", rank: "order", rankLevel: 40 },
+        { id: "taxon-4", name: "Felidae", rank: "family", rankLevel: 30 },
+        { id: "taxon-5", name: "Panthera", rank: "genus", rankLevel: 20 },
+        { id: "taxon-6", name: "Panthera leo", rank: "species", rankLevel: 10 },
+      ],
     };
 
     const root = { id: "root", type: "clade", name: "Animalia", cladeData: { name: "Animalia", rank: "kingdom" }, children: [], depth: 0 };
@@ -89,7 +106,7 @@ test("replay mode from history and return to today", async ({ page }) => {
     localStorage.setItem("cladle-puzzle-history", JSON.stringify([historyEntry]));
   }, { date: today });
 
-  await page.goto("/");
+  await gotoDailyAndWaitForShell(page);
   await openPuzzleHistoryFromDaily(page);
   await page.getByRole("button", { name: "View puzzle" }).click();
 
@@ -102,6 +119,7 @@ test("replay mode from history and return to today", async ({ page }) => {
 
 test("free-play reset behavior clears progress", async ({ page }) => {
   await page.goto("/free-play");
+  await waitForGameSearchReady(page);
 
   const searchInput = page.getByRole("combobox", { name: "Search for an animal" });
   await searchInput.fill("lion");
@@ -127,7 +145,7 @@ test("free-play reset behavior clears progress", async ({ page }) => {
 });
 
 test("persistence across mode switch keeps each mode state", async ({ page }) => {
-  await page.goto("/");
+  await gotoDailyAndWaitForShell(page);
 
   const dailySearch = page.getByRole("combobox", { name: "Search for an animal" });
   await dailySearch.fill("lion");
@@ -136,6 +154,7 @@ test("persistence across mode switch keeps each mode state", async ({ page }) =>
 
   await goToFreePlayFromDaily(page);
   await expect(page).toHaveURL(/\/free-play/);
+  await waitForGameSearchReady(page);
 
   const freePlaySearch = page.getByRole("combobox", { name: "Search for an animal" });
   await freePlaySearch.fill("wolf");
@@ -144,9 +163,12 @@ test("persistence across mode switch keeps each mode state", async ({ page }) =>
 
   await goToDailyFromFreePlay(page);
   await expect(page).toHaveURL(/\/$/);
+  await waitForGameSearchReady(page);
   await expect(page.locator(".notebook-guess-history").getByText("Lion", { exact: true })).toBeVisible();
   await expect(page.locator(".notebook-guess-history").getByText("Gray Wolf", { exact: true })).toHaveCount(0);
 
   await goToFreePlayFromDaily(page);
+  await expect(page).toHaveURL(/\/free-play/);
+  await waitForGameSearchReady(page);
   await expect(page.locator(".notebook-guess-history").getByText("Gray Wolf", { exact: true })).toBeVisible();
 });

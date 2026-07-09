@@ -1,3 +1,5 @@
+import type { TaxonInLineage } from "~/types/taxonInLineage";
+
 /**
  * Animal Data Interface
  *
@@ -14,10 +16,9 @@ export interface Animal {
   scientificName: string;
 
   /**
-   * Kingdom → species, broad to specific.
-   * Example: ["Animalia", "Chordata", "Mammalia", "Proboscidea", "Elephantidae", "Loxodonta", "Loxodonta africana"]
+   * Kingdom → species path from iNaturalist (variable length).
    */
-  taxonomy: string[];
+  lineage: TaxonInLineage[];
 
   url?: string;
   wikipediaUrl?: string;
