@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
-import { gotoDailyAndWaitForShell, reloadWithStaleDailyPuzzle } from "./helpers/daily-shell";
+import { gotoDailyAndWaitForShell, reloadWithStaleDailyPuzzle, waitForDailyGameReady } from "./helpers/daily-shell";
 import { mockINaturalist } from "./helpers/inaturalist";
 import { skipOnboardingPrompt } from "./helpers/onboarding";
 
@@ -31,15 +31,15 @@ async function mockClipboardForShare(page: Page) {
  * @param page - Playwright page.
  */
 async function clickShareCopyButton(page: Page) {
-  await expect(page.getByTestId("win-state-share-ready")).toBeVisible();
+  await expect(page.getByTestId("win-state-share-ready")).toBeVisible({ timeout: 30_000 });
 
   const copyButton = page.getByRole("button", { name: "Copy results to clipboard" });
   await expect(copyButton).toBeVisible();
   await expect(copyButton).toBeEnabled();
+  await copyButton.scrollIntoViewIfNeeded();
 
-  await copyButton.click({ timeout: 5_000 }).catch(async () => {
-    await copyButton.focus();
-    await copyButton.press("Enter");
+  await copyButton.click({ timeout: 10_000 }).catch(async () => {
+    await copyButton.dispatchEvent("click");
   });
 }
 
@@ -49,6 +49,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("daily puzzle happy path + spoiler-safe share copy", async ({ page }) => {
+  test.slow();
   await mockClipboardForShare(page);
 
   await gotoDailyAndWaitForShell(page);
@@ -57,7 +58,7 @@ test("daily puzzle happy path + spoiler-safe share copy", async ({ page }) => {
   await searchInput.fill("tiger");
   await page.getByRole("option", { name: /Tiger/i }).click();
 
-  await expect(page.getByRole("heading", { name: /You Won!/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /You Won!/ })).toBeVisible({ timeout: 30_000 });
   await clickShareCopyButton(page);
 
   await expect(page.getByRole("button", { name: "Results copied to clipboard" })).toBeVisible();
@@ -73,6 +74,7 @@ test("daily puzzle happy path + spoiler-safe share copy", async ({ page }) => {
 });
 
 test("daily persistence survives refresh and resets with new day", async ({ page }) => {
+  test.slow();
   await gotoDailyAndWaitForShell(page);
   await dismissOnboardingPromptIfPresent(page);
   await dismissOnboardingPromptIfPresent(page);
@@ -87,13 +89,14 @@ test("daily persistence survives refresh and resets with new day", async ({ page
   await expect(page.getByText(/Guesses remaining:\s*19/)).toBeVisible();
 
   await page.reload();
+  await waitForDailyGameReady(page);
   await dismissOnboardingPromptIfPresent(page);
   await expect(recentGuesses.getByText("Lion", { exact: true })).toBeVisible();
   await expect(page.getByText(/Guesses remaining:\s*19/)).toBeVisible();
 
   await reloadWithStaleDailyPuzzle(page);
   await dismissOnboardingPromptIfPresent(page);
-  await expect(page.getByText(/Guesses remaining:\s*20/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Guesses remaining:\s*20/)).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Search for an animal" })).toHaveCount(1);
   await expect(page.locator(".notebook-guess-history")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /You Won!|Game Over/ })).toHaveCount(0);

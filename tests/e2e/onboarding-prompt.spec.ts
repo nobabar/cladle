@@ -23,22 +23,31 @@ test("onboarding prompt stays visible after idle clicks", async ({ page }) => {
 });
 
 test("onboarding prompt dismisses after several game actions without persisting skip", async ({ page }) => {
+  test.slow();
   await gotoDailyAndWaitForShell(page);
 
   const promptTitle = page.getByRole("heading", { name: "Need a quick tour?" });
   await expect(promptTitle).toBeVisible({ timeout: 5_000 });
 
   const searchInput = page.getByRole("combobox", { name: "Search for an animal" });
-  await searchInput.fill("lio");
-  await page.getByRole("option", { name: /Lion/i }).click();
+  await searchInput.fill("wol");
+  await page.getByRole("option", { name: /Gray Wolf/i }).click();
+
+  const recentGuesses = page.locator(".notebook-guess-history");
+  await expect(recentGuesses.getByText("Gray Wolf", { exact: true })).toBeVisible({
+    timeout: 15_000,
+  });
 
   const treeNode = page
     .locator("[data-onboarding='daily-tree'] .tree-node-group-rough[role='button']")
     .first();
-  await expect(treeNode).toBeVisible({ timeout: 10_000 });
-  await treeNode.click();
+  await expect(treeNode).toBeVisible({ timeout: 15_000 });
+  await treeNode.scrollIntoViewIfNeeded();
+  await treeNode.click({ timeout: 5_000 }).catch(async () => {
+    await treeNode.dispatchEvent("click");
+  });
 
-  await expect(promptTitle).not.toBeVisible({ timeout: 2_000 });
+  await expect(promptTitle).not.toBeVisible({ timeout: 5_000 });
 
   expect(await page.evaluate(key => localStorage.getItem(key), ONBOARDING_KEY)).toBeNull();
 

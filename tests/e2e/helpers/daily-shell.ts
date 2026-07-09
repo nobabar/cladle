@@ -69,4 +69,5 @@ export async function reloadWithStaleDailyPuzzle(page: Page) {
   }, payload);
 
   await page.reload();
+  await waitForDailyGameReady(page);
 }
