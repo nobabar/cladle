@@ -98,9 +98,8 @@ onUnmounted(() => {
         @click.stop
       >
         <div
-          class="sticky top-0 z-[2] flex shrink-0 items-center justify-end gap-2 border-b
-            border-[var(--color-border-subtle)] bg-[var(--color-paper)] px-3 py-1 sm:px-4
-            sm:py-2"
+          class="document-overlay-header sticky top-0 z-[2] flex shrink-0 items-center
+            justify-end gap-2 px-3 py-1 sm:px-4 sm:py-2"
         >
           <button
             ref="closeButtonRef"
@@ -121,10 +120,7 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <div
-          class="document-overlay-scroll min-h-0 flex-1 overflow-y-auto
-            bg-[var(--color-paper)]"
-        >
+        <div class="document-overlay-scroll min-h-0 flex-1 overflow-y-auto">
           <div
             class="document-overlay-sheet notebook-sheet h-auto min-h-0 max-w-none
               rounded-none sm:h-full"
@@ -154,6 +150,15 @@ onUnmounted(() => {
   }
 }
 
+.document-overlay-header {
+  background-color: var(--color-paper);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.document-overlay-scroll {
+  background-color: var(--color-paper);
+}
+
 .document-overlay-sheet {
   box-sizing: border-box;
   height: auto;
@@ -174,5 +179,9 @@ onUnmounted(() => {
     padding-top: var(--space-6, 2rem);
     padding-bottom: var(--space-6, 2rem);
   }
+}
+
+.dark .document-overlay-header {
+  border-bottom-color: var(--color-border);
 }
 </style>
