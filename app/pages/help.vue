@@ -32,7 +32,7 @@ function startTourFromHelp() {
       class="pointer-events-none select-none"
       aria-hidden="true"
     >
-      <DailyGamePage />
+      <DailyGamePage is-backdrop />
     </div>
     <DocumentOverlay labelled-by="help-document-title" @close="closeDocumentOverlay">
       <HelpDocument @start-tour="startTourFromHelp" />

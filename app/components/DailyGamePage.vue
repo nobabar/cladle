@@ -16,6 +16,17 @@ import {
 } from "~/utils/puzzleHistory";
 import { useHintRequest } from "~/composables/useHintRequest";
 
+const props = withDefaults(
+  defineProps<{
+    /**
+     * When true, this instance is a frozen visual backdrop (e.g. under help/privacy).
+     * Skip onboarding prompt scheduling and tour auto-start.
+     */
+    isBackdrop?: boolean;
+  }>(),
+  { isBackdrop: false },
+);
+
 const gameStore = useGameStore();
 const {
   hintAnnouncement,
@@ -378,6 +389,9 @@ onMounted(() => {
   // Wait for next tick to ensure persist plugin has restored state
   nextTick(() => {
     checkAndInitializeDailyPuzzle();
+    if (props.isBackdrop) {
+      return;
+    }
     if (route.query.startTour === "1") {
       cancelOnboardingPrompt();
       startDailyTour();

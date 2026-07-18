@@ -19,7 +19,7 @@ function closeDocumentOverlay() {
       class="pointer-events-none select-none"
       aria-hidden="true"
     >
-      <DailyGamePage />
+      <DailyGamePage is-backdrop />
     </div>
     <DocumentOverlay labelled-by="privacy-document-title" @close="closeDocumentOverlay">
       <PrivacyDocument />

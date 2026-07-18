@@ -50,3 +50,23 @@ test("direct load of /help shows overlay dialog", async ({ page }) => {
     timeout: 30_000,
   });
 });
+
+test("onboarding prompt does not appear on help or privacy overlays", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.removeItem("cladle:onboarding:daily:v1");
+  });
+
+  const promptTitle = page.getByRole("heading", { name: "Need a quick tour?" });
+
+  await page.goto("/help");
+  await expect(page.getByRole("dialog").getByRole("heading", { name: "How to play", level: 1 })).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(promptTitle).not.toBeVisible({ timeout: 3_500 });
+
+  await page.goto("/privacy");
+  await expect(page.getByRole("dialog").getByRole("heading", { name: "Privacy", level: 1 })).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(promptTitle).not.toBeVisible({ timeout: 3_500 });
+});
