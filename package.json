@@ -2,7 +2,7 @@
   "name": "cladle",
   "type": "module",
   "private": true,
-  "packageManager": "pnpm@11.5.0+sha512.dbfcc4f81cf48597afd4bc391ffdf12c11f1a9fb83a395bfa6b0a2d9cc2fd8ffebafdb1ccbd529632153f793904c2615b7f09fe1a345473fd1c35845172a8eb1",
+  "packageManager": "pnpm@11.15.0+sha512.266f8957a30d2be6e9468e5e66bcdedd35a794175f71b067ba8504d686cce1d0c0f429b33c323c3c569ad4891e667574a49ff71d1b89a22cc66f13c65818c578",
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
