@@ -157,6 +157,12 @@ onUnmounted(() => {
 
 .document-overlay-scroll {
   background-color: var(--color-paper);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.document-overlay-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .document-overlay-sheet {
