@@ -1,7 +1,16 @@
 <script setup lang="ts">
+import { computed } from "vue";
+
+const { t } = useI18n();
+
+const title = computed(() => t("privacy.metaTitle"));
+const description = computed(() => t("privacy.metaDescription"));
+
 useSeoMeta({
-  title: "Privacy - Cladle",
-  description: "How Cladle handles data and player privacy.",
+  title,
+  description,
+  ogTitle: title,
+  ogDescription: description,
 });
 
 /**
