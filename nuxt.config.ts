@@ -42,6 +42,17 @@ export default defineNuxtConfig({
 
   compatibilityDate: "2025-01-15",
 
+  vite: {
+    optimizeDeps: {
+      include: [
+        "d3-hierarchy",
+        "driver.js",
+        "idb",
+        "roughjs",
+      ],
+    },
+  },
+
   typescript: {
     typeCheck: true,
     tsConfig: {

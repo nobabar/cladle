@@ -60,7 +60,7 @@ export function useOnboardingTour() {
           }
 
           targetNode.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
-          window.setTimeout(() => resolve(), 220);
+          window.setTimeout(resolve, 220);
         }, 80);
       });
     }
@@ -199,8 +199,8 @@ export function useOnboardingTour() {
       });
 
       reconnectPanelObserver();
-      window.setTimeout(() => applyHitboxFromPanel(), 0);
-      window.setTimeout(() => applyHitboxFromPanel(), 120);
+      window.setTimeout(applyHitboxFromPanel, 0);
+      window.setTimeout(applyHitboxFromPanel, 120);
 
       cleanupSearchHitboxObserver = () => {
         cleanupObservedPanel?.();
@@ -225,9 +225,9 @@ export function useOnboardingTour() {
         window.removeEventListener("scroll", onWindowScroll, true);
       });
 
-      window.setTimeout(() => queueDriverRefresh(), 0);
-      window.setTimeout(() => queueDriverRefresh(), 150);
-      window.setTimeout(() => queueDriverRefresh(), 320);
+      window.setTimeout(queueDriverRefresh, 0);
+      window.setTimeout(queueDriverRefresh, 150);
+      window.setTimeout(queueDriverRefresh, 320);
 
       cleanupPostitStepRefresh = () => {
         cleanups.splice(0).forEach(cleanup => cleanup());
@@ -358,8 +358,8 @@ export function useOnboardingTour() {
             if (searchRoot) {
               setupDynamicSearchHitbox(searchRoot);
             }
-            window.setTimeout(() => queueDriverRefresh(), 0);
-            window.setTimeout(() => queueDriverRefresh(), 80);
+            window.setTimeout(queueDriverRefresh, 0);
+            window.setTimeout(queueDriverRefresh, 80);
 
             const onGuessSubmitted = () => {
               void moveFromSearchToTreeOnce();

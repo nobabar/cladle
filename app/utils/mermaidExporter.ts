@@ -10,7 +10,7 @@ function sanitizeNodeId(id: string): string {
   // Replace non-alphanumeric characters with underscores
   // Mermaid node ids must start with a letter
   const sanitized = id.replace(/\W/g, "_");
-  return sanitized.match(/^[a-z]/i) ? sanitized : `N${sanitized}`;
+  return /^[a-z]/i.test(sanitized) ? sanitized : `N${sanitized}`;
 }
 
 /**

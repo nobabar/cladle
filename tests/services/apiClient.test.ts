@@ -29,7 +29,7 @@ describe("api client", () => {
     await cacheService.init();
 
     // Reset mocks before each test
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     vi.useFakeTimers();
 
     // Spy on console.error
@@ -313,7 +313,7 @@ describe("api client", () => {
       };
       /* eslint-enable camelcase */
 
-      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         status: 200,
         json: async () => mockResponse,
@@ -323,7 +323,7 @@ describe("api client", () => {
       await vi.runAllTimersAsync();
       await first;
 
-      vi.clearAllMocks();
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockClear();
 
       const second = client.fetchTaxonGalleryPhotos("42");
       await vi.runAllTimersAsync();
