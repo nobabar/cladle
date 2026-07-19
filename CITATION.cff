@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it using the metadata from this file.
+type: software
+title: cladle
+abstract: >-
+  A web-based phylogenetic guessing game where players guess animals and see
+  evolutionary relationships visualized in a phylogenetic tree.
+authors:
+  - family-names: Rousseau
+    given-names: Baptiste
+    alias: nobabar
+repository-code: "https://github.com/nobabar/cladle"
+url: "https://github.com/nobabar/cladle"
+license: MIT
+keywords:
+  - phylogeny
+  - phylogenetic-tree
+  - guessing-game
+  - inaturalist
+  - vue
+  - nuxt
+  - typescript
+  - educational-game

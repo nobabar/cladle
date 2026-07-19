@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Contributing guide
+    url: https://github.com/nobabar/cladle/blob/dev/CONTRIBUTING.md
+    about: Commit conventions, scopes, and branch workflow
+  - name: Code of Conduct
+    url: https://github.com/nobabar/cladle/blob/dev/CODE_OF_CONDUCT.md
+    about: Community standards and how to report concerns

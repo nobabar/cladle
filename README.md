@@ -210,6 +210,16 @@ This project follows strict naming conventions for consistency:
 4. **Service layer separation**: Keep API and service logic in `services/`
 5. **Tests mirror source**: Test files in `tests/` follow same structure as source
 
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for commit conventions and workflow, and
+[CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) for community standards.
+
+## Citation
+
+If you use this project in research or teaching, please cite it using the metadata in
+[CITATION.cff](./CITATION.cff) (also available via GitHub’s “Cite this repository”).
+
 ## License
 
 MIT License - See [LICENSE](LICENSE) file for details.
