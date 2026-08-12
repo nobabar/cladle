@@ -13,15 +13,14 @@ This document describes how to deploy the Cladle application to Vercel.
 
 ## Overview
 
-Cladle is configured for **Static Site Generation (SSG)** deployment on Vercel.
-The application is built entirely as static files and served without a server runtime.
+Cladle is configured for **hybrid deployment** on Vercel: prerendered client pages (`ssr: false`) plus Nitro serverless API routes.
 
 **Deployment Strategy:**
 - **Platform:** Vercel
-- **Build Mode:** Static Site Generation (SSG)
+- **Build Mode:** Static pages + Nitro serverless functions
 - **Build Command:** `pnpm run build`
-- **Output Directory:** `.output/public`
-- **Framework:** Nuxt 3 with `ssr: false`
+- **Framework:** Nuxt with `ssr: false` (pages) and `server/api/*` (functions)
+- **Output:** Let the Nuxt/Vercel preset handle output (do **not** force `.output/public` only, or API routes will be dropped)
 
 ## Prerequisites
 
@@ -31,12 +30,13 @@ Before deploying, ensure you have:
 2. **Vercel Account** - Sign up at [vercel.com](https://vercel.com)
 3. **Git Repository** - Code pushed to a Git provider
 4. **Dependencies Installed** - Run `pnpm install` locally to verify
+5. **GitHub fine-grained PAT** (for bug reports) - Issues: Read and write on `nobabar/cladle`
 
 ## Vercel Deployment
 
 ### Option 1: Automatic Deployment (Recommended)
 
-Vercel automatically detects Nuxt 3 projects and configures deployment settings.
+Vercel automatically detects Nuxt projects and configures deployment settings.
 
 1. **Connect Repository:**
    - Go to [vercel.com/new](https://vercel.com/new)
@@ -47,15 +47,17 @@ Vercel automatically detects Nuxt 3 projects and configures deployment settings.
 2. **Configure Project:**
    - **Framework Preset:** Vercel auto-detects "Nuxt.js"
    - **Build Command:** `pnpm run build` (auto-detected)
-   - **Output Directory:** `.output/public` (auto-detected)
+   - **Output Directory:** leave unset / use Nuxt defaults
    - **Install Command:** `pnpm install` (auto-detected)
 
-3. **Deploy:**
+3. **Environment variables:** Add `NUXT_GITHUB_TOKEN` (and optionally owner/repo) as below, then deploy.
+
+4. **Deploy:**
    - Click "Deploy"
    - Wait for build to complete (typically 2-3 minutes)
    - Your app will be live at `https://your-project.vercel.app`
 
-4. **Automatic Deployments:**
+5. **Automatic Deployments:**
    - Every push to `main` branch → Production deployment
    - Every push to other branches → Preview deployment
    - Every pull request → Unique preview URL
@@ -90,107 +92,66 @@ See the CI/CD configuration for details.
 
 ## Environment Variables
 
-### Current Status (MVP)
+### Required for bug reports
 
-**No environment variables are required** for the MVP deployment.
-The application runs entirely client-side and fetches data from public APIs.
+Private (server-only) variables for creating GitHub issues from the in-app form:
 
-### Future Environment Variables
+| Variable | Description |
+| -------- | ----------- |
+| `NUXT_GITHUB_TOKEN` | Fine-grained PAT with **Issues: Read and write** on the repo |
+| `NUXT_GITHUB_OWNER` | GitHub owner (default `nobabar`) |
+| `NUXT_GITHUB_REPO` | Repository name (default `cladle`) |
 
-If you need to add environment variables in the future:
-
-#### Public Variables (Available in Browser)
-
-Public variables are prefixed with `NUXT_PUBLIC_` and exposed to the client-side.
-They must be set at **BUILD TIME** for SSG.
-
-**Example:**
-```bash
-NUXT_PUBLIC_API_BASE_URL=https://api.example.com
-```
+These map to Nuxt `runtimeConfig` (`githubToken`, `githubOwner`, `githubRepo`). Never use the `NUXT_PUBLIC_` prefix for the token.
 
 #### Configuring in Vercel
 
 1. Go to your project in the Vercel dashboard
 2. Navigate to **Settings** → **Environment Variables**
-3. Click **Add New**
-4. Enter:
-   - **Key:** Variable name (e.g., `NUXT_PUBLIC_API_BASE_URL`)
-   - **Value:** Variable value
-   - **Environments:** Select Production, Preview, Development as needed
-5. Click **Save**
-6. **Important:** Re-deploy after adding environment variables
+3. Add `NUXT_GITHUB_TOKEN` (and owner/repo if you override defaults)
+4. Select Production, Preview, and Development as needed
+5. Save and **re-deploy**
 
 #### Local Development
 
-Create a `.env` file in the project root:
+Copy [`.env.example`](.env.example) to `.env` and fill in values:
 
 ```bash
-# .env (local development only)
-NUXT_PUBLIC_API_BASE_URL=https://api.example.com
+NUXT_GITHUB_TOKEN=github_pat_...
+NUXT_GITHUB_OWNER=nobabar
+NUXT_GITHUB_REPO=cladle
 ```
 
 **Note:** Never commit `.env` to Git. The `.gitignore` file already excludes it.
 
+### Public Variables (Available in Browser)
+
+Public variables are prefixed with `NUXT_PUBLIC_` and exposed to the client-side.
+They must be set at **BUILD TIME** for prerendered pages.
+
 ## Build Configuration
 
-### SSG Configuration
-
-The application is configured for Static Site Generation in `nuxt.config.ts`:
+### App configuration
 
 ```typescript
 export default defineNuxtConfig({
-  // SSG configuration - Static Site Generation for MVP
   ssr: false,
-  // ... other config
+  // runtimeConfig.githubToken ← NUXT_GITHUB_TOKEN (server only)
 });
 ```
 
 ### Vercel Configuration
 
-The `vercel.json` file provides explicit build configuration:
-
-```json
-{
-  "buildCommand": "pnpm run build",
-  "outputDirectory": ".output/public",
-  "installCommand": "pnpm install",
-  "framework": "nuxtjs",
-  "devCommand": "pnpm run dev"
-}
-```
-
-**Note:** This file is optional.
-Vercel auto-detects Nuxt 3 projects, but explicit configuration provides better control.
-
-### Build Output
-
-After running `pnpm run build`, the following files are generated:
-
-- **`.output/public/`** - Static files served by Vercel
-  - `index.html` - Main HTML file
-  - `_nuxt/` - JavaScript, CSS, and assets
-  - Other prerendered pages
+[`vercel.json`](vercel.json) sets build/install commands and git deployment rules. It does **not** set `outputDirectory`, so Nitro can emit both static assets and serverless functions.
 
 ### Verifying Build Locally
 
-Before deploying, verify the build works locally:
-
 ```bash
-# Build the application
 pnpm run build
-
-# Preview the build (optional)
 pnpm run preview
-
-# Check output directory
-ls -la .output/public
 ```
 
-Expected output:
-- `index.html` and prerendered pages
-- `_nuxt/` directory with bundled assets
-- No server files (SSG is client-side only)
+Confirm `/api/bug-report` is available in preview when `NUXT_GITHUB_TOKEN` is set.
 
 ## Deployment Workflow
 
@@ -217,13 +178,12 @@ Expected output:
 4. **Automatic Deployment:**
    - Vercel detects the push
    - Runs build command
-   - Deploys to production (if main branch)
-   - Or creates preview URL (if feature branch)
+   - Deploys static pages and serverless API routes
 
 5. **Verify Deployment:**
    - Check Vercel dashboard for build status
    - Visit deployment URL
-   - Test functionality
+   - Test the in-app bug report form (requires token)
 
 ### Branch Deployments
 
@@ -235,86 +195,57 @@ Expected output:
 
 ### Build Fails on Vercel
 
-**Check build logs:**
-1. Go to Vercel dashboard
-2. Select your project
-3. Click on the failed deployment
-4. Review build logs
+**Check build logs** in the Vercel dashboard for the failed deployment.
 
 **Common issues:**
 - **Missing dependencies:** Ensure `package.json` includes all required packages
 - **Build command fails:** Verify `pnpm run build` works locally
-- **Node version mismatch:** Vercel uses Node 18+ by default (compatible with Nuxt 3)
+- **Node version mismatch:** Vercel uses Node 18+ by default
+
+### Bug report API returns 500 / not configured
+
+- Confirm `NUXT_GITHUB_TOKEN` is set for that Vercel environment
+- Re-deploy after adding or changing the variable
+- Ensure the PAT still has Issues write access on the target repo
 
 ### Environment Variables Not Working
 
-**For SSG deployments:**
-- Public variables (`NUXT_PUBLIC_*`) must be set at build time
-- Re-deploy after adding/changing environment variables
-- Check Vercel dashboard to confirm variables are set
+- Private `NUXT_*` (non-public) secrets are available at **runtime** on serverless functions
+- Public `NUXT_PUBLIC_*` values for SSG pages must be present at **build** time
+- Re-deploy after changing variables
 
 ### Deployment Succeeds but App Doesn't Work
 
-**Check browser console:**
-- Open browser DevTools (F12)
-- Check Console tab for JavaScript errors
-- Check Network tab for failed requests
+**Check browser console** (DevTools → Console / Network).
 
 **Common issues:**
-- **API calls failing:** Check CORS configuration on API server
-- **Missing assets:** Verify build output includes all necessary files
-- **Routing issues:** Ensure Vercel routing is configured for SPA mode
+- **API calls failing:** Check that `/api/bug-report` is deployed (output was not forced to static-only)
+- **Missing assets:** Verify build output includes `_nuxt/` assets
+- **Routing issues:** Ensure Vercel uses the Nuxt framework preset
 
 ### Preview Deployment Not Created
 
 **Verify GitHub integration:**
 1. Go to Vercel dashboard → Settings → Git
 2. Ensure GitHub integration is active
-3. Check if the repository has the correct permissions
-
-### Build Takes Too Long
-
-**Optimization tips:**
-- Vercel free tier has build limits (6 minutes)
-- Check for large dependencies or slow build steps
-- Consider upgrading to Vercel Pro for longer build times
+3. Check repository permissions
 
 ## Additional Resources
 
 - [Vercel Documentation](https://vercel.com/docs)
-- [Nuxt 3 Deployment Guide](https://nuxt.com/docs/getting-started/deployment)
+- [Nuxt Deployment Guide](https://nuxt.com/docs/getting-started/deployment)
 - [Vercel CLI Documentation](https://vercel.com/docs/cli)
-- [GitHub Actions Integration](https://vercel.com/docs/deployments/git/vercel-for-github)
-
-## Migration to SSR/Hybrid (Future)
-
-If you need server-side rendering in the future:
-
-1. **Update `nuxt.config.ts`:**
-   ```typescript
-   export default defineNuxtConfig({
-     ssr: true, // or remove this line (SSR is default)
-     // ... other config
-   });
-   ```
-
-2. **Update Vercel Configuration:**
-   - Vercel will automatically detect SSR mode
-   - Server functions will be deployed to Vercel Edge/Serverless
-
-3. **Re-deploy:**
-   - Push changes to trigger new deployment
-   - Vercel will deploy with SSR runtime
+- [GitHub Issues API](https://docs.github.com/en/rest/issues/issues)
 
 ## Support
 
 For deployment issues:
 - **Vercel Support:** [vercel.com/support](https://vercel.com/support)
-- **Project Issues:** Open an issue in the project repository
+- **Project Issues:** Use the in-app bug report form, or open an issue in the project repository
 - **Nuxt Community:** [nuxt.com/community](https://nuxt.com/community)
 
 ---
 
-**Last Updated:** January 2026
-**Build Mode:** Static Site Generation (SSG)
+**Last Updated:** July 2026
+**Build Mode:** Hybrid (SSG pages + Nitro API)
 **Platform:** Vercel
