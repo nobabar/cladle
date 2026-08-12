@@ -168,6 +168,9 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    githubToken: "",
+    githubOwner: "nobabar",
+    githubRepo: "cladle",
     public: {
       piniaPluginPersistedstate: {
         storage: "localStorage",

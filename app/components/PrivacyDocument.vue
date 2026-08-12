@@ -80,6 +80,12 @@ function revealEmail() {
           {{ t("privacy.dataTechnicalP1") }}
         </p>
         <h3 class="text-base sm:text-lg font-semibold mt-4 mb-2">
+          {{ t("privacy.dataBugReportTitle") }}
+        </h3>
+        <p class="text-[var(--color-ink-muted)]">
+          {{ t("privacy.dataBugReportP1") }}
+        </p>
+        <h3 class="text-base sm:text-lg font-semibold mt-4 mb-2">
           {{ t("privacy.dataContactTitle") }}
         </h3>
         <p class="text-[var(--color-ink-muted)]">
@@ -98,6 +104,7 @@ function revealEmail() {
           <li>{{ t("privacy.purposeGameplay") }}</li>
           <li>{{ t("privacy.purposeHosting") }}</li>
           <li>{{ t("privacy.purposeApi") }}</li>
+          <li>{{ t("privacy.purposeBugReport") }}</li>
           <li>{{ t("privacy.purposeContact") }}</li>
         </ul>
       </section>
@@ -119,6 +126,7 @@ function revealEmail() {
         <ul class="list-disc pl-5 space-y-2 text-[var(--color-ink-muted)]">
           <li>{{ t("privacy.recipientsHosting") }}</li>
           <li>{{ t("privacy.recipientsInat") }}</li>
+          <li>{{ t("privacy.recipientsGithub") }}</li>
           <li>{{ t("privacy.recipientsNoSale") }}</li>
         </ul>
       </section>
@@ -139,6 +147,7 @@ function revealEmail() {
         <ul class="list-disc pl-5 space-y-2 text-[var(--color-ink-muted)]">
           <li>{{ t("privacy.retentionDevice") }}</li>
           <li>{{ t("privacy.retentionLogs") }}</li>
+          <li>{{ t("privacy.retentionBugReport") }}</li>
           <li>{{ t("privacy.retentionContact") }}</li>
         </ul>
       </section>

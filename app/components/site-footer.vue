@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { ref } from "vue";
 import { useUiIcons } from "~/composables/useUiIcons";
 
 const { t } = useI18n();
 const uiIcon = useUiIcons();
 const route = useRoute();
+const isBugReportOpen = ref(false);
 
 function onHomeClick(event: MouseEvent) {
   if (route.path !== "/") {
@@ -82,6 +84,15 @@ const taxonomyResources = [
                 </NuxtLink>
               </li>
               <li>
+                <button
+                  type="button"
+                  class="site-footer-link"
+                  @click="isBugReportOpen = true"
+                >
+                  {{ t("footer.reportBug") }}
+                </button>
+              </li>
+              <li>
                 <a
                   href="https://github.com/nobabar/cladle"
                   target="_blank"
@@ -129,6 +140,8 @@ const taxonomyResources = [
         </nav>
       </div>
     </div>
+
+    <BugReportModal v-model:open="isBugReportOpen" />
   </footer>
 </template>
 
@@ -141,6 +154,12 @@ const taxonomyResources = [
   align-items: center;
   gap: 0.25rem;
   white-space: nowrap;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
 }
 
 /* Tighter rows on small screens (body uses 1.6 line-height). */

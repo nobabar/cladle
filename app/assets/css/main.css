@@ -226,7 +226,8 @@ body {
   /*
    * Footer nav links: the global 44px min touch target stacks into huge vertical gaps in link lists.
    */
-  .site-footer a.site-footer-link {
+  .site-footer a.site-footer-link,
+  .site-footer button.site-footer-link {
     min-height: unset;
     min-width: unset;
     padding-block: 0.125rem;
