@@ -52,6 +52,31 @@ const taxonomyResources = [
           >
             {{ t("footer.tagline") }}
           </p>
+          <div class="flex items-center gap-3 pt-1">
+            <a
+              href="https://github.com/nobabar/cladle"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="site-footer-icon-link"
+              :aria-label="`GitHub (${t('footer.externalLinkSr')})`"
+              title="GitHub"
+            >
+              <span class="site-footer-icon-stack">
+                <Icon
+                  :name="uiIcon.externalLink"
+                  class="site-footer-icon-external"
+                  size="11"
+                  aria-hidden="true"
+                />
+                <Icon
+                  name="i-simple-icons-github"
+                  class="site-footer-brand-icon"
+                  size="20"
+                  aria-hidden="true"
+                />
+              </span>
+            </a>
+          </div>
         </div>
 
         <nav :aria-label="t('footer.ariaNav')" class="flex flex-col gap-4 lg:flex-row lg:gap-8">
@@ -91,22 +116,6 @@ const taxonomyResources = [
                 >
                   {{ t("footer.reportBug") }}
                 </button>
-              </li>
-              <li>
-                <a
-                  href="https://github.com/nobabar/cladle"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="site-footer-link"
-                >
-                  GitHub
-                  <Icon
-                    :name="uiIcon.externalLink"
-                    class="site-footer-external-indicator"
-                    aria-hidden="true"
-                  />
-                  <span class="sr-only">({{ t("footer.externalLinkSr") }})</span>
-                </a>
               </li>
             </ul>
           </div>
@@ -175,5 +184,48 @@ const taxonomyResources = [
 
 .site-footer-external-indicator {
   font-size: 0.75rem;
+}
+
+.site-footer-icon-link {
+  color: var(--color-ink-subtle);
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 0.35rem 0.4rem 0.1rem 0.1rem;
+  border-radius: 0.25rem;
+}
+
+.site-footer-icon-link:hover {
+  color: var(--color-ink);
+}
+
+.site-footer-icon-link:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* Tight box matching the GitHub icon so the overlay stays put at any viewport. */
+.site-footer-icon-stack {
+  position: relative;
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+  line-height: 0;
+  overflow: visible;
+}
+
+.site-footer-brand-icon {
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.site-footer-icon-external {
+  position: absolute;
+  top: -0.2rem;
+  right: -0.2rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  line-height: 0;
+  pointer-events: none;
 }
 </style>
