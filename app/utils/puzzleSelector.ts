@@ -2,6 +2,8 @@
  * Picks daily (date-seeded) and free-play targets from `CURATED_ANIMALS`, with optional difficulty weighting.
  */
 
+import { assertPuzzleDate, hashPuzzleDate } from "~/utils/dateUtils";
+
 /**
  * Difficulty level for puzzle animals
  */
@@ -84,24 +86,6 @@ export const CURATED_ANIMALS: CuratedAnimal[] = [
 ];
 
 /**
- * Simple hash function for deterministic selection
- * Converts a date string to a numeric seed
- * @param date - Date string in YYYY-MM-DD format
- * @returns Numeric seed value
- */
-function hashDate(date: string): number {
-  // Simple hash: convert date string to number
-  // This ensures same date always produces same hash
-  let hash = 0;
-  for (let i = 0; i < date.length; i++) {
-    const char = date.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  return Math.abs(hash);
-}
-
-/**
  * Select a target animal from the curated list based on date
  *
  * This function provides deterministic selection: the same date will always
@@ -117,37 +101,7 @@ function hashDate(date: string): number {
  * @throws Error if date is invalid or curated list is empty
  */
 export function selectTargetAnimal(date: string): string {
-  // Validate date format (YYYY-MM-DD)
-  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-  if (!dateRegex.test(date)) {
-    throw new Error(`Invalid date format: ${date}. Expected YYYY-MM-DD format.`);
-  }
-
-  const parts = date.split("-");
-  if (parts.length !== 3) {
-    throw new TypeError(`Invalid date: ${date}. Date is not valid.`);
-  }
-  const year = Number(parts[0]);
-  const month = Number(parts[1]);
-  const day = Number(parts[2]);
-  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
-    throw new TypeError(`Invalid date: ${date}. Date is not valid.`);
-  }
-  if (month < 1 || month > 12) {
-    throw new Error(`Invalid date: ${date}. Month must be between 1 and 12.`);
-  }
-  if (day < 1 || day > 31) {
-    throw new Error(`Invalid date: ${date}. Day must be between 1 and 31.`);
-  }
-  // Create date object and verify it matches input (catches invalid dates like 2024-02-30)
-  const dateObj = new Date(year, month - 1, day);
-  if (
-    dateObj.getFullYear() !== year
-    || dateObj.getMonth() !== month - 1
-    || dateObj.getDate() !== day
-  ) {
-    throw new Error(`Invalid date: ${date}. Date is not valid.`);
-  }
+  assertPuzzleDate(date);
 
   // Check curated list is not empty
   if (CURATED_ANIMALS.length === 0) {
@@ -155,7 +109,7 @@ export function selectTargetAnimal(date: string): string {
   }
 
   // Hash date to get deterministic seed
-  const seed = hashDate(date);
+  const seed = hashPuzzleDate(date);
 
   // Use modulo to select from curated list
   // This ensures even distribution across all animals
@@ -182,37 +136,7 @@ export function selectTargetAnimal(date: string): string {
  * @throws Error if date is invalid or curated list is empty
  */
 export function selectTargetAnimalWithDifficulty(date: string): string {
-  // Validate date format (YYYY-MM-DD)
-  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-  if (!dateRegex.test(date)) {
-    throw new Error(`Invalid date format: ${date}. Expected YYYY-MM-DD format.`);
-  }
-
-  const parts = date.split("-");
-  if (parts.length !== 3) {
-    throw new TypeError(`Invalid date: ${date}. Date is not valid.`);
-  }
-  const year = Number(parts[0]);
-  const month = Number(parts[1]);
-  const day = Number(parts[2]);
-  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
-    throw new TypeError(`Invalid date: ${date}. Date is not valid.`);
-  }
-  if (month < 1 || month > 12) {
-    throw new Error(`Invalid date: ${date}. Month must be between 1 and 12.`);
-  }
-  if (day < 1 || day > 31) {
-    throw new Error(`Invalid date: ${date}. Day must be between 1 and 31.`);
-  }
-  // Create date object and verify it matches input (catches invalid dates like 2024-02-30)
-  const dateObj = new Date(year, month - 1, day);
-  if (
-    dateObj.getFullYear() !== year
-    || dateObj.getMonth() !== month - 1
-    || dateObj.getDate() !== day
-  ) {
-    throw new Error(`Invalid date: ${date}. Date is not valid.`);
-  }
+  assertPuzzleDate(date);
 
   // Check curated list is not empty
   if (CURATED_ANIMALS.length === 0) {
@@ -220,7 +144,7 @@ export function selectTargetAnimalWithDifficulty(date: string): string {
   }
 
   // Hash date to get deterministic seed
-  const seed = hashDate(date);
+  const seed = hashPuzzleDate(date);
 
   // Filter animals by difficulty
   const easyAnimals = CURATED_ANIMALS.filter(a => a.difficulty === "easy");

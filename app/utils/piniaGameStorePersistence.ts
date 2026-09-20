@@ -12,10 +12,11 @@ const EMPTY_SLICE: SerializePersistedGameStateInput = {
   gameMode: null,
   dailyState: null,
   freePlayState: null,
+  babyModeState: null,
 };
 
 /**
- * Map Pinia picked state (`gameMode`, `dailyState`, `freePlayState`) to serializer input.
+ * Map Pinia picked state (`gameMode`, mode snapshots) to serializer input.
  * Extra fields on mode snapshots (e.g. Maps) are ignored by `serializePersistedGameState`.
  * @param data - Picked store subtree from pinia-plugin-persistedstate.
  * @returns Input accepted by `serializePersistedGameState`.
@@ -26,6 +27,7 @@ function toPersistInput(data: StateTree): SerializePersistedGameStateInput {
     gameMode: (d.gameMode ?? null) as SerializePersistedGameStateInput["gameMode"],
     dailyState: (d.dailyState ?? null) as SerializePersistedGameStateInput["dailyState"],
     freePlayState: (d.freePlayState ?? null) as SerializePersistedGameStateInput["freePlayState"],
+    babyModeState: (d.babyModeState ?? null) as SerializePersistedGameStateInput["babyModeState"],
   };
 }
 
@@ -49,6 +51,9 @@ export const gameStorePersistSerializer: Serializer = {
         : null,
       freePlayState: parsed.freePlayState
         ? withEmptyModeMaps(parsed.freePlayState)
+        : null,
+      babyModeState: parsed.babyModeState
+        ? withEmptyModeMaps(parsed.babyModeState)
         : null,
     } as StateTree;
   },

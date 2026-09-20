@@ -58,12 +58,17 @@ function getMessageByKey(tree: MessageTree, key: string): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+function hasMessageByKey(tree: MessageTree, key: string): boolean {
+  return getMessageByKey(tree, key) !== undefined;
+}
+
 const localeRef = { value: "en" };
 
 const i18nMock = {
   locale: localeRef,
   t: (key: string, params?: TranslateParams) =>
     interpolate(getMessageByKey(en as MessageTree, key) ?? key, params),
+  te: (key: string) => hasMessageByKey(en as MessageTree, key),
   setLocale: vi.fn(async (nextLocale: string) => {
     localeRef.value = nextLocale;
   }),

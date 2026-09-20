@@ -24,7 +24,7 @@ const GameTreeVisualizationStub = {
       <slot />
     </div>
   `,
-  props: ["treeData", "showTarget", "width", "height"],
+  props: ["treeData", "showTarget", "width", "height", "babyModeTree", "stickerByAnimalId"],
 };
 
 // Stub Icon component (from @nuxt/icon) - not auto-imported in test env
@@ -746,6 +746,41 @@ describe("winState Component", () => {
 
       expect(wrapper.text()).toContain("1 guess");
       expect(wrapper.text()).not.toContain("guesses");
+    });
+  });
+
+  describe("baby mode", () => {
+    it("shows animal card and guess stats while keeping phylo metrics hidden", async () => {
+      const store = getGameStore();
+      const target = createMockAnimal("Dog", "Canis familiaris", ["Animalia", "Mammalia"]);
+      target.url = "https://www.inaturalist.org/taxa/47144";
+      store.gameMode = "baby";
+      store.startGame(target, 8);
+      store.status = "won";
+      store.treeData = createSimpleTreeData();
+      addGuessForShareableCompletion(store, target);
+
+      Object.defineProperty(window, "innerWidth", {
+        writable: true,
+        configurable: true,
+        value: 1280,
+      });
+
+      const wrapper = mountWithStubs(WinState);
+      await nextTick();
+
+      expect(wrapper.text()).not.toMatch(/tree depth/i);
+      expect(wrapper.find("[data-testid=\"win-state-furthest-evolutionary-distance\"]").exists()).toBe(false);
+      expect(wrapper.find("[data-testid=\"win-state-learning-footnote\"]").exists()).toBe(false);
+      expect(wrapper.find("[data-testid=\"win-state-target-description\"]").exists()).toBe(false);
+      expect(wrapper.find("[data-testid=\"win-state-target-image-button\"]").exists()).toBe(true);
+      expect(wrapper.find("[data-testid=\"win-state-stats\"]").exists()).toBe(true);
+      expect(wrapper.text()).toMatch(/1 guess/i);
+      expect(wrapper.text()).toContain("iNaturalist");
+
+      const tree = wrapper.findComponent({ name: "GameTreeVisualization" });
+      expect(tree.props("babyModeTree")).toBe(true);
+      expect(tree.props("stickerByAnimalId")).toBeTruthy();
     });
   });
 });

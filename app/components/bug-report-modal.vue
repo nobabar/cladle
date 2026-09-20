@@ -64,6 +64,11 @@ const modeOptions = computed(() => {
       icon: icons.infinity,
     },
     {
+      value: "baby" as const,
+      label: t("bugReport.modeBaby"),
+      icon: icons.beginner,
+    },
+    {
       value: "unknown" as const,
       label: t("bugReport.modeUnknown"),
       icon: undefined as string | undefined,
@@ -77,6 +82,9 @@ function modeFromStore(): BugReportMode {
   }
   if (gameStore.gameMode === "free-play") {
     return "free-play";
+  }
+  if (gameStore.gameMode === "baby") {
+    return "baby";
   }
   return "unknown";
 }
@@ -628,7 +636,7 @@ function close() {
   margin-top: 0.125rem;
 }
 
-/* Notebook field chrome — match search input */
+/* Notebook field chrome, match search input */
 .notebook-input :deep(input),
 .notebook-input :deep(textarea) {
   width: 100%;

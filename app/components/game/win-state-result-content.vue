@@ -9,12 +9,14 @@ import type { PhylogeneticMetrics } from "~/utils/sharingFormatter";
 
 const props = defineProps<{
   isWon: boolean;
+  babyMode?: boolean;
   statsText: string;
   targetAnimal: Animal | null;
   phyloMetrics: PhylogeneticMetrics | null;
   isShareReady: boolean;
   lastCopyStatus: "idle" | "success" | "error";
   treeData: TreeData | null;
+  stickerByAnimalId?: Record<string, string>;
   treeWidth: number;
   treeHeight: number;
 }>();
@@ -26,16 +28,18 @@ const emit = defineEmits<{
 
 const {
   isWon,
+  babyMode,
   statsText,
   targetAnimal,
   phyloMetrics,
   isShareReady,
   lastCopyStatus,
   treeData,
+  stickerByAnimalId,
   treeWidth,
   treeHeight,
 } = toRefs(props);
-const { t } = useI18n();
+const { t, te } = useI18n();
 const uiIcon = useUiIcons();
 
 /** Overrides default tooltip (single-line, fixed height) for multi-line help in metrics. */
@@ -71,11 +75,38 @@ function onNodeClick(node: TreeNode): void {
   emit("nodeClick", node);
 }
 
+const displayTargetAnimal = computed(() => {
+  if (!targetAnimal.value || !babyMode.value) {
+    return targetAnimal.value;
+  }
+  const key = `babyMode.organisms.${targetAnimal.value.id}`;
+  if (te(key)) {
+    return { ...targetAnimal.value, name: t(key) };
+  }
+  return targetAnimal.value;
+});
+
 const isGalleryOpen = ref(false);
 
 const sanitizedTargetDescription = computed(() => {
   if (!targetAnimal.value?.description) return "";
   return sanitizeBasicHTML(targetAnimal.value.description);
+});
+
+/** Baby mode keeps the animal card (photo, links) but skips Wikipedia blurb / phylo metrics. */
+const showTargetCard = computed(() => Boolean(displayTargetAnimal.value));
+const showTargetDescription = computed(
+  () => !babyMode.value && Boolean(sanitizedTargetDescription.value),
+);
+const showPhyloShare = computed(
+  () => !babyMode.value && Boolean(phyloMetrics.value || isShareReady.value),
+);
+
+const babyStickerEmoji = computed(() => {
+  if (!babyMode.value || !displayTargetAnimal.value) {
+    return undefined;
+  }
+  return stickerByAnimalId.value?.[displayTargetAnimal.value.id];
 });
 
 function openPhotoGallery(): void {
@@ -91,25 +122,35 @@ function openPhotoGallery(): void {
   >
     <div class="win-state__header">
       <div
-        v-if="targetAnimal"
+        v-if="showTargetCard"
         class="win-state__target-meta"
       >
         <button
           type="button"
           class="win-state__target-image-button"
-          :class="{ 'win-state__target-image-button--placeholder': !targetAnimal.imageUrl }"
-          :aria-label="t('winState.explorePhotos', { name: targetAnimal.name })"
+          :class="{
+            'win-state__target-image-button--placeholder':
+              !displayTargetAnimal!.imageUrl && !babyStickerEmoji,
+            'win-state__target-image-button--sticker':
+              !displayTargetAnimal!.imageUrl && babyStickerEmoji,
+          }"
+          :aria-label="t('winState.explorePhotos', { name: displayTargetAnimal!.name })"
           data-testid="win-state-target-image-button"
           @click="openPhotoGallery"
         >
           <span class="win-state__target-image-wrap">
             <img
-              v-if="targetAnimal.imageUrl"
-              :src="targetAnimal.imageUrl"
+              v-if="displayTargetAnimal!.imageUrl"
+              :src="displayTargetAnimal!.imageUrl"
               class="win-state__target-image"
-              :alt="t('winState.imageAlt', { name: targetAnimal.name })"
+              :alt="t('winState.imageAlt', { name: displayTargetAnimal!.name })"
               loading="lazy"
             >
+            <span
+              v-else-if="babyStickerEmoji"
+              class="win-state__target-sticker"
+              aria-hidden="true"
+            >{{ babyStickerEmoji }}</span>
             <span
               v-else
               class="win-state__target-image-placeholder-label"
@@ -129,22 +170,22 @@ function openPhotoGallery(): void {
         </button>
         <div class="win-state__target-names">
           <p class="win-state__target-common">
-            <strong>{{ targetAnimal.name }}</strong>
+            <strong>{{ displayTargetAnimal!.name }}</strong>
           </p>
           <p
-            v-if="targetAnimal.scientificName"
+            v-if="displayTargetAnimal!.scientificName"
             class="win-state__target-scientific"
           >
-            <em>{{ targetAnimal.scientificName }}</em>
+            <em>{{ displayTargetAnimal!.scientificName }}</em>
           </p>
         </div>
         <div
-          v-if="targetAnimal.url || targetAnimal.wikipediaUrl"
+          v-if="displayTargetAnimal!.url || displayTargetAnimal!.wikipediaUrl"
           class="win-state__target-links"
         >
           <a
-            v-if="targetAnimal.url"
-            :href="targetAnimal.url"
+            v-if="displayTargetAnimal!.url"
+            :href="displayTargetAnimal!.url"
             target="_blank"
             rel="noopener noreferrer"
             class="win-state__target-link"
@@ -154,8 +195,8 @@ function openPhotoGallery(): void {
             iNaturalist
           </a>
           <a
-            v-if="targetAnimal.wikipediaUrl"
-            :href="targetAnimal.wikipediaUrl"
+            v-if="displayTargetAnimal!.wikipediaUrl"
+            :href="displayTargetAnimal!.wikipediaUrl"
             target="_blank"
             rel="noopener noreferrer"
             class="win-state__target-link"
@@ -167,7 +208,7 @@ function openPhotoGallery(): void {
         </div>
       </div>
       <div
-        v-if="sanitizedTargetDescription"
+        v-if="showTargetDescription"
         class="win-state__target-description-block"
         data-testid="win-state-target-description"
       >
@@ -179,17 +220,20 @@ function openPhotoGallery(): void {
         <!-- eslint-enable vue/no-v-html -->
       </div>
       <GameWinStatePhotoGallery
-        v-if="targetAnimal"
+        v-if="showTargetCard && displayTargetAnimal"
         v-model:open="isGalleryOpen"
-        :taxon-id="targetAnimal.id"
-        :taxon-name="targetAnimal.name"
-        :fallback-image-url="targetAnimal.imageUrl"
+        :taxon-id="displayTargetAnimal.id"
+        :taxon-name="displayTargetAnimal.name"
+        :fallback-image-url="displayTargetAnimal.imageUrl"
       />
-      <p class="win-state__stats">
+      <p
+        class="win-state__stats"
+        data-testid="win-state-stats"
+      >
         {{ statsText }}
       </p>
       <div
-        v-if="phyloMetrics || isShareReady"
+        v-if="showPhyloShare"
         class="win-state-phylo-share"
       >
         <div class="win-state-phylo-share__row">
@@ -301,9 +345,10 @@ function openPhotoGallery(): void {
 
     <div class="win-state__tree">
       <h3 class="win-state__tree-title">
-        {{ t("winState.completePhylogeneticTree") }}
+        {{ babyMode ? t("babyMode.winTreeTitle") : t("winState.completePhylogeneticTree") }}
       </h3>
       <p
+        v-if="!babyMode"
         class="win-state__learning-footnote"
         data-testid="win-state-learning-footnote"
       >
@@ -313,6 +358,8 @@ function openPhotoGallery(): void {
         <GameTreeVisualization
           :tree-data="treeData"
           :show-target="true"
+          :baby-mode-tree="babyMode"
+          :sticker-by-animal-id="stickerByAnimalId"
           :width="treeWidth"
           :height="treeHeight"
           @nodeClick="onNodeClick"
@@ -385,12 +432,23 @@ function openPhotoGallery(): void {
   overflow: hidden;
 }
 
-.win-state__target-image-button--placeholder .win-state__target-image-wrap {
+.win-state__target-image-button--placeholder .win-state__target-image-wrap,
+.win-state__target-image-button--sticker .win-state__target-image-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
   border: 1px dashed var(--color-border-subtle, #e2d6c3);
   background: var(--color-paper, #fdfbf5);
+}
+
+.win-state__target-image-button--sticker .win-state__target-image-wrap {
+  border-style: solid;
+}
+
+.win-state__target-sticker {
+  font-size: 2.75rem;
+  line-height: 1;
+  user-select: none;
 }
 
 .win-state__target-image-placeholder-label {

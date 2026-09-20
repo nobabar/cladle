@@ -11,6 +11,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  assertPuzzleDate,
   formatNextUtcMidnightInLocal,
   formatPuzzleDate,
   formatTimeUntilNextPuzzle,
@@ -19,6 +20,7 @@ import {
   getNextMidnightUTC,
   getSecondsUntilNextPuzzle,
   hasDateChanged,
+  hashPuzzleDate,
   isMidnightPassed,
 } from "~/utils/dateUtils";
 
@@ -237,6 +239,33 @@ describe("dateUtils", () => {
       expect(s.length).toBeGreaterThan(4);
       expect(s.length).toBeLessThan(48);
       vi.useRealTimers();
+    });
+  });
+
+  describe("assertPuzzleDate", () => {
+    it("accepts valid calendar dates", () => {
+      expect(() => assertPuzzleDate("2024-01-01")).not.toThrow();
+      expect(() => assertPuzzleDate("2024-02-29")).not.toThrow();
+    });
+
+    it("throws Invalid date format for non YYYY-MM-DD strings", () => {
+      expect(() => assertPuzzleDate("invalid-date")).toThrow("Invalid date format");
+      expect(() => assertPuzzleDate("2024/01/01")).toThrow("Invalid date format");
+    });
+
+    it("throws Invalid date for impossible calendar values", () => {
+      expect(() => assertPuzzleDate("2024-13-01")).toThrow("Invalid date");
+      expect(() => assertPuzzleDate("2024-02-30")).toThrow("Invalid date");
+    });
+  });
+
+  describe("hashPuzzleDate", () => {
+    it("is deterministic", () => {
+      expect(hashPuzzleDate("2024-06-15")).toBe(hashPuzzleDate("2024-06-15"));
+    });
+
+    it("salts Baby Mode independently of the unsalted date", () => {
+      expect(hashPuzzleDate("baby:2024-06-15")).not.toBe(hashPuzzleDate("2024-06-15"));
     });
   });
 });

@@ -2,7 +2,7 @@
  * App icon names for `<Icon>`, `<UIcon>`, and `UButton` `:icon`.
  *
  * **Hand-drawn:** local cladle SVGs + Streamline Freehand (Iconify).
- * **Lucide:** used when reading-comfort font is on (`useUiIcons()`), matching pre–1e1eb35 names.
+ * **Lucide:** used when reading-comfort font is on (`useUiIcons()`).
  *
  * @see https://icon-sets.iconify.design/streamline-freehand/ (CC BY 4.0)
  */
@@ -13,6 +13,7 @@ export const uiIconHandDrawn = {
   chevronLeft: "i-cladle-arrow-single-left",
   maximize: "i-cladle-maximize",
   minimize: "i-cladle-minimize",
+  beginner: "i-cladle-sprout",
 
   return: "i-streamline-freehand-keyboard-arrow-return",
   history: "i-streamline-freehand-time-hourglass-triangle",
@@ -34,6 +35,7 @@ export const uiIconHandDrawn = {
   zoomIn: "i-streamline-freehand-zoom-in-magnifier-1",
   zoomOut: "i-streamline-freehand-zoom-out-magnifier-1",
   fitView: "i-streamline-freehand-retract-shrink-arrow",
+  emojiPicker: "i-streamline-freehand-smiley-happy",
   hint: "i-streamline-freehand-creativity-idea-bulb",
 } as const;
 
@@ -66,6 +68,8 @@ export const uiIconLucide = {
   maximize: "i-lucide-maximize",
   minimize: "i-lucide-minimize",
   fitView: "i-lucide-fullscreen",
+  beginner: "i-lucide-sprout",
+  emojiPicker: "i-lucide-face-grinning",
   hint: "i-lucide-lightbulb",
 } as const;
 

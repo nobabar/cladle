@@ -7,6 +7,7 @@ import { useResponsive } from "~/composables/useResponsive";
 import { useSharing } from "~/composables/useSharing";
 import { useUiIcons } from "~/composables/useUiIcons";
 import { calculatePhylogeneticMetrics } from "~/utils/sharingFormatter";
+import { babyModeStickerMap, hasBabyModeCladeInCatalog, simplifyBabyModeTree } from "~/utils/babyMode";
 
 const emit = defineEmits<{
   nodeClick: [node: TreeNode];
@@ -21,7 +22,18 @@ const hasEnded = computed(() => gameStore.hasEnded);
 const isWon = computed(() => gameStore.isWon);
 const isLost = computed(() => gameStore.isLost);
 const targetAnimal = computed(() => gameStore.target);
+const isBabyMode = computed(() => gameStore.gameMode === "baby");
 const treeData = computed(() => gameStore.treeData);
+const displayTreeData = computed(() => {
+  if (!treeData.value) {
+    return null;
+  }
+  if (!isBabyMode.value) {
+    return treeData.value;
+  }
+  return simplifyBabyModeTree(treeData.value, hasBabyModeCladeInCatalog);
+});
+const babyModeStickers = computed(() => (isBabyMode.value ? babyModeStickerMap() : undefined));
 const guessCount = computed(() => gameStore.guesses.length);
 const maxGuesses = computed(() => gameStore.maxGuesses);
 
@@ -29,14 +41,17 @@ const maxGuesses = computed(() => gameStore.maxGuesses);
  * General (non-spoiler) phylogenetic metrics for win/loss state display.
  * Reuses the same FR45 implementation as sharing.
  */
-const phyloMetrics = computed(() =>
-  calculatePhylogeneticMetrics(
+const phyloMetrics = computed(() => {
+  if (isBabyMode.value) {
+    return null;
+  }
+  return calculatePhylogeneticMetrics(
     treeData.value,
     gameStore.guesses,
     gameStore.target,
     gameStore.status,
-  ),
-);
+  );
+});
 
 /** Copy-to-clipboard share state and handler. */
 const { copyShareText, isShareReady, lastCopyStatus, copyError } = useSharing();
@@ -329,12 +344,14 @@ onUnmounted(() => {
               <GameWinStateResultContent
                 v-if="isWon || isLost"
                 :is-won="isWon"
+                :baby-mode="isBabyMode"
                 :stats-text="resultStats"
                 :target-animal="targetAnimal"
                 :phylo-metrics="phyloMetrics"
-                :is-share-ready="isShareReady"
+                :is-share-ready="isBabyMode ? false : isShareReady"
                 :last-copy-status="lastCopyStatus"
-                :tree-data="treeData"
+                :tree-data="displayTreeData"
+                :sticker-by-animal-id="babyModeStickers"
                 :tree-width="800"
                 :tree-height="400"
                 @copy="copyShareText"
@@ -423,12 +440,14 @@ onUnmounted(() => {
         <GameWinStateResultContent
           v-if="isWon || isLost"
           :is-won="isWon"
+          :baby-mode="isBabyMode"
           :stats-text="resultStats"
           :target-animal="targetAnimal"
           :phylo-metrics="phyloMetrics"
-          :is-share-ready="isShareReady"
+          :is-share-ready="isBabyMode ? false : isShareReady"
           :last-copy-status="lastCopyStatus"
-          :tree-data="treeData"
+          :tree-data="displayTreeData"
+          :sticker-by-animal-id="babyModeStickers"
           :tree-width="380"
           :tree-height="600"
           @copy="copyShareText"

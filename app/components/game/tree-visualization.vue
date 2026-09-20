@@ -2,7 +2,9 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { TreeData, TreeLayoutConfig, TreeNode } from "~/types/tree";
 import { calculateTreeLayout } from "~/utils/treeLayoutCalculator";
-import { getTreeNodeBoxWidth } from "~/utils/treeNodeWidth";
+import { getTreeNodeBoxWidth, getTreeNodeDisplayLabel } from "~/utils/treeNodeWidth";
+import type { TreeNodeLabelOptions } from "~/utils/treeNodeWidth";
+import { getBabyModeCladeLabel } from "~/utils/babyMode";
 import { treeToMermaid } from "~/utils/mermaidExporter";
 import { DEFAULT_ROUGHNESS, resolveColor, useRoughSvg } from "~/composables/useRoughSvg";
 import { useTreeFullscreenPortal } from "~/composables/useTreeFullscreenPortal";
@@ -15,13 +17,15 @@ const props = withDefaults(defineProps<Props>(), {
   showTarget: false,
   width: 800,
   height: 600,
+  stickerByAnimalId: undefined,
+  babyModeTree: false,
 });
 
 const emit = defineEmits<{
   nodeClick: [node: TreeNode];
 }>();
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const uiIcon = useUiIcons();
 
 interface Props {
@@ -33,6 +37,10 @@ interface Props {
   width?: number;
   /** Height of the visualization container */
   height?: number;
+  /** Optional id -> emoji map for baby mode animal node labels */
+  stickerByAnimalId?: Record<string, string>;
+  /** Simpler tree labels for baby mode (emoji-only animals, friendly clade names). */
+  babyModeTree?: boolean;
 }
 
 const layoutConfig: TreeLayoutConfig = {
@@ -67,6 +75,16 @@ const isDevMode = computed(() => import.meta.dev);
 
 const hasTreeData = computed(() => props.treeData !== null && props.treeData !== undefined);
 
+const treeLabelOptions = computed((): TreeNodeLabelOptions | undefined => {
+  if (!props.babyModeTree) {
+    return undefined;
+  }
+  return {
+    emojiOnly: Boolean(props.stickerByAnimalId),
+    resolveCladeLabel: name => getBabyModeCladeLabel(name, t, te) ?? name,
+  };
+});
+
 const computedLayout = computed(() => {
   if (!hasTreeData.value || !props.treeData || containerWidth.value === 0) {
     return null;
@@ -74,6 +92,8 @@ const computedLayout = computed(() => {
 
   return calculateTreeLayout(props.treeData, containerWidth.value, layoutConfig, {
     showTarget: props.showTarget,
+    stickerByAnimalId: props.stickerByAnimalId,
+    labelOptions: treeLabelOptions.value,
   });
 });
 
@@ -215,11 +235,46 @@ function calculateEdgePath(
  * @returns Calculated node width
  */
 function getNodeWidth(node: TreeNode): number {
-  return getTreeNodeBoxWidth(node, props.showTarget);
+  return getTreeNodeBoxWidth(
+    node,
+    props.showTarget,
+    props.stickerByAnimalId,
+    treeLabelOptions.value,
+  );
+}
+
+function getNodeDisplayLabel(node: TreeNode): string {
+  return getTreeNodeDisplayLabel(
+    node,
+    props.showTarget,
+    props.stickerByAnimalId,
+    treeLabelOptions.value,
+  );
+}
+
+function getCladeDisplayName(node: TreeNode): string {
+  if (node.type !== "clade" || !node.name) {
+    return node.name ?? "";
+  }
+  if (props.babyModeTree) {
+    return getBabyModeCladeLabel(node.name, t, te) ?? node.name;
+  }
+  return node.name;
 }
 
 function getNodeHeight(_node: TreeNode): number {
   return layoutConfig.nodeHeight;
+}
+
+function isEmojiAnimalLabel(node: TreeNode): boolean {
+  return Boolean(
+    props.babyModeTree
+    && node.type === "animal"
+    && props.stickerByAnimalId
+    && node.data?.id
+    && props.stickerByAnimalId[node.data.id]
+    && !(node.isTarget && !props.showTarget),
+  );
 }
 
 function getNodeClass(node: TreeNode): string {
@@ -300,7 +355,8 @@ function getLayoutHash(): string {
     .map(([id, node]) => {
       const pos = node.position ? `${node.position.x},${node.position.y}` : "";
       const states = `${node.isTarget ? "T" : ""}${node.isGuess ? "G" : ""}${node.isLCA ? "L" : ""}`;
-      return `${id}:${node.name}:${pos}:${states}`;
+      const label = getNodeDisplayLabel(node);
+      return `${id}:${label}:${pos}:${states}`;
     })
     .sort()
     .join("|");
@@ -608,8 +664,8 @@ function getNodeAriaLabel(node: TreeNode): string {
     if (node.isLCA) {
       parts.push(t("game.lcaLabel"));
     }
-    parts.push(node.name);
-    if (node.cladeData?.rank) {
+    parts.push(getCladeDisplayName(node));
+    if (!props.babyModeTree && node.cladeData?.rank) {
       parts.push(t("game.ariaRank", { rank: node.cladeData.rank }));
     }
   }
@@ -1049,15 +1105,17 @@ async function copyTreeAsMermaid(): Promise<void> {
                 'tree-node__text--target': node.isTarget,
                 'tree-node__text--guess': node.isGuess,
                 'tree-node__text--lca': node.isLCA,
+                'tree-node__text--emoji': isEmojiAnimalLabel(node),
               }"
               :x="node.position.x"
               :y="node.position.y"
+              :dy="isEmojiAnimalLabel(node) ? '0.2em' : undefined"
               text-anchor="middle"
               dominant-baseline="middle"
               :aria-hidden="true"
               pointer-events="none"
             >
-              {{ node.isTarget && !props.showTarget ? "?" : node.name }}
+              {{ getNodeDisplayLabel(node) }}
             </text>
           </template>
         </g>
@@ -1300,6 +1358,11 @@ async function copyTreeAsMermaid(): Promise<void> {
   fill: var(--color-ink, #111827);
   pointer-events: none;
   user-select: none;
+}
+
+.tree-node__text.tree-node__text--emoji {
+  font-size: 26px;
+  font-weight: 400;
 }
 
 .dark .tree-node__text {

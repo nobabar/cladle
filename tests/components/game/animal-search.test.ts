@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import AnimalSearch from "~/components/game/animal-search.vue";
+import BabyOrganismSticker from "~/components/game/baby-organism-sticker.vue";
 import type { Animal } from "~/types/animal";
 
 // Mock defineShortcuts (Nuxt composable not available in test environment)
@@ -152,6 +153,10 @@ function mountWithStubs(component: any, options: any = {}) {
     ...options,
     global: {
       ...options.global,
+      components: {
+        GameBabyOrganismSticker: BabyOrganismSticker,
+        ...options.global?.components,
+      },
       stubs: {
         UInput: UInputStub,
         UButton: UButtonStub,
@@ -808,6 +813,59 @@ describe("animalSearch", () => {
 
       const suggestionsAfter = wrapper.find("[role=\"listbox\"]");
       expect(suggestionsAfter.exists()).toBe(false);
+    });
+  });
+
+  describe("baby mode stickers", () => {
+    const stickerMap = { 2: "🐯" };
+
+    it("shows sticker component when stickerByAnimalId has a match", async () => {
+      const wrapper = mountWithStubs(AnimalSearch, {
+        props: {
+          animals: mockAnimals,
+          stickerByAnimalId: stickerMap,
+        },
+      });
+
+      const input = wrapper.find("input");
+      await input.setValue("Tiger");
+      await nextTick();
+
+      const sticker = wrapper.find(".baby-organism-sticker");
+      expect(sticker.exists()).toBe(true);
+      expect(sticker.text()).toContain("Tiger");
+      expect(sticker.find(".baby-organism-sticker__emoji").attributes("aria-hidden")).toBe("true");
+    });
+
+    it("keeps suggestion aria-label name-based when sticker is shown", async () => {
+      const wrapper = mountWithStubs(AnimalSearch, {
+        props: {
+          animals: mockAnimals,
+          stickerByAnimalId: stickerMap,
+        },
+      });
+
+      const input = wrapper.find("input");
+      await input.setValue("Tiger");
+      await nextTick();
+
+      const option = wrapper.find("[role='option']");
+      expect(option.attributes("aria-label")).toContain("Tiger");
+      expect(option.attributes("aria-label")).not.toContain("🐯");
+    });
+
+    it("does not render sticker nodes when stickerByAnimalId is omitted", async () => {
+      const wrapper = mountWithStubs(AnimalSearch, {
+        props: {
+          animals: mockAnimals,
+        },
+      });
+
+      const input = wrapper.find("input");
+      await input.setValue("Tiger");
+      await nextTick();
+
+      expect(wrapper.find(".baby-organism-sticker").exists()).toBe(false);
     });
   });
 

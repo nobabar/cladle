@@ -49,6 +49,62 @@ function isValidDateFormat(date: string): boolean {
 }
 
 /**
+ * Validate a puzzle date string is a real calendar day in YYYY-MM-DD format.
+ *
+ * @param date - Date string to validate
+ * @throws Error if the format is not YYYY-MM-DD
+ * @throws TypeError if year/month/day cannot be parsed as numbers
+ * @throws Error if the calendar date is invalid (e.g. 2024-02-30)
+ */
+export function assertPuzzleDate(date: string): void {
+  if (!DATE_FORMAT_REGEX.test(date)) {
+    throw new Error(`Invalid date format: ${date}. Expected YYYY-MM-DD format.`);
+  }
+
+  const parts = date.split("-");
+  if (parts.length !== 3) {
+    throw new TypeError(`Invalid date: ${date}. Date is not valid.`);
+  }
+  const year = Number(parts[0]);
+  const month = Number(parts[1]);
+  const day = Number(parts[2]);
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+    throw new TypeError(`Invalid date: ${date}. Date is not valid.`);
+  }
+  if (month < 1 || month > 12) {
+    throw new Error(`Invalid date: ${date}. Month must be between 1 and 12.`);
+  }
+  if (day < 1 || day > 31) {
+    throw new Error(`Invalid date: ${date}. Day must be between 1 and 31.`);
+  }
+  const dateObj = new Date(year, month - 1, day);
+  if (
+    dateObj.getFullYear() !== year
+    || dateObj.getMonth() !== month - 1
+    || dateObj.getDate() !== day
+  ) {
+    throw new Error(`Invalid date: ${date}. Date is not valid.`);
+  }
+}
+
+/**
+ * Deterministic hash of a date string (or a salted date such as `baby:YYYY-MM-DD`).
+ * Same input always yields the same 32-bit seed for puzzle selection.
+ *
+ * @param date - Date string or salted date key
+ * @returns Non-negative numeric seed
+ */
+export function hashPuzzleDate(date: string): number {
+  let hash = 0;
+  for (let i = 0; i < date.length; i++) {
+    const char = date.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash);
+}
+
+/**
  * Get current date in YYYY-MM-DD format (UTC).
  * Use for puzzle date storage and comparison so all time zones see the same daily puzzle.
  *
@@ -88,7 +144,7 @@ export function hasDateChanged(oldDate: string, newDate: string): boolean {
  */
 export function isMidnightPassed(puzzleDate: string): boolean {
   if (!puzzleDate || !isValidDateFormat(puzzleDate)) {
-    return true; // No valid stored date → consider "midnight passed" to trigger load
+    return true; // No valid stored date -> consider "midnight passed" to trigger load
   }
   const currentUTC = getCurrentDateUTC();
   return hasDateChanged(puzzleDate, currentUTC);
@@ -201,7 +257,7 @@ export function formatTimeUntilNextPuzzle(now: Date = new Date()): string {
 }
 
 /**
- * Local clock time (and short zone name) for when it is 00:00 UTC—same wall time each day
+ * Local clock time (and short zone name) for when it is 00:00 UTC, same wall time each day
  * except across daylight-saving changes. Uses the next UTC midnight as a reference instant.
  *
  * @param locale - BCP 47 language tag (e.g. from vue-i18n: `en`, `fr`)

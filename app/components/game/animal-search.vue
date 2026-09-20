@@ -19,6 +19,8 @@ interface Props {
   disabled?: boolean;
   /** Array of previously guessed animals for duplicate prevention */
   guessHistory?: Animal[];
+  /** Optional id -> emoji map for baby mode animal stickers */
+  stickerByAnimalId?: Record<string, string>;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -28,6 +30,7 @@ const props = withDefaults(defineProps<Props>(), {
   maxSuggestions: 20,
   disabled: false,
   guessHistory: () => [],
+  stickerByAnimalId: undefined,
 });
 
 const emit = defineEmits<Emits>();
@@ -633,7 +636,16 @@ onUnmounted(() => {
             @pointerenter="onSuggestionPointerEnter(index, $event)"
           >
             <div class="flex flex-col">
-              <span class="font-medium text-gray-900 dark:text-gray-100">
+              <GameBabyOrganismSticker
+                v-if="stickerByAnimalId?.[animal.id]"
+                :emoji="stickerByAnimalId[animal.id]!"
+                :name="animal.name"
+                size="sm"
+              />
+              <span
+                v-else
+                class="font-medium text-gray-900 dark:text-gray-100"
+              >
                 <template
                   v-for="(part, partIndex) in splitTextForHighlight(animal.name, searchQuery)"
                   :key="partIndex"
