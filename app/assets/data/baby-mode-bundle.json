@@ -1,0 +1,3678 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-20T16:26:35.288Z",
+  "animals": [
+    {
+      "id": "47144",
+      "name": "Dog",
+      "scientificName": "Canis familiaris",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848324",
+          "name": "Laurasiatheria",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "41573",
+          "name": "Carnivora",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "42043",
+          "name": "Canidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "42044",
+          "name": "Canis",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "47144",
+          "name": "Canis familiaris",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/47144"
+    },
+    {
+      "id": "42069",
+      "name": "Fox",
+      "scientificName": "Vulpes vulpes",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848324",
+          "name": "Laurasiatheria",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "41573",
+          "name": "Carnivora",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "42043",
+          "name": "Canidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "42054",
+          "name": "Vulpes",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "42069",
+          "name": "Vulpes vulpes",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/42069"
+    },
+    {
+      "id": "118552",
+      "name": "Cat",
+      "scientificName": "Felis catus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848324",
+          "name": "Laurasiatheria",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "41573",
+          "name": "Carnivora",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "41944",
+          "name": "Felidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "846179",
+          "name": "Felinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "41956",
+          "name": "Felis",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "118552",
+          "name": "Felis catus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/118552"
+    },
+    {
+      "id": "41964",
+      "name": "Lion",
+      "scientificName": "Panthera leo",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848324",
+          "name": "Laurasiatheria",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "41573",
+          "name": "Carnivora",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "41944",
+          "name": "Felidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "846273",
+          "name": "Pantherinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "41962",
+          "name": "Panthera",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "41964",
+          "name": "Panthera leo",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/41964"
+    },
+    {
+      "id": "41641",
+      "name": "Bear",
+      "scientificName": "Ursus arctos",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848324",
+          "name": "Laurasiatheria",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "41573",
+          "name": "Carnivora",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "41636",
+          "name": "Ursidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "846255",
+          "name": "Ursinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "41637",
+          "name": "Ursus",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "41641",
+          "name": "Ursus arctos",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/41641"
+    },
+    {
+      "id": "41659",
+      "name": "Panda",
+      "scientificName": "Ailuropoda melanoleuca",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848324",
+          "name": "Laurasiatheria",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "41573",
+          "name": "Carnivora",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "41636",
+          "name": "Ursidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "846183",
+          "name": "Ailuropodinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "41658",
+          "name": "Ailuropoda",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "41659",
+          "name": "Ailuropoda melanoleuca",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/41659"
+    },
+    {
+      "id": "209233",
+      "name": "Horse",
+      "scientificName": "Equus caballus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848324",
+          "name": "Laurasiatheria",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "43327",
+          "name": "Perissodactyla",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "43328",
+          "name": "Equidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "43329",
+          "name": "Equus",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "209233",
+          "name": "Equus caballus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/209233"
+    },
+    {
+      "id": "43335",
+      "name": "Zebra",
+      "scientificName": "Equus quagga",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848324",
+          "name": "Laurasiatheria",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "43327",
+          "name": "Perissodactyla",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "43328",
+          "name": "Equidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "43329",
+          "name": "Equus",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "43335",
+          "name": "Equus quagga",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/43335"
+    },
+    {
+      "id": "74113",
+      "name": "Cow",
+      "scientificName": "Bos taurus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848324",
+          "name": "Laurasiatheria",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "152870",
+          "name": "Artiodactyla",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "424850",
+          "name": "Ruminantia",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "42241",
+          "name": "Bovidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "568826",
+          "name": "Bovinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "846321",
+          "name": "Bovini",
+          "rank": "tribe",
+          "rankLevel": 25
+        },
+        {
+          "id": "42396",
+          "name": "Bos",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "74113",
+          "name": "Bos taurus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/74113"
+    },
+    {
+      "id": "121578",
+      "name": "Sheep",
+      "scientificName": "Ovis aries",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848324",
+          "name": "Laurasiatheria",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "152870",
+          "name": "Artiodactyla",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "424850",
+          "name": "Ruminantia",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "42241",
+          "name": "Bovidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "568847",
+          "name": "Antilopinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "846307",
+          "name": "Caprini",
+          "rank": "tribe",
+          "rankLevel": 25
+        },
+        {
+          "id": "42387",
+          "name": "Ovis",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "121578",
+          "name": "Ovis aries",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/121578"
+    },
+    {
+      "id": "123070",
+      "name": "Goat",
+      "scientificName": "Capra hircus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848324",
+          "name": "Laurasiatheria",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "152870",
+          "name": "Artiodactyla",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "424850",
+          "name": "Ruminantia",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "42241",
+          "name": "Bovidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "568847",
+          "name": "Antilopinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "846307",
+          "name": "Caprini",
+          "rank": "tribe",
+          "rankLevel": 25
+        },
+        {
+          "id": "42348",
+          "name": "Capra",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "123070",
+          "name": "Capra hircus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/123070"
+    },
+    {
+      "id": "42223",
+      "name": "Deer",
+      "scientificName": "Odocoileus virginianus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848324",
+          "name": "Laurasiatheria",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "152870",
+          "name": "Artiodactyla",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "424850",
+          "name": "Ruminantia",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "42158",
+          "name": "Cervidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "846185",
+          "name": "Capreolinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "846324",
+          "name": "Odocoileini",
+          "rank": "tribe",
+          "rankLevel": 25
+        },
+        {
+          "id": "42219",
+          "name": "Odocoileus",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "42223",
+          "name": "Odocoileus virginianus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/42223"
+    },
+    {
+      "id": "42157",
+      "name": "Giraffe",
+      "scientificName": "Giraffa camelopardalis",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848324",
+          "name": "Laurasiatheria",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "152870",
+          "name": "Artiodactyla",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "424850",
+          "name": "Ruminantia",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "42153",
+          "name": "Giraffidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "42156",
+          "name": "Giraffa",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "42157",
+          "name": "Giraffa camelopardalis",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/42157"
+    },
+    {
+      "id": "41482",
+      "name": "Dolphin",
+      "scientificName": "Tursiops truncatus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848324",
+          "name": "Laurasiatheria",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "152870",
+          "name": "Artiodactyla",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "925158",
+          "name": "Whippomorpha",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "152871",
+          "name": "Cetacea",
+          "rank": "infraorder",
+          "rankLevel": 35
+        },
+        {
+          "id": "424322",
+          "name": "Odontoceti",
+          "rank": "parvorder",
+          "rankLevel": 34.5
+        },
+        {
+          "id": "1317261",
+          "name": "Delphinoidea",
+          "rank": "superfamily",
+          "rankLevel": 33
+        },
+        {
+          "id": "41479",
+          "name": "Delphinidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "1317267",
+          "name": "Delphininae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "41480",
+          "name": "Tursiops",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "41482",
+          "name": "Tursiops truncatus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/41482"
+    },
+    {
+      "id": "41553",
+      "name": "Whale",
+      "scientificName": "Balaenoptera musculus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848324",
+          "name": "Laurasiatheria",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "152870",
+          "name": "Artiodactyla",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "925158",
+          "name": "Whippomorpha",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "152871",
+          "name": "Cetacea",
+          "rank": "infraorder",
+          "rankLevel": 35
+        },
+        {
+          "id": "424321",
+          "name": "Mysticeti",
+          "rank": "parvorder",
+          "rankLevel": 34.5
+        },
+        {
+          "id": "41546",
+          "name": "Balaenopteridae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "41547",
+          "name": "Balaenoptera",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "41553",
+          "name": "Balaenoptera musculus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/41553"
+    },
+    {
+      "id": "43460",
+      "name": "Monkey",
+      "scientificName": "Macaca mulatta",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848323",
+          "name": "Euarchontoglires",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "43367",
+          "name": "Primates",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "786045",
+          "name": "Haplorhini",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "936377",
+          "name": "Simiiformes",
+          "rank": "infraorder",
+          "rankLevel": 35
+        },
+        {
+          "id": "936369",
+          "name": "Catarrhini",
+          "rank": "parvorder",
+          "rankLevel": 34.5
+        },
+        {
+          "id": "43443",
+          "name": "Cercopithecidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "479424",
+          "name": "Cercopithecinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "846334",
+          "name": "Papionini",
+          "rank": "tribe",
+          "rankLevel": 25
+        },
+        {
+          "id": "43444",
+          "name": "Macaca",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "43460",
+          "name": "Macaca mulatta",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/43460"
+    },
+    {
+      "id": "43584",
+      "name": "Human",
+      "scientificName": "Homo sapiens",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848323",
+          "name": "Euarchontoglires",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "43367",
+          "name": "Primates",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "786045",
+          "name": "Haplorhini",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "936377",
+          "name": "Simiiformes",
+          "rank": "infraorder",
+          "rankLevel": 35
+        },
+        {
+          "id": "936369",
+          "name": "Catarrhini",
+          "rank": "parvorder",
+          "rankLevel": 34.5
+        },
+        {
+          "id": "1036675",
+          "name": "Hominoidea",
+          "rank": "superfamily",
+          "rankLevel": 33
+        },
+        {
+          "id": "43575",
+          "name": "Hominidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "846252",
+          "name": "Homininae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "43583",
+          "name": "Homo",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "43584",
+          "name": "Homo sapiens",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/43584"
+    },
+    {
+      "id": "43580",
+      "name": "Gorilla",
+      "scientificName": "Gorilla gorilla",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848323",
+          "name": "Euarchontoglires",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "43367",
+          "name": "Primates",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "786045",
+          "name": "Haplorhini",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "936377",
+          "name": "Simiiformes",
+          "rank": "infraorder",
+          "rankLevel": 35
+        },
+        {
+          "id": "936369",
+          "name": "Catarrhini",
+          "rank": "parvorder",
+          "rankLevel": 34.5
+        },
+        {
+          "id": "1036675",
+          "name": "Hominoidea",
+          "rank": "superfamily",
+          "rankLevel": 33
+        },
+        {
+          "id": "43575",
+          "name": "Hominidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "846252",
+          "name": "Homininae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "43579",
+          "name": "Gorilla",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "43580",
+          "name": "Gorilla gorilla",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/43580"
+    },
+    {
+      "id": "42888",
+      "name": "Kangaroo",
+      "scientificName": "Macropus giganteus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848319",
+          "name": "Marsupialia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "42711",
+          "name": "Diprotodontia",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "1539327",
+          "name": "Macropodiformes",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "42864",
+          "name": "Macropodidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "846231",
+          "name": "Macropodinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "1317293",
+          "name": "Macropodini",
+          "rank": "tribe",
+          "rankLevel": 25
+        },
+        {
+          "id": "42865",
+          "name": "Macropus",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "42888",
+          "name": "Macropus giganteus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/42888"
+    },
+    {
+      "id": "42983",
+      "name": "Koala",
+      "scientificName": "Phascolarctos cinereus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848319",
+          "name": "Marsupialia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "42711",
+          "name": "Diprotodontia",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "1539326",
+          "name": "Vombatiformes",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "42981",
+          "name": "Phascolarctidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "42982",
+          "name": "Phascolarctos",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "42983",
+          "name": "Phascolarctos cinereus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/42983"
+    },
+    {
+      "id": "44705",
+      "name": "Mouse",
+      "scientificName": "Mus musculus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848323",
+          "name": "Euarchontoglires",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "43698",
+          "name": "Rodentia",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "870778",
+          "name": "Myomorpha",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "488924",
+          "name": "Muroidea",
+          "rank": "superfamily",
+          "rankLevel": 33
+        },
+        {
+          "id": "44185",
+          "name": "Muridae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "735171",
+          "name": "Murinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "846376",
+          "name": "Murini",
+          "rank": "tribe",
+          "rankLevel": 25
+        },
+        {
+          "id": "44678",
+          "name": "Mus",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "1431407",
+          "name": "Mus",
+          "rank": "subgenus",
+          "rankLevel": 15
+        },
+        {
+          "id": "44705",
+          "name": "Mus musculus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/44705"
+    },
+    {
+      "id": "46001",
+      "name": "Squirrel",
+      "scientificName": "Sciurus vulgaris",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848323",
+          "name": "Euarchontoglires",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "43698",
+          "name": "Rodentia",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "129411",
+          "name": "Sciuromorpha",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "45933",
+          "name": "Sciuridae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "332614",
+          "name": "Sciurinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "339575",
+          "name": "Sciurini",
+          "rank": "tribe",
+          "rankLevel": 25
+        },
+        {
+          "id": "45994",
+          "name": "Sciurus",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "1431495",
+          "name": "Sciurus",
+          "rank": "subgenus",
+          "rankLevel": 15
+        },
+        {
+          "id": "46001",
+          "name": "Sciurus vulgaris",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/46001"
+    },
+    {
+      "id": "43794",
+      "name": "Beaver",
+      "scientificName": "Castor canadensis",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848323",
+          "name": "Euarchontoglires",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "43698",
+          "name": "Rodentia",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "870764",
+          "name": "Castorimorpha",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "43791",
+          "name": "Castoridae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "43792",
+          "name": "Castor",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "43794",
+          "name": "Castor canadensis",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/43794"
+    },
+    {
+      "id": "43151",
+      "name": "Rabbit",
+      "scientificName": "Oryctolagus cuniculus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "40151",
+          "name": "Mammalia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "848317",
+          "name": "Theria",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "848320",
+          "name": "Placentalia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "848323",
+          "name": "Euarchontoglires",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "43094",
+          "name": "Lagomorpha",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "43095",
+          "name": "Leporidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "43150",
+          "name": "Oryctolagus",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "43151",
+          "name": "Oryctolagus cuniculus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/43151"
+    },
+    {
+      "id": "6930",
+      "name": "Duck",
+      "scientificName": "Anas platyrhynchos",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "3",
+          "name": "Aves",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "6888",
+          "name": "Anseriformes",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "6912",
+          "name": "Anatidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "6922",
+          "name": "Anas",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "6930",
+          "name": "Anas platyrhynchos",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/6930"
+    },
+    {
+      "id": "6921",
+      "name": "Swan",
+      "scientificName": "Cygnus olor",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "3",
+          "name": "Aves",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "6888",
+          "name": "Anseriformes",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "6912",
+          "name": "Anatidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "6913",
+          "name": "Cygnus",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "6921",
+          "name": "Cygnus olor",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/6921"
+    },
+    {
+      "id": "882",
+      "name": "Chicken",
+      "scientificName": "Gallus gallus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "3",
+          "name": "Aves",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "573",
+          "name": "Galliformes",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "574",
+          "name": "Phasianidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "879",
+          "name": "Gallus",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "882",
+          "name": "Gallus gallus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/882"
+    },
+    {
+      "id": "1204",
+      "name": "Peacock",
+      "scientificName": "Pavo cristatus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "3",
+          "name": "Aves",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "573",
+          "name": "Galliformes",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "574",
+          "name": "Phasianidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "1199",
+          "name": "Pavo",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "1204",
+          "name": "Pavo cristatus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/1204"
+    },
+    {
+      "id": "39659",
+      "name": "Turtle",
+      "scientificName": "Chelonia mydas",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "26036",
+          "name": "Reptilia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "39532",
+          "name": "Testudines",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "372234",
+          "name": "Chelonioidea",
+          "rank": "superfamily",
+          "rankLevel": 33
+        },
+        {
+          "id": "39657",
+          "name": "Cheloniidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "1366913",
+          "name": "Cheloniinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "39658",
+          "name": "Chelonia",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "39659",
+          "name": "Chelonia mydas",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/39659"
+    },
+    {
+      "id": "238252",
+      "name": "Snake",
+      "scientificName": "Python bivittatus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "26036",
+          "name": "Reptilia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "26172",
+          "name": "Squamata",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "85553",
+          "name": "Serpentes",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "67532",
+          "name": "Pythonidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "32149",
+          "name": "Python",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "238252",
+          "name": "Python bivittatus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/238252"
+    },
+    {
+      "id": "35912",
+      "name": "Lizard",
+      "scientificName": "Lacerta agilis",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "26036",
+          "name": "Reptilia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "26172",
+          "name": "Squamata",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "85552",
+          "name": "Sauria",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "1567777",
+          "name": "Lacertoidea",
+          "rank": "infraorder",
+          "rankLevel": 35
+        },
+        {
+          "id": "35360",
+          "name": "Lacertidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "1118992",
+          "name": "Lacertinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "35844",
+          "name": "Lacerta",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "35912",
+          "name": "Lacerta agilis",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/35912"
+    },
+    {
+      "id": "341972",
+      "name": "Crocodile",
+      "scientificName": "Crocodylus niloticus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "26036",
+          "name": "Reptilia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "26039",
+          "name": "Crocodylia",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "26041",
+          "name": "Crocodylidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "26042",
+          "name": "Crocodylus",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "341972",
+          "name": "Crocodylus niloticus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/341972"
+    },
+    {
+      "id": "58612",
+      "name": "Goldfish",
+      "scientificName": "Carassius auratus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "47178",
+          "name": "Actinopterygii",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "1543570",
+          "name": "Ostariophysi",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "49216",
+          "name": "Cypriniformes",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "1303592",
+          "name": "Cyprinoidei",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "49609",
+          "name": "Cyprinidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "607661",
+          "name": "Cyprininae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "58617",
+          "name": "Carassius",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "58612",
+          "name": "Carassius auratus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/58612"
+    },
+    {
+      "id": "144017",
+      "name": "Blowfish",
+      "scientificName": "Arothron hispidus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "2",
+          "name": "Chordata",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "355675",
+          "name": "Vertebrata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "47178",
+          "name": "Actinopterygii",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "1632273",
+          "name": "Acanthomorpha",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "47177",
+          "name": "Tetraodontiformes",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "1303584",
+          "name": "Tetraodontoidei",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "49266",
+          "name": "Tetraodontidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "83319",
+          "name": "Arothron",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "144017",
+          "name": "Arothron hispidus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/144017"
+    },
+    {
+      "id": "48662",
+      "name": "Butterfly",
+      "scientificName": "Danaus plexippus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "47120",
+          "name": "Arthropoda",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "372739",
+          "name": "Hexapoda",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "47158",
+          "name": "Insecta",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "184884",
+          "name": "Pterygota",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "47157",
+          "name": "Lepidoptera",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "47224",
+          "name": "Papilionoidea",
+          "rank": "superfamily",
+          "rankLevel": 33
+        },
+        {
+          "id": "47922",
+          "name": "Nymphalidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "61244",
+          "name": "Danainae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "134169",
+          "name": "Danaini",
+          "rank": "tribe",
+          "rankLevel": 25
+        },
+        {
+          "id": "522900",
+          "name": "Danaina",
+          "rank": "subtribe",
+          "rankLevel": 24
+        },
+        {
+          "id": "48663",
+          "name": "Danaus",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "48662",
+          "name": "Danaus plexippus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/48662"
+    },
+    {
+      "id": "47219",
+      "name": "Bee",
+      "scientificName": "Apis mellifera",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "47120",
+          "name": "Arthropoda",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "372739",
+          "name": "Hexapoda",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "47158",
+          "name": "Insecta",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "184884",
+          "name": "Pterygota",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "47201",
+          "name": "Hymenoptera",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "124417",
+          "name": "Apocrita",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "326777",
+          "name": "Aculeata",
+          "rank": "infraorder",
+          "rankLevel": 35
+        },
+        {
+          "id": "47222",
+          "name": "Apoidea",
+          "rank": "superfamily",
+          "rankLevel": 33
+        },
+        {
+          "id": "630955",
+          "name": "Anthophila",
+          "rank": "epifamily",
+          "rankLevel": 32
+        },
+        {
+          "id": "47221",
+          "name": "Apidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "199939",
+          "name": "Apinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "538904",
+          "name": "Apini",
+          "rank": "tribe",
+          "rankLevel": 25
+        },
+        {
+          "id": "47220",
+          "name": "Apis",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "578086",
+          "name": "Apis",
+          "rank": "subgenus",
+          "rankLevel": 15
+        },
+        {
+          "id": "47219",
+          "name": "Apis mellifera",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/47219"
+    },
+    {
+      "id": "52628",
+      "name": "Spider",
+      "scientificName": "Araneus diadematus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "47120",
+          "name": "Arthropoda",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "245097",
+          "name": "Chelicerata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "47119",
+          "name": "Arachnida",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "47118",
+          "name": "Araneae",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "120474",
+          "name": "Araneomorphae",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "342614",
+          "name": "Entelegynae",
+          "rank": "infraorder",
+          "rankLevel": 35
+        },
+        {
+          "id": "319384",
+          "name": "Araneoidea",
+          "rank": "superfamily",
+          "rankLevel": 33
+        },
+        {
+          "id": "47535",
+          "name": "Araneidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "417879",
+          "name": "Araneinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "52629",
+          "name": "Araneus",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "52628",
+          "name": "Araneus diadematus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/52628"
+    },
+    {
+      "id": "127713",
+      "name": "Scorpion",
+      "scientificName": "Pandinus imperator",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "47120",
+          "name": "Arthropoda",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "245097",
+          "name": "Chelicerata",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "47119",
+          "name": "Arachnida",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "48894",
+          "name": "Scorpiones",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "1323567",
+          "name": "Neoscorpionina",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "1323568",
+          "name": "Orthosterni",
+          "rank": "infraorder",
+          "rankLevel": 35
+        },
+        {
+          "id": "1323570",
+          "name": "Iurida",
+          "rank": "parvorder",
+          "rankLevel": 34.5
+        },
+        {
+          "id": "127715",
+          "name": "Scorpionoidea",
+          "rank": "superfamily",
+          "rankLevel": 33
+        },
+        {
+          "id": "127716",
+          "name": "Scorpionidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "1323428",
+          "name": "Pandininae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "127717",
+          "name": "Pandinus",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "127713",
+          "name": "Pandinus imperator",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/127713"
+    },
+    {
+      "id": "120553",
+      "name": "Crab",
+      "scientificName": "Cancer pagurus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "47120",
+          "name": "Arthropoda",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "85493",
+          "name": "Crustacea",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "473790",
+          "name": "Multicrustacea",
+          "rank": "superclass",
+          "rankLevel": 53
+        },
+        {
+          "id": "47187",
+          "name": "Malacostraca",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "774775",
+          "name": "Eumalacostraca",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "144113",
+          "name": "Eucarida",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "47186",
+          "name": "Decapoda",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "118451",
+          "name": "Pleocyemata",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "121639",
+          "name": "Brachyura",
+          "rank": "infraorder",
+          "rankLevel": 35
+        },
+        {
+          "id": "706185",
+          "name": "Eubrachyura",
+          "rank": "zoosection",
+          "rankLevel": 34
+        },
+        {
+          "id": "447514",
+          "name": "Heterotremata",
+          "rank": "zoosubsection",
+          "rankLevel": 33.5
+        },
+        {
+          "id": "47829",
+          "name": "Cancroidea",
+          "rank": "superfamily",
+          "rankLevel": 33
+        },
+        {
+          "id": "47828",
+          "name": "Cancridae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "47827",
+          "name": "Cancer",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "120553",
+          "name": "Cancer pagurus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/120553"
+    },
+    {
+      "id": "62410",
+      "name": "Lobster",
+      "scientificName": "Homarus gammarus",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "47120",
+          "name": "Arthropoda",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "85493",
+          "name": "Crustacea",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "473790",
+          "name": "Multicrustacea",
+          "rank": "superclass",
+          "rankLevel": 53
+        },
+        {
+          "id": "47187",
+          "name": "Malacostraca",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "774775",
+          "name": "Eumalacostraca",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "144113",
+          "name": "Eucarida",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "47186",
+          "name": "Decapoda",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "118451",
+          "name": "Pleocyemata",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "311310",
+          "name": "Astacidea",
+          "rank": "infraorder",
+          "rankLevel": 35
+        },
+        {
+          "id": "61384",
+          "name": "Nephropoidea",
+          "rank": "superfamily",
+          "rankLevel": 33
+        },
+        {
+          "id": "61385",
+          "name": "Nephropidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "61386",
+          "name": "Homarus",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "62410",
+          "name": "Homarus gammarus",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/62410"
+    },
+    {
+      "id": "118851",
+      "name": "Shrimp",
+      "scientificName": "Crangon crangon",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "47120",
+          "name": "Arthropoda",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "85493",
+          "name": "Crustacea",
+          "rank": "subphylum",
+          "rankLevel": 57
+        },
+        {
+          "id": "473790",
+          "name": "Multicrustacea",
+          "rank": "superclass",
+          "rankLevel": 53
+        },
+        {
+          "id": "47187",
+          "name": "Malacostraca",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "774775",
+          "name": "Eumalacostraca",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "144113",
+          "name": "Eucarida",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "47186",
+          "name": "Decapoda",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "118451",
+          "name": "Pleocyemata",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "342912",
+          "name": "Caridea",
+          "rank": "infraorder",
+          "rankLevel": 35
+        },
+        {
+          "id": "47291",
+          "name": "Crangonoidea",
+          "rank": "superfamily",
+          "rankLevel": 33
+        },
+        {
+          "id": "47290",
+          "name": "Crangonidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "48817",
+          "name": "Crangon",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "118851",
+          "name": "Crangon crangon",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/118851"
+    },
+    {
+      "id": "49315",
+      "name": "Octopus",
+      "scientificName": "Octopus vulgaris",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "47115",
+          "name": "Mollusca",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "47459",
+          "name": "Cephalopoda",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "372759",
+          "name": "Coleoidea",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "339397",
+          "name": "Octopodiformes",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "47458",
+          "name": "Octopoda",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "699949",
+          "name": "Incirrata",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "699692",
+          "name": "Octopodoidea",
+          "rank": "superfamily",
+          "rankLevel": 33
+        },
+        {
+          "id": "47457",
+          "name": "Octopodidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "47456",
+          "name": "Octopus",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "49315",
+          "name": "Octopus vulgaris",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/49315"
+    },
+    {
+      "id": "61523",
+      "name": "Snail",
+      "scientificName": "Helix pomatia",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "47115",
+          "name": "Mollusca",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "47114",
+          "name": "Gastropoda",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "551391",
+          "name": "Heterobranchia",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "775797",
+          "name": "Euthyneura",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "775800",
+          "name": "Tectipleura",
+          "rank": "subterclass",
+          "rankLevel": 44
+        },
+        {
+          "id": "775812",
+          "name": "Eupulmonata",
+          "rank": "superorder",
+          "rankLevel": 43
+        },
+        {
+          "id": "47485",
+          "name": "Stylommatophora",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "781349",
+          "name": "Helicina",
+          "rank": "suborder",
+          "rankLevel": 37
+        },
+        {
+          "id": "781352",
+          "name": "Helicoidei",
+          "rank": "infraorder",
+          "rankLevel": 35
+        },
+        {
+          "id": "68625",
+          "name": "Helicoidea",
+          "rank": "superfamily",
+          "rankLevel": 33
+        },
+        {
+          "id": "47484",
+          "name": "Helicidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "906896",
+          "name": "Helicinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "906897",
+          "name": "Helicini",
+          "rank": "tribe",
+          "rankLevel": 25
+        },
+        {
+          "id": "47483",
+          "name": "Helix",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "61523",
+          "name": "Helix pomatia",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/61523"
+    },
+    {
+      "id": "53462",
+      "name": "Oyster",
+      "scientificName": "Ostrea edulis",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "47115",
+          "name": "Mollusca",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "47584",
+          "name": "Bivalvia",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "1051154",
+          "name": "Autobranchia",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "372769",
+          "name": "Pteriomorphia",
+          "rank": "infraclass",
+          "rankLevel": 45
+        },
+        {
+          "id": "47583",
+          "name": "Ostreida",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "196208",
+          "name": "Ostreoidea",
+          "rank": "superfamily",
+          "rankLevel": 33
+        },
+        {
+          "id": "47582",
+          "name": "Ostreidae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "871442",
+          "name": "Ostreinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "53461",
+          "name": "Ostrea",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "53462",
+          "name": "Ostrea edulis",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/53462"
+    },
+    {
+      "id": "48328",
+      "name": "Jellyfish",
+      "scientificName": "Aurelia aurita",
+      "lineage": [
+        {
+          "id": "1",
+          "name": "Animalia",
+          "rank": "kingdom",
+          "rankLevel": 70
+        },
+        {
+          "id": "47534",
+          "name": "Cnidaria",
+          "rank": "phylum",
+          "rankLevel": 60
+        },
+        {
+          "id": "48332",
+          "name": "Scyphozoa",
+          "rank": "class",
+          "rankLevel": 50
+        },
+        {
+          "id": "551480",
+          "name": "Discomedusae",
+          "rank": "subclass",
+          "rankLevel": 47
+        },
+        {
+          "id": "48331",
+          "name": "Semaeostomeae",
+          "rank": "order",
+          "rankLevel": 40
+        },
+        {
+          "id": "48330",
+          "name": "Ulmaridae",
+          "rank": "family",
+          "rankLevel": 30
+        },
+        {
+          "id": "1067493",
+          "name": "Aureliinae",
+          "rank": "subfamily",
+          "rankLevel": 27
+        },
+        {
+          "id": "48329",
+          "name": "Aurelia",
+          "rank": "genus",
+          "rankLevel": 20
+        },
+        {
+          "id": "48328",
+          "name": "Aurelia aurita",
+          "rank": "species",
+          "rankLevel": 10
+        }
+      ],
+      "url": "https://www.inaturalist.org/taxa/48328"
+    }
+  ]
+}

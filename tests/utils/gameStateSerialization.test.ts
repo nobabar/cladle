@@ -79,6 +79,7 @@ describe("gameStateSerialization", () => {
       gameMode: "daily",
       dailyState: daily,
       freePlayState: null,
+      babyModeState: null,
     });
     const parsed = parsePersistedGameState(raw);
     expect(parsed).not.toBeNull();
@@ -96,6 +97,51 @@ describe("gameStateSerialization", () => {
     expect(parsed!.dailyState!.treeData).not.toBeNull();
     expect(parsed!.dailyState!.treeData!.root.id).toBe("root");
     expect(parsed!.freePlayState).toBeNull();
+    expect(parsed!.babyModeState).toBeNull();
+  });
+
+  it("round-trips payload with baby mode state at schema v1", () => {
+    const baby = {
+      status: "playing" as const,
+      target: mockAnimal("47144", "Dog"),
+      guesses: [],
+      hints: [],
+      maxGuesses: 20,
+      treeData: null,
+      puzzleDate: "2026-08-29",
+    };
+    const raw = serializePersistedGameState({
+      gameMode: "baby",
+      dailyState: null,
+      freePlayState: null,
+      babyModeState: baby,
+    });
+    const parsed = parsePersistedGameState(raw);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.version).toBe(PERSISTED_GAME_STATE_SCHEMA_VERSION);
+    expect(parsed!.gameMode).toBe("baby");
+    expect(parsed!.babyModeState?.puzzleDate).toBe("2026-08-29");
+  });
+
+  it("defaults babyModeState to null when field is omitted", () => {
+    const raw = JSON.stringify({
+      version: PERSISTED_GAME_STATE_SCHEMA_VERSION,
+      gameMode: "daily",
+      dailyState: {
+        status: "playing",
+        target: mockAnimal("1", "Tiger"),
+        guesses: [],
+        hints: [],
+        maxGuesses: 20,
+        treeData: null,
+        puzzleDate: "2026-03-22",
+      },
+      freePlayState: null,
+    });
+    const parsed = parsePersistedGameState(raw);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.babyModeState).toBeNull();
+    expect(parsed!.dailyState?.puzzleDate).toBe("2026-03-22");
   });
 
   it("returns null for null or empty raw string", () => {
@@ -168,6 +214,7 @@ describe("gameStateSerialization", () => {
     expect(parsed!.version).toBe(PERSISTED_GAME_STATE_SCHEMA_VERSION);
     expect(parsed!.dailyState!.status).toBe("won");
     expect(parsed!.dailyState!.hints).toEqual([]);
+    expect(parsed!.babyModeState).toBeNull();
   });
 
   it("rejects invalid gameMode in legacy payload", () => {
@@ -196,6 +243,7 @@ describe("gameStateSerialization", () => {
         puzzleDate: "2026-03-22",
       },
       freePlayState: null,
+      babyModeState: null,
     });
     expect(raw).not.toContain("Map");
     expect(parsePersistedGameState(raw)).not.toBeNull();

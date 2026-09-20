@@ -28,6 +28,7 @@ const MAX_TREE_MERMAID = 50_000;
 const MODE_LABELS: Record<BugReportMode, string> = {
   "daily": "Daily",
   "free-play": "Free play",
+  "baby": "Beginner mode",
   "unknown": "Not sure / N/A",
 };
 
@@ -46,7 +47,7 @@ function isValidEmail(email: string): boolean {
 }
 
 function isValidMode(value: string): value is BugReportMode {
-  return value === "daily" || value === "free-play" || value === "unknown";
+  return value === "daily" || value === "free-play" || value === "baby" || value === "unknown";
 }
 
 function buildIssueBody(fields: {

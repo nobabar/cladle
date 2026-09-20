@@ -9,7 +9,7 @@ import type { StoredGuessEntry, StoredTreeData } from "./puzzleHistory";
 export const PERSISTED_GAME_STATE_SCHEMA_VERSION = 1;
 
 /** Game mode as stored in the payload (matches Pinia `GameMode`). */
-export type PersistedGameMode = "daily" | "free-play";
+export type PersistedGameMode = "daily" | "free-play" | "baby";
 
 /** Status values allowed in persisted mode snapshots. */
 export type PersistedGameStatus = "idle" | "playing" | "won" | "lost";
@@ -37,4 +37,5 @@ export interface PersistedGameStatePayload {
   gameMode: PersistedGameMode | null;
   dailyState: PersistedModeGameState | null;
   freePlayState: PersistedModeGameState | null;
+  babyModeState: PersistedModeGameState | null;
 }

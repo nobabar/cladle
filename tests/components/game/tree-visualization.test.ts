@@ -851,6 +851,102 @@ describe("treeVisualization", () => {
     });
   });
 
+  describe("baby mode stickers", () => {
+    const stickerMap = { "animal-cat": "🐱" };
+
+    it("includes emoji in animal node SVG labels when sticker map is passed", async () => {
+      const treeData = createSimpleTreeData();
+      const wrapper = mountWithStubs(TreeVisualization, {
+        props: {
+          treeData,
+          stickerByAnimalId: stickerMap,
+        },
+      });
+
+      await nextTick();
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const labels = wrapper.findAll(".tree-node__text");
+      const guessLabel = labels.find(label => label.text().includes("Cat"));
+      expect(guessLabel).toBeDefined();
+      expect(guessLabel!.text()).toContain("🐱");
+      expect(guessLabel!.text()).toContain("Cat");
+    });
+
+    it("does not add emoji to clade node labels", async () => {
+      const treeData = createSimpleTreeData();
+      const wrapper = mountWithStubs(TreeVisualization, {
+        props: {
+          treeData,
+          stickerByAnimalId: stickerMap,
+        },
+      });
+
+      await nextTick();
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const labels = wrapper.findAll(".tree-node__text");
+      const cladeLabel = labels.find(label => label.text().includes("Mammalia"));
+      expect(cladeLabel).toBeDefined();
+      expect(cladeLabel!.text()).toBe("Mammalia");
+    });
+
+    it("keeps aria-label name-based without emoji for animal nodes", async () => {
+      const treeData = createSimpleTreeData();
+      const wrapper = mountWithStubs(TreeVisualization, {
+        props: {
+          treeData,
+          stickerByAnimalId: stickerMap,
+        },
+      });
+
+      await nextTick();
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const nodes = wrapper.findAll("g[role='button']");
+      const guessNode = nodes.find(node => node.attributes("aria-label")?.includes("Cat"));
+      expect(guessNode).toBeDefined();
+      expect(guessNode!.attributes("aria-label")).not.toContain("🐱");
+      expect(guessNode!.attributes("aria-label")).toContain("Cat");
+    });
+
+    it("shows emoji-only animal labels in beginner mode", async () => {
+      const treeData = createSimpleTreeData();
+      const wrapper = mountWithStubs(TreeVisualization, {
+        props: {
+          treeData,
+          stickerByAnimalId: stickerMap,
+          babyModeTree: true,
+        },
+      });
+
+      await nextTick();
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const labels = wrapper.findAll(".tree-node__text");
+      const guessLabel = labels.find(label => label.text().includes("🐱"));
+      expect(guessLabel).toBeDefined();
+      expect(guessLabel!.text()).toBe("🐱");
+    });
+
+    it("shows friendly clade labels in beginner mode", async () => {
+      const treeData = createSimpleTreeData();
+      const wrapper = mountWithStubs(TreeVisualization, {
+        props: {
+          treeData,
+          babyModeTree: true,
+        },
+      });
+
+      await nextTick();
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const labels = wrapper.findAll(".tree-node__text");
+      const cladeLabel = labels.find(label => label.text() === "Mammals");
+      expect(cladeLabel).toBeDefined();
+    });
+  });
+
   describe("performance", () => {
     it("renders large tree efficiently", async () => {
       // Create a larger tree

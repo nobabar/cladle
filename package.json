@@ -11,6 +11,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "i18n:check": "node scripts/check-locales.mjs",
+    "baby-mode:bundle": "node scripts/generate-baby-mode-bundle.mjs",
     "typecheck": "nuxt typecheck",
     "test": "vitest",
     "test:e2e": "playwright test",

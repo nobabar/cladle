@@ -53,7 +53,11 @@ export function useDailyPuzzleTime(options: UseDailyPuzzleTimeOptions) {
     if (!gameStore.shouldResetForNewDay()) {
       return;
     }
-    gameStore.resetForNewDay();
+    if (gameStore.gameMode === "baby") {
+      gameStore.resetBabyForNewDay();
+    } else {
+      gameStore.resetForNewDay();
+    }
     onReset();
   }
 

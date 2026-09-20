@@ -3,7 +3,7 @@ import { computed, ref } from "vue";
 import { useUiIcons } from "~/composables/useUiIcons";
 
 interface Props {
-  gameMode: "daily" | "free-play";
+  gameMode: "daily" | "free-play" | "baby";
   isReplayMode?: boolean;
   puzzleDate?: string;
   nextPuzzleIn?: string;
@@ -32,6 +32,18 @@ function openProfileModal() {
   isProfileModalOpen.value = true;
 }
 
+function goToDaily() {
+  void navigateTo("/");
+}
+
+function goToFreePlay() {
+  void navigateTo("/free-play");
+}
+
+function goToBaby() {
+  void navigateTo("/baby");
+}
+
 /**
  * Mobile menu below `sm`: burger; from `sm` up the icon row is shown instead.
  * Preferences replaces a standalone theme toggle (theme + language live in the modal).
@@ -54,21 +66,27 @@ const headerMobileMenuItems = computed(() => {
     });
   }
 
-  if (props.gameMode === "daily") {
-    items.push({
-      label: t("header.freePlay"),
-      icon: i.infinity,
-      onSelect: () => {
-        void navigateTo("/free-play");
-      },
-    });
-  } else {
+  if (props.gameMode !== "daily") {
     items.push({
       label: t("header.dailyPuzzle"),
       icon: i.calendar,
-      onSelect: () => {
-        void navigateTo("/");
-      },
+      onSelect: goToDaily,
+    });
+  }
+
+  if (props.gameMode !== "free-play") {
+    items.push({
+      label: t("header.freePlay"),
+      icon: i.infinity,
+      onSelect: goToFreePlay,
+    });
+  }
+
+  if (props.gameMode !== "baby") {
+    items.push({
+      label: t("header.babyMode"),
+      icon: i.beginner,
+      onSelect: goToBaby,
     });
   }
 
@@ -86,9 +104,9 @@ const headerMobileMenuItems = computed(() => {
 
 <template>
   <div>
-    <!-- Daily: date + next-puzzle timer on top-left. -->
+    <!-- Daily / beginner: date + next-puzzle timer on top-left. -->
     <div
-      v-if="props.gameMode === 'daily' && props.puzzleDate"
+      v-if="(props.gameMode === 'daily' || props.gameMode === 'baby') && props.puzzleDate"
       class="absolute top-0 left-0 z-[1] sm:top-5 sm:left-2 flex flex-col gap-1
         sm:gap-2 items-start"
     >
@@ -154,7 +172,20 @@ const headerMobileMenuItems = computed(() => {
         />
 
         <UButton
-          v-if="props.gameMode === 'daily'"
+          v-if="props.gameMode !== 'daily'"
+          to="/"
+          :icon="icons.calendar"
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          :aria-label="t('header.goToDailyPuzzle')"
+          :title="t('header.dailyPuzzle')"
+          class="min-w-[44px] min-h-[44px] touch-target justify-center items-center
+            notebook-button-secondary cursor-pointer"
+        />
+
+        <UButton
+          v-if="props.gameMode !== 'free-play'"
           to="/free-play"
           :icon="icons.infinity"
           color="neutral"
@@ -167,14 +198,14 @@ const headerMobileMenuItems = computed(() => {
         />
 
         <UButton
-          v-if="props.gameMode === 'free-play'"
-          to="/"
-          :icon="icons.calendar"
+          v-if="props.gameMode !== 'baby'"
+          to="/baby"
+          :icon="icons.beginner"
           color="neutral"
           variant="ghost"
           size="sm"
-          :aria-label="t('header.goToDailyPuzzle')"
-          :title="t('header.dailyPuzzle')"
+          :aria-label="t('header.goToBabyMode')"
+          :title="t('header.babyMode')"
           class="min-w-[44px] min-h-[44px] touch-target justify-center items-center
             notebook-button-secondary cursor-pointer"
         />

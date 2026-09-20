@@ -10,7 +10,7 @@
 export const BUG_REPORT_FORM_HEADER = "X-Cladle-Bug-Report";
 export const BUG_REPORT_FORM_HEADER_VALUE = "1";
 
-export type BugReportMode = "daily" | "free-play" | "unknown";
+export type BugReportMode = "daily" | "free-play" | "baby" | "unknown";
 
 export type BugReportErrorCode
   = | "not_configured"
@@ -37,7 +37,7 @@ export interface BugReportPayload {
   contactEmail?: string;
   /** Mermaid diagram of the current tree (when the user opts in) */
   treeMermaid?: string;
-  /** Honeypot — must be empty */
+  /** Honeypot, must be empty */
   website?: string;
 }
 

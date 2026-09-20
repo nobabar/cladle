@@ -16,7 +16,7 @@ import {
 } from "~/utils/wireFormatSerialization";
 
 const GAME_STATUSES = new Set<PersistedGameStatus>(["idle", "playing", "won", "lost"]);
-const GAME_MODES = new Set<PersistedGameMode>(["daily", "free-play"]);
+const GAME_MODES = new Set<PersistedGameMode>(["daily", "free-play", "baby"]);
 
 /** Input slice matching fields persisted per mode (maps ignored). */
 export interface SerializeModeStateInput {
@@ -33,6 +33,7 @@ export interface SerializePersistedGameStateInput {
   gameMode: GameMode | null;
   dailyState: SerializeModeStateInput | null;
   freePlayState: SerializeModeStateInput | null;
+  babyModeState: SerializeModeStateInput | null;
 }
 
 function serializeHintsForStorage(hints: HintEntry[]): StoredHintEntry[] {
@@ -70,6 +71,7 @@ export function serializePersistedGameState(input: SerializePersistedGameStateIn
     gameMode: input.gameMode,
     dailyState: input.dailyState ? modeToWire(input.dailyState) : null,
     freePlayState: input.freePlayState ? modeToWire(input.freePlayState) : null,
+    babyModeState: input.babyModeState ? modeToWire(input.babyModeState) : null,
   };
   return JSON.stringify(payload);
 }
@@ -169,7 +171,12 @@ function parseModeState(value: unknown): PersistedModeGameState | null {
   };
 }
 
-function parseVersion1Envelope(obj: Record<string, unknown>): PersistedGameStatePayload | null {
+function parseModeEnvelope(obj: Record<string, unknown>): {
+  gameMode: PersistedGameMode | null;
+  dailyState: PersistedModeGameState | null;
+  freePlayState: PersistedModeGameState | null;
+  babyModeState: PersistedModeGameState | null;
+} | null {
   const gameMode = parseGameMode(obj.gameMode ?? null);
   if (obj.gameMode !== undefined && obj.gameMode !== null && gameMode === null) {
     return null;
@@ -191,11 +198,31 @@ function parseVersion1Envelope(obj: Record<string, unknown>): PersistedGameState
     }
   }
 
+  let babyModeState: PersistedModeGameState | null = null;
+  if (obj.babyModeState !== undefined && obj.babyModeState !== null) {
+    babyModeState = parseModeState(obj.babyModeState);
+    if (babyModeState === null) {
+      return null;
+    }
+  }
+
   return {
-    version: PERSISTED_GAME_STATE_SCHEMA_VERSION,
     gameMode: gameMode ?? null,
     dailyState,
     freePlayState,
+    babyModeState,
+  };
+}
+
+function parseEnvelope(obj: Record<string, unknown>): PersistedGameStatePayload | null {
+  const modes = parseModeEnvelope(obj);
+  if (!modes) {
+    return null;
+  }
+
+  return {
+    version: PERSISTED_GAME_STATE_SCHEMA_VERSION,
+    ...modes,
   };
 }
 
@@ -230,7 +257,7 @@ export function parsePersistedGameState(raw: string | null): PersistedGameStateP
     if (v !== PERSISTED_GAME_STATE_SCHEMA_VERSION) {
       return null;
     }
-    return parseVersion1Envelope(parsed);
+    return parseEnvelope(parsed);
   }
 
   // Legacy: pinia-plugin-persistedstate shape without top-level version
@@ -238,8 +265,9 @@ export function parsePersistedGameState(raw: string | null): PersistedGameStateP
     "gameMode" in parsed
     || "dailyState" in parsed
     || "freePlayState" in parsed
+    || "babyModeState" in parsed
   ) {
-    return parseVersion1Envelope({
+    return parseEnvelope({
       ...parsed,
       version: PERSISTED_GAME_STATE_SCHEMA_VERSION,
     });

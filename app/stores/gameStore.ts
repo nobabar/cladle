@@ -15,13 +15,14 @@ import { gameStorePersistSerializer } from "~/utils/piniaGameStorePersistence";
 import { createSafeLocalStorageForPinia } from "~/utils/storageSafe";
 import type { HintEntry } from "~/types/hint";
 import { HINT_GUESS_COST } from "~/types/hint";
+import { resolveBabyModeLCA } from "~/utils/babyMode";
 import { buildHintCladeSelectorInput, selectHintClade } from "~/utils/hintCladeSelector";
 
 export const DEFAULT_MAX_GUESSES = 20;
 
 export type GameStatus = "idle" | "playing" | "won" | "lost";
 export type CompletionStatus = "playing" | "won" | "lost";
-export type GameMode = "daily" | "free-play";
+export type GameMode = "daily" | "free-play" | "baby";
 
 export interface GuessEntry {
   /** The guessed animal */
@@ -54,7 +55,7 @@ interface ModeGameState {
 }
 
 interface GameState {
-  /** Current game mode (daily or free-play) */
+  /** Current game mode (daily, free-play, or baby) */
   gameMode: GameMode | null;
   /** Current game status */
   status: GameStatus;
@@ -84,6 +85,8 @@ interface GameState {
   dailyState: ModeGameState | null;
   /** Stored state for free-play mode */
   freePlayState: ModeGameState | null;
+  /** Stored state for beginner (baby) mode */
+  babyModeState: ModeGameState | null;
   /** True when viewing a past puzzle from history (read-only replay) */
   isReplayMode: boolean;
 }
@@ -108,6 +111,7 @@ export const useGameStore = defineStore("game", {
     isRenderingTree: false,
     dailyState: null,
     freePlayState: null,
+    babyModeState: null,
     isReplayMode: false,
   }),
 
@@ -122,6 +126,7 @@ export const useGameStore = defineStore("game", {
       "gameMode",
       "dailyState",
       "freePlayState",
+      "babyModeState",
     ],
   },
 
@@ -201,6 +206,31 @@ export const useGameStore = defineStore("game", {
   },
 
   actions: {
+    getModeSnapshot(mode: GameMode): ModeGameState | null {
+      switch (mode) {
+        case "daily":
+          return this.dailyState;
+        case "free-play":
+          return this.freePlayState;
+        case "baby":
+          return this.babyModeState;
+      }
+    },
+
+    setModeSnapshot(mode: GameMode, state: ModeGameState): void {
+      switch (mode) {
+        case "daily":
+          this.dailyState = state;
+          break;
+        case "free-play":
+          this.freePlayState = state;
+          break;
+        case "baby":
+          this.babyModeState = state;
+          break;
+      }
+    },
+
     /**
      * Rebuild Maps from treeData (called after state is restored from localStorage)
      */
@@ -231,7 +261,7 @@ export const useGameStore = defineStore("game", {
 
     /**
      * Taxonomic depth for an LCA clade node (0 = kingdom). Prefers stored metadata
-     * on the node so clades created from guess–guess LCAs work without a matching guess-target entry.
+     * on the node so clades created from guess->guess LCAs work without a matching guess->target entry.
      * @param node - LCA clade node
      * @returns Taxonomic depth
      */
@@ -392,8 +422,10 @@ export const useGameStore = defineStore("game", {
 
       if (mode === "daily") {
         this.dailyState = finalState;
-      } else {
+      } else if (mode === "free-play") {
         this.freePlayState = finalState;
+      } else {
+        this.babyModeState = finalState;
       }
     },
 
@@ -402,7 +434,7 @@ export const useGameStore = defineStore("game", {
      * @param mode - The game mode to restore state for
      */
     restoreModeState(mode: GameMode): void {
-      const savedState = mode === "daily" ? this.dailyState : this.freePlayState;
+      const savedState = this.getModeSnapshot(mode);
 
       if (savedState) {
         // Deep clone everything to avoid reference sharing
@@ -444,7 +476,7 @@ export const useGameStore = defineStore("game", {
         this.treeData = null;
         this.nodeMap = new Map();
         this.cladeMap = new Map();
-        this.puzzleDate = mode === "daily" ? this.getCurrentDate() : "";
+        this.puzzleDate = mode === "free-play" ? "" : this.getCurrentDate();
       }
     },
 
@@ -564,7 +596,9 @@ export const useGameStore = defineStore("game", {
       }
 
       // Determine expected puzzle date for comparison
-      const expectedPuzzleDate = puzzleDate !== undefined ? puzzleDate : (mode === "daily" ? this.getCurrentDate() : "");
+      const expectedPuzzleDate = puzzleDate !== undefined
+        ? puzzleDate
+        : (mode === "free-play" ? "" : this.getCurrentDate());
 
       // Check if we should initialize a new game:
       // 1. forceNew is true (explicit reset)
@@ -572,7 +606,8 @@ export const useGameStore = defineStore("game", {
       // 3. For daily mode: puzzle date changed (new day)
       // 4. For free play: if we're calling with empty string and no target, it's a new game
       const hasValidState = this.target !== null && this.target !== undefined;
-      const isNewDay = mode === "daily" && this.puzzleDate !== expectedPuzzleDate;
+      const isNewDay = (mode === "daily" || mode === "baby")
+        && this.puzzleDate !== expectedPuzzleDate;
       const isFreePlayNewGame = mode === "free-play" && puzzleDate === "" && !hasValidState;
 
       const shouldInitializeNew = forceNew || !hasValidState || isNewDay || isFreePlayNewGame;
@@ -659,7 +694,7 @@ export const useGameStore = defineStore("game", {
      * @returns true if puzzle should be reset for a new day
      */
     shouldResetForNewDay(): boolean {
-      if (this.gameMode !== "daily" || !this.puzzleDate) {
+      if ((this.gameMode !== "daily" && this.gameMode !== "baby") || !this.puzzleDate) {
         return false;
       }
       return isMidnightPassed(this.puzzleDate);
@@ -686,6 +721,27 @@ export const useGameStore = defineStore("game", {
       this.error = null;
       this.isRenderingTree = false;
       this.dailyState = null;
+    },
+
+    /**
+     * Reset beginner mode state for a new UTC day.
+     */
+    resetBabyForNewDay(): void {
+      if (this.gameMode !== "baby") {
+        return;
+      }
+      this.status = "idle";
+      this.target = null;
+      this.guesses = [];
+      this.hints = [];
+      this.treeData = null;
+      this.nodeMap = new Map();
+      this.cladeMap = new Map();
+      this.puzzleDate = "";
+      this.isLoading = false;
+      this.error = null;
+      this.isRenderingTree = false;
+      this.babyModeState = null;
     },
 
     /**
@@ -759,7 +815,10 @@ export const useGameStore = defineStore("game", {
         throw new Error("Animal already guessed");
       }
 
-      const lcaResult = calculateLCA(guess, this.target);
+      let lcaResult = calculateLCA(guess, this.target);
+      if (this.gameMode === "baby") {
+        lcaResult = resolveBabyModeLCA(lcaResult, this.target);
+      }
 
       const guessEntry: GuessEntry = {
         animal: guess,

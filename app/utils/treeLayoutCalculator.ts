@@ -1,6 +1,7 @@
 import { hierarchy, tree } from "d3-hierarchy";
 import type { TreeData, TreeLayoutConfig, TreeNode } from "~/types/tree";
 import { getTreeNodeBoxWidth } from "~/utils/treeNodeWidth";
+import type { TreeNodeLabelOptions } from "~/utils/treeNodeWidth";
 
 export interface Edge {
   from: TreeNode;
@@ -32,6 +33,10 @@ export interface CalculateTreeLayoutOptions {
    * When false, the target leaf uses "?" width (game mode). Defaults to true.
    */
   showTarget?: boolean;
+  /** Optional id -> emoji map for baby mode label widths */
+  stickerByAnimalId?: Record<string, string>;
+  /** Label presentation overrides (emoji-only animals, friendly clade names). */
+  labelOptions?: TreeNodeLabelOptions;
 }
 
 const DEFAULT_CONFIG: TreeLayoutConfig = {
@@ -62,6 +67,8 @@ export function calculateTreeLayout(
 ): LayoutResult {
   const layoutConfig: TreeLayoutConfig = { ...DEFAULT_CONFIG, ...config };
   const showTargetForLayout = options.showTarget ?? true;
+  const stickerByAnimalId = options.stickerByAnimalId;
+  const labelOptions = options.labelOptions;
   const dx = layoutConfig.horizontalSpacing;
   /** Minimum gap between adjacent node rectangles (pixels). */
   const siblingGapPx = 12;
@@ -74,8 +81,8 @@ export function calculateTreeLayout(
       // d3-hierarchy passes layout nodes; `.data` is our TreeNode.
       const na = a.data;
       const nb = b.data;
-      const wa = getTreeNodeBoxWidth(na, showTargetForLayout);
-      const wb = getTreeNodeBoxWidth(nb, showTargetForLayout);
+      const wa = getTreeNodeBoxWidth(na, showTargetForLayout, stickerByAnimalId, labelOptions);
+      const wb = getTreeNodeBoxWidth(nb, showTargetForLayout, stickerByAnimalId, labelOptions);
       const minCenterDistance = wa / 2 + wb / 2 + siblingGapPx;
       const sepUnits = minCenterDistance / dx;
       return a.parent === b.parent ? Math.max(1, sepUnits) : Math.max(2, sepUnits);
@@ -109,7 +116,12 @@ export function calculateTreeLayout(
 
     nodeMap.set(treeNode.id, positionedNode);
 
-    const nodeW = getTreeNodeBoxWidth(treeNode, showTargetForLayout);
+    const nodeW = getTreeNodeBoxWidth(
+      treeNode,
+      showTargetForLayout,
+      stickerByAnimalId,
+      labelOptions,
+    );
     const nodeLeft = centeredX - nodeW / 2;
     const nodeRight = centeredX + nodeW / 2;
     const nodeTop = positionedY - layoutConfig.nodeHeight / 2;

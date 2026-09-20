@@ -1073,6 +1073,60 @@ describe("gameStore", () => {
     });
   });
 
+  describe("mode isolation (daily <-> baby <-> free-play)", () => {
+    it("preserves daily guesses when switching daily -> baby -> daily", () => {
+      const store = getGameStore();
+      store.initializeGame(tiger, 20, "2026-08-29", "daily");
+      store.processGuess(lion);
+      expect(store.guesses).toHaveLength(1);
+
+      store.switchGameMode("baby");
+      expect(store.guesses).toHaveLength(0);
+
+      store.switchGameMode("daily");
+      expect(store.guesses).toHaveLength(1);
+      expect(store.target?.id).toBe(tiger.id);
+      expect(store.dailyState?.guesses).toHaveLength(1);
+    });
+
+    it("keeps baby and free-play snapshots isolated", () => {
+      const store = getGameStore();
+      store.initializeGame(tiger, 20, "2026-08-29", "daily");
+      store.processGuess(lion);
+      store.switchGameMode("baby");
+      store.initializeGame(wolf, 20, "2026-08-29", "baby", true);
+      store.processGuess(bear);
+      store.switchGameMode("free-play");
+      store.initializeGame(eagle, 20, "", "free-play", true);
+      store.processGuess(shoebill);
+
+      store.switchGameMode("baby");
+      expect(store.target?.id).toBe(wolf.id);
+      expect(store.guesses).toHaveLength(1);
+
+      store.switchGameMode("daily");
+      expect(store.target?.id).toBe(tiger.id);
+      expect(store.guesses).toHaveLength(1);
+
+      store.switchGameMode("free-play");
+      expect(store.target?.id).toBe(eagle.id);
+      expect(store.guesses).toHaveLength(1);
+    });
+
+    it("resetBabyForNewDay clears only baby snapshot", () => {
+      const store = getGameStore();
+      store.initializeGame(tiger, 20, "2026-02-10", "daily");
+      store.saveModeState("daily");
+      store.initializeGame(wolf, 20, "2026-02-10", "baby", true);
+      store.processGuess(lion);
+
+      store.resetBabyForNewDay();
+
+      expect(store.babyModeState).toBeNull();
+      expect(store.dailyState).not.toBeNull();
+    });
+  });
+
   describe("puzzle history replay", () => {
     it("loadReplayFromHistory sets state from entry and isReplayMode true", () => {
       const store = getGameStore();

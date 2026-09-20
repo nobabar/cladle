@@ -38,14 +38,20 @@ test("onboarding prompt dismisses after several game actions without persisting 
     timeout: 15_000,
   });
 
+  // Tree remounts while `isRenderingTree` is true (~500ms) and again after layout;
+  // wait for settle, then click a freshly resolved node (WebKit detaches mid-scroll).
+  await expect(page.getByText("Updating tree...")).toHaveCount(0, { timeout: 15_000 });
+
   const treeNode = page
     .locator("[data-onboarding='daily-tree'] .tree-node-group-rough[role='button']")
     .first();
   await expect(treeNode).toBeVisible({ timeout: 15_000 });
-  await treeNode.scrollIntoViewIfNeeded();
-  await treeNode.click({ timeout: 5_000 }).catch(async () => {
-    await treeNode.dispatchEvent("click");
-  });
+  await expect(async () => {
+    await page
+      .locator("[data-onboarding='daily-tree'] .tree-node-group-rough[role='button']")
+      .first()
+      .click({ force: true, timeout: 2_000 });
+  }).toPass({ timeout: 15_000 });
 
   await expect(promptTitle).not.toBeVisible({ timeout: 5_000 });
 
