@@ -494,9 +494,11 @@ function openPhotoGallery(): void {
 }
 
 .dark .win-state__target-image-zoom {
-  background: color-mix(in srgb, var(--color-ink, #1f2937) 88%, transparent);
-  border-color: #4b5563;
-  color: #e5e7eb;
+  /* --color-ink is light text in dark mode; use paper (surface) for the chip */
+  background: color-mix(in srgb, var(--color-paper, #1e293b) 92%, transparent);
+  border-color: var(--color-border, #4b5563);
+  color: var(--color-ink, #f9fafb);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 .win-state__target-description-block {
