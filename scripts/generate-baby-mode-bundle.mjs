@@ -139,8 +139,7 @@ async function fetchTaxonWithAncestors(id, attempt = 1) {
       throw new Error(`iNat returned no taxon for id ${id}`);
     }
     return taxon;
-  }
-  catch (error) {
+  } catch (error) {
     if (attempt >= 3) {
       throw error;
     }
