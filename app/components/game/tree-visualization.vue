@@ -277,6 +277,10 @@ function isEmojiAnimalLabel(node: TreeNode): boolean {
   );
 }
 
+function isTargetConcealed(node: TreeNode): boolean {
+  return Boolean(node.isTarget && !props.showTarget && !isDevMode.value);
+}
+
 function getNodeClass(node: TreeNode): string {
   const classes = ["tree-node"];
   if (node.type === "animal") {
@@ -464,11 +468,11 @@ function renderTreeWithRough(): void {
           nodeGroup.setAttribute("aria-selected", focusedNodeId.value === node.id ? "true" : "false");
           nodeGroup.setAttribute("role", "button");
           // Set tabindex: focused node gets "0", first node gets "0" if none focused, others get "-1"
-          // In production, target nodes should not be focusable
+          // Concealed mystery targets stay non-focusable until the game ends
           const isFirstNode = Array.from(computedNodes.value.values()).indexOf(node) === 0;
           const shouldBeFocusable = (focusedNodeId.value === node.id
             || (!focusedNodeId.value && isFirstNode))
-          && (isDevMode.value || !node.isTarget);
+          && !isTargetConcealed(node);
           nodeGroup.setAttribute("tabindex", shouldBeFocusable ? "0" : "-1");
 
           // Add an invisible hit area rectangle so the group is clickable
@@ -518,9 +522,8 @@ function renderTreeWithRough(): void {
           }
 
           // Add click handlers
-          // Handle click event - this should fire on first click
-          // In production, disable pointer events for target nodes to prevent clicking
-          if (!isDevMode.value && node.isTarget) {
+          // Concealed mystery targets ignore pointer events until revealed
+          if (isTargetConcealed(node)) {
             nodeGroup.setAttribute("style", "pointer-events: none;");
             hitArea.setAttribute("cursor", "default");
           }
@@ -626,8 +629,8 @@ function updateNodeTabIndices(): void {
   nodeGroups.forEach((group) => {
     const nodeId = group.getAttribute("data-node-id");
     const isTargetNode = group.classList.contains("tree-node--target");
-    // In production, target nodes should not be focusable
-    if (!isDevMode.value && isTargetNode) {
+    // Concealed mystery targets stay non-focusable until revealed
+    if (isTargetNode && !props.showTarget && !isDevMode.value) {
       group.setAttribute("tabindex", "-1");
     } else if (nodeId === focusedNodeId.value) {
       group.setAttribute("tabindex", "0");
@@ -643,11 +646,10 @@ function getNodeAriaLabel(node: TreeNode): string {
     parts.push(t("game.ariaNodeAnimal"));
     if (node.isTarget) {
       parts.push(t("game.ariaMystery"));
-      // In production, don't reveal the target animal name in aria-label
-      if (isDevMode.value) {
-        parts.push(node.name);
-      } else {
+      if (isTargetConcealed(node)) {
         parts.push(t("game.ariaUnknownMystery"));
+      } else {
+        parts.push(node.name);
       }
     } else {
       parts.push(node.name);
@@ -655,8 +657,7 @@ function getNodeAriaLabel(node: TreeNode): string {
     if (node.isGuess) {
       parts.push(t("game.ariaGuessed"));
     }
-    // Only include scientific name if not target in production
-    if (node.data?.scientificName && (isDevMode.value || !node.isTarget)) {
+    if (node.data?.scientificName && !isTargetConcealed(node)) {
       parts.push(t("game.ariaScientificName", { name: node.data.scientificName }));
     }
   } else {
@@ -673,8 +674,8 @@ function getNodeAriaLabel(node: TreeNode): string {
 }
 
 function handleNodeClick(node: TreeNode): void {
-  // In production, prevent clicking on target nodes to avoid revealing the answer
-  if (!isDevMode.value && node.isTarget) {
+  // Keep the mystery answer concealed until the game ends (or in dev mode)
+  if (isTargetConcealed(node)) {
     return;
   }
   focusedNodeId.value = node.id;
@@ -774,11 +775,9 @@ function handleKeyDown(event: KeyboardEvent): void {
     return;
   }
 
-  // In production, filter out target nodes from navigation
+  // Keep concealed mystery targets out of keyboard navigation until revealed
   const allNodes = Array.from(computedNodes.value.values());
-  const nodes = isDevMode.value
-    ? allNodes
-    : allNodes.filter(n => !n.isTarget);
+  const nodes = allNodes.filter(n => !isTargetConcealed(n));
   const currentIndex = focusedNodeId.value
     ? nodes.findIndex(n => n.id === focusedNodeId.value)
     : -1;

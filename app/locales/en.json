@@ -63,7 +63,6 @@
     "openPicker": "Choose an animal",
     "guessAnimal": "Guess {name}",
     "alreadyGuessed": "{name}, already guessed",
-    "winTreeTitle": "Your tree",
     "clades": {
       "Actinopterygii": "Fish",
       "Animalia": "Animals",
@@ -482,8 +481,6 @@
     "evolutionaryDistanceHelpAria": "What is evolutionary distance?",
     "evolutionaryDistanceHelp": "How close your best guess was on the taxonomy ladder: lower is closer to the mystery animal. When you did not find the mystery animal, this counts how many taxonomic ranks still separated your closest guess from the mystery animal's deepest level.",
     "resultsCopiedToClipboard": "Results copied to clipboard",
-    "copyResultsToClipboard": "Copy results to clipboard",
-    "completePhylogeneticTree": "Complete Phylogenetic Tree",
-    "learningFootnote": "Every guess traces a real branch of life, take a moment to see how species connect."
+    "copyResultsToClipboard": "Copy results to clipboard"
   }
 }

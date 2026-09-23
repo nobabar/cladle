@@ -705,6 +705,66 @@ describe("gameStore", () => {
       expect(store.treeData?.target?.data).toEqual(localized);
     });
 
+    it("should enrich baby mode target media without replacing beginner name", () => {
+      const store = getGameStore();
+      store.gameMode = "baby";
+      store.startGame(tiger, 8);
+      const localized = {
+        ...tiger,
+        name: "Tigre",
+        imageUrl: "https://example.com/tiger.jpg",
+        description: "<p>Le tigre est un grand felin.</p>",
+        wikipediaUrl: "https://fr.wikipedia.org/wiki/Tigre",
+      };
+
+      store.applyLocalizedTarget(localized);
+
+      expect(store.target?.name).toBe(tiger.name);
+      expect(store.target?.imageUrl).toBe("https://example.com/tiger.jpg");
+      expect(store.target?.description).toContain("tigre");
+      expect(store.target?.wikipediaUrl).toContain("wikipedia");
+      expect(store.treeData?.target?.name).toBe(tiger.name);
+      expect(store.treeData?.target?.data?.imageUrl).toBe("https://example.com/tiger.jpg");
+    });
+
+    it("should keep baby bundle media when localized fields are empty strings", () => {
+      const store = getGameStore();
+      store.gameMode = "baby";
+      const bundled = {
+        ...tiger,
+        imageUrl: "https://example.com/bundle-tiger.jpg",
+        description: "<p>Bundle copy.</p>",
+        wikipediaUrl: "https://en.wikipedia.org/wiki/Panthera%20tigris",
+      };
+      store.startGame(bundled, 8);
+
+      store.applyLocalizedTarget({
+        ...tiger,
+        name: "Tigre",
+        imageUrl: "",
+        description: "   ",
+        wikipediaUrl: "",
+      });
+
+      expect(store.target?.imageUrl).toBe("https://example.com/bundle-tiger.jpg");
+      expect(store.target?.description).toBe("<p>Bundle copy.</p>");
+      expect(store.target?.wikipediaUrl).toBe("https://en.wikipedia.org/wiki/Panthera%20tigris");
+    });
+
+    it("should clear baby description ahead of a non-English locale sync", () => {
+      const store = getGameStore();
+      store.gameMode = "baby";
+      store.startGame({
+        ...tiger,
+        description: "<p>English flash.</p>",
+      }, 8);
+
+      store.clearTargetDescriptionForLocaleSync();
+
+      expect(store.target?.description).toBeUndefined();
+      expect(store.treeData?.target?.data?.description).toBeUndefined();
+    });
+
     it("should ignore applyLocalizedTarget when id does not match", () => {
       const store = getGameStore();
       store.startGame(tiger, 6);

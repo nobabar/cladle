@@ -438,7 +438,7 @@ onMounted(() => {
           >
             <GameTreeVisualization
               :tree-data="treeData"
-              :show-target="false"
+              :show-target="gameStore.hasEnded"
               class="w-full h-full"
               @nodeClick="handleNodeClick"
             />
@@ -492,7 +492,7 @@ onMounted(() => {
       </div>
 
       <!-- Win/Loss State Component - positioned relative to notebook-sheet -->
-      <GameWinState @node-click="handleNodeClick" />
+      <GameWinState />
 
       <!-- Information Panel Component - positioned relative to notebook-sheet -->
       <GameInformationPanelPostit

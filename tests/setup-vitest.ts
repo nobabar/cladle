@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import { vi } from "vitest";
 import en from "~/locales/en.json";
+import fr from "~/locales/fr.json";
 
 /**
  * Nuxt provides `useCookie` etc.; Vitest does not. Stub reading-font preference so
@@ -46,6 +47,11 @@ interface MessageTree {
   [key: string]: string | MessageTree;
 }
 
+const messagesByLocale: Record<string, MessageTree> = {
+  en: en as MessageTree,
+  fr: fr as MessageTree,
+};
+
 function interpolate(template: string, params: TranslateParams = {}) {
   return template.replace(/\{(\w+)\}/g, (_, token: string) => String(params[token] ?? ""));
 }
@@ -64,11 +70,15 @@ function hasMessageByKey(tree: MessageTree, key: string): boolean {
 
 const localeRef = { value: "en" };
 
+function activeMessages(): MessageTree {
+  return messagesByLocale[localeRef.value] ?? messagesByLocale.en!;
+}
+
 const i18nMock = {
   locale: localeRef,
   t: (key: string, params?: TranslateParams) =>
-    interpolate(getMessageByKey(en as MessageTree, key) ?? key, params),
-  te: (key: string) => hasMessageByKey(en as MessageTree, key),
+    interpolate(getMessageByKey(activeMessages(), key) ?? key, params),
+  te: (key: string) => hasMessageByKey(activeMessages(), key),
   setLocale: vi.fn(async (nextLocale: string) => {
     localeRef.value = nextLocale;
   }),

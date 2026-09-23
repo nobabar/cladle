@@ -5,7 +5,7 @@
  * and integration with game store.
  */
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mount } from "@vue/test-utils";
 import { nextTick } from "vue";
 import WinState from "~/components/game/win-state.vue";
@@ -15,17 +15,6 @@ import type { Animal } from "~/types/animal";
 import type { TreeData, TreeNode } from "~/types/tree";
 import { calculateLCA } from "~/utils/lcaCalculator";
 import { lineageFromNames } from "~/utils/taxonLineage";
-
-// Stub GameTreeVisualization component
-const GameTreeVisualizationStub = {
-  name: "GameTreeVisualization",
-  template: `
-    <div class="tree-visualization-stub">
-      <slot />
-    </div>
-  `,
-  props: ["treeData", "showTarget", "width", "height", "babyModeTree", "stickerByAnimalId"],
-};
 
 // Stub Icon component (from @nuxt/icon) - not auto-imported in test env
 const IconStub = {
@@ -60,7 +49,6 @@ function mountWithStubs(component: any, options: any = {}) {
       stubs: {
         // Render teleported content in-place for predictable DOM assertions
         Teleport: true,
-        GameTreeVisualization: GameTreeVisualizationStub,
         Icon: IconStub,
         UTooltip: UTooltipStub,
         UModal: UModalStub,
@@ -173,6 +161,11 @@ describe("winState Component", () => {
     });
   });
 
+  afterEach(() => {
+    const { locale } = useI18n();
+    locale.value = "en";
+  });
+
   describe("component Rendering", () => {
     it("should not render when game has not ended", () => {
       const store = getGameStore();
@@ -240,9 +233,6 @@ describe("winState Component", () => {
       expect(
         wrapper.find("[data-testid=\"win-state-share-ready\"]").exists(),
       ).toBe(false);
-      expect(
-        wrapper.find("[data-testid=\"win-state-learning-footnote\"]").exists(),
-      ).toBe(false);
     });
 
     it("shows share affordance when game ended on desktop", async () => {
@@ -263,9 +253,6 @@ describe("winState Component", () => {
       expect(
         wrapper.find("[data-testid=\"win-state-furthest-evolutionary-distance\"]").exists(),
       ).toBe(true);
-      expect(
-        wrapper.find("[data-testid=\"win-state-learning-footnote\"]").exists(),
-      ).toBe(true);
     });
 
     it("shows share affordance when game ended on mobile modal", async () => {
@@ -285,9 +272,6 @@ describe("winState Component", () => {
       ).toBe(true);
       expect(
         wrapper.find("[data-testid=\"win-state-furthest-evolutionary-distance\"]").exists(),
-      ).toBe(true);
-      expect(
-        wrapper.find("[data-testid=\"win-state-learning-footnote\"]").exists(),
       ).toBe(true);
     });
 
@@ -594,8 +578,8 @@ describe("winState Component", () => {
     });
   });
 
-  describe("tree Visualization Integration", () => {
-    it("should display tree visualization in win state", async () => {
+  describe("result content layout", () => {
+    it("should show animal reveal card without an embedded tree", async () => {
       const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
@@ -605,39 +589,10 @@ describe("winState Component", () => {
       const wrapper = mountWithStubs(WinState);
       await nextTick();
 
-      // Check for tree visualization component
-      const treeContainer = wrapper.find(".win-state__tree-container");
-      expect(treeContainer.exists()).toBe(true);
-    });
-
-    it("should display tree visualization in loss state", async () => {
-      const store = getGameStore();
-      const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
-      store.startGame(target, 6);
-      store.status = "lost";
-      store.treeData = createSimpleTreeData();
-
-      const wrapper = mountWithStubs(WinState);
-      await nextTick();
-
-      const treeContainer = wrapper.find(".win-state__tree-container");
-      expect(treeContainer.exists()).toBe(true);
-    });
-
-    it("should pass showTarget=true to tree visualization", async () => {
-      const store = getGameStore();
-      const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
-      store.startGame(target, 6);
-      store.status = "won";
-      store.treeData = createSimpleTreeData();
-
-      const wrapper = mountWithStubs(WinState);
-      await nextTick();
-
-      // The tree visualization should receive showTarget prop
-      // This is verified by checking the component is rendered
-      const treeContainer = wrapper.find(".win-state__tree-container");
-      expect(treeContainer.exists()).toBe(true);
+      expect(wrapper.find(".win-state__reveal").exists()).toBe(true);
+      expect(wrapper.find("[data-testid=\"win-state-target-image-button\"]").exists()).toBe(true);
+      expect(wrapper.find(".win-state__tree-container").exists()).toBe(false);
+      expect(wrapper.findComponent({ name: "GameTreeVisualization" }).exists()).toBe(false);
     });
   });
 
@@ -667,19 +622,25 @@ describe("winState Component", () => {
       expect(wrapper.text()).toContain("Lion");
     });
 
-    it("should read tree data from store", async () => {
+    it("should still show animal reveal when tree data is missing", async () => {
       const store = getGameStore();
       const target = createMockAnimal("Tiger", "Panthera tigris", ["Animalia"]);
       store.startGame(target, 6);
       store.status = "won";
-      const treeData = createSimpleTreeData();
-      store.treeData = treeData;
+      store.treeData = null;
+
+      Object.defineProperty(window, "innerWidth", {
+        writable: true,
+        configurable: true,
+        value: 1280,
+      });
 
       const wrapper = mountWithStubs(WinState);
       await nextTick();
 
-      // Tree should be displayed
-      expect(wrapper.find(".win-state__tree-container").exists()).toBe(true);
+      expect(wrapper.find(".win-state__content--win").exists()).toBe(true);
+      expect(wrapper.find(".win-state__reveal").exists()).toBe(true);
+      expect(wrapper.find(".win-state__tree-container").exists()).toBe(false);
     });
 
     it("should react to status changes", async () => {
@@ -750,10 +711,12 @@ describe("winState Component", () => {
   });
 
   describe("baby mode", () => {
-    it("shows animal card and guess stats while keeping phylo metrics hidden", async () => {
+    it("shows animal card, description, and guess stats while keeping phylo metrics hidden", async () => {
       const store = getGameStore();
       const target = createMockAnimal("Dog", "Canis familiaris", ["Animalia", "Mammalia"]);
       target.url = "https://www.inaturalist.org/taxa/47144";
+      target.imageUrl = "https://example.com/dog.jpg";
+      target.description = "<p>Dogs are domesticated mammals.</p>";
       store.gameMode = "baby";
       store.startGame(target, 8);
       store.status = "won";
@@ -771,16 +734,41 @@ describe("winState Component", () => {
 
       expect(wrapper.text()).not.toMatch(/tree depth/i);
       expect(wrapper.find("[data-testid=\"win-state-furthest-evolutionary-distance\"]").exists()).toBe(false);
-      expect(wrapper.find("[data-testid=\"win-state-learning-footnote\"]").exists()).toBe(false);
-      expect(wrapper.find("[data-testid=\"win-state-target-description\"]").exists()).toBe(false);
+      expect(wrapper.find("[data-testid=\"win-state-target-description\"]").exists()).toBe(true);
+      expect(wrapper.find("[data-testid=\"win-state-target-description\"]").text()).toContain("domesticated");
       expect(wrapper.find("[data-testid=\"win-state-target-image-button\"]").exists()).toBe(true);
+      expect(wrapper.find(".win-state__target-image").exists()).toBe(true);
+      expect(wrapper.find(".win-state__target-sticker").exists()).toBe(false);
+      expect(wrapper.find(".win-state__reveal").exists()).toBe(true);
+      expect(wrapper.find(".win-state__tree-container").exists()).toBe(false);
       expect(wrapper.find("[data-testid=\"win-state-stats\"]").exists()).toBe(true);
       expect(wrapper.text()).toMatch(/1 guess/i);
       expect(wrapper.text()).toContain("iNaturalist");
+    });
 
-      const tree = wrapper.findComponent({ name: "GameTreeVisualization" });
-      expect(tree.props("babyModeTree")).toBe(true);
-      expect(tree.props("stickerByAnimalId")).toBeTruthy();
+    it("uses the localized beginner name in the win message", async () => {
+      const { locale } = useI18n();
+      locale.value = "fr";
+
+      const store = getGameStore();
+      const target = createMockAnimal("Zebra", "Equus quagga", ["Animalia", "Mammalia"]);
+      target.id = "43335";
+      store.gameMode = "baby";
+      store.startGame(target, 8);
+      store.status = "won";
+      store.treeData = createSimpleTreeData();
+
+      Object.defineProperty(window, "innerWidth", {
+        writable: true,
+        configurable: true,
+        value: 1280,
+      });
+
+      const wrapper = mountWithStubs(WinState);
+      await nextTick();
+
+      expect(wrapper.text()).toContain("Zèbre");
+      expect(wrapper.text()).not.toContain("Zebra");
     });
   });
 });

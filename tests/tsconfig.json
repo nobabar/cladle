@@ -3,5 +3,8 @@
   "compilerOptions": {
     "types": ["vitest/globals"]
   },
-  "include": ["./**/*"]
+  "include": [
+    "./**/*",
+    "../.nuxt/nuxt.d.ts"
+  ]
 }

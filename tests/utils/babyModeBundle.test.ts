@@ -58,6 +58,14 @@ describe("babyModeBundle", () => {
         }
       }
     });
+
+    it("includes photo, Wikipedia URL, and description for every organism", () => {
+      for (const animal of listBabyModeAnimals()) {
+        expect(animal.imageUrl).toBeTruthy();
+        expect(animal.wikipediaUrl).toBeTruthy();
+        expect(animal.description).toBeTruthy();
+      }
+    });
   });
 
   describe("lca contract", () => {
