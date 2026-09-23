@@ -1,20 +1,15 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import GameWinStateResultContent from "~/components/game/win-state-result-content.vue";
-import type { TreeNode } from "~/types/tree";
 import { useGameStore } from "~/stores/gameStore";
 import { useResponsive } from "~/composables/useResponsive";
 import { useSharing } from "~/composables/useSharing";
 import { useUiIcons } from "~/composables/useUiIcons";
 import { calculatePhylogeneticMetrics } from "~/utils/sharingFormatter";
-import { babyModeStickerMap, hasBabyModeCladeInCatalog, simplifyBabyModeTree } from "~/utils/babyMode";
-
-const emit = defineEmits<{
-  nodeClick: [node: TreeNode];
-}>();
+import { babyModeStickerMap } from "~/utils/babyMode";
 
 const gameStore = useGameStore();
-const { t } = useI18n();
+const { t, te } = useI18n();
 const uiIcon = useUiIcons();
 const { isMobile, isTablet, isDesktop } = useResponsive();
 
@@ -24,18 +19,24 @@ const isLost = computed(() => gameStore.isLost);
 const targetAnimal = computed(() => gameStore.target);
 const isBabyMode = computed(() => gameStore.gameMode === "baby");
 const treeData = computed(() => gameStore.treeData);
-const displayTreeData = computed(() => {
-  if (!treeData.value) {
-    return null;
-  }
-  if (!isBabyMode.value) {
-    return treeData.value;
-  }
-  return simplifyBabyModeTree(treeData.value, hasBabyModeCladeInCatalog);
-});
 const babyModeStickers = computed(() => (isBabyMode.value ? babyModeStickerMap() : undefined));
 const guessCount = computed(() => gameStore.guesses.length);
 const maxGuesses = computed(() => gameStore.maxGuesses);
+
+/** Beginner catalog name when available; otherwise the store target name. */
+const displayTargetName = computed(() => {
+  const target = targetAnimal.value;
+  if (!target) {
+    return "";
+  }
+  if (isBabyMode.value) {
+    const key = `babyMode.organisms.${target.id}`;
+    if (te(key)) {
+      return t(key);
+    }
+  }
+  return target.name;
+});
 
 /**
  * General (non-spoiler) phylogenetic metrics for win/loss state display.
@@ -60,14 +61,14 @@ const winMessage = computed(() => {
   if (!targetAnimal.value) {
     return t("winState.winWithoutName");
   }
-  return t("winState.winWithName", { name: targetAnimal.value.name });
+  return t("winState.winWithName", { name: displayTargetName.value });
 });
 
 const lossMessage = computed(() => {
   if (!targetAnimal.value) {
     return t("winState.lossWithoutName");
   }
-  return t("winState.lossWithName", { name: targetAnimal.value.name });
+  return t("winState.lossWithName", { name: displayTargetName.value });
 });
 
 const resultTitle = computed(() => (isWon.value
@@ -350,12 +351,8 @@ onUnmounted(() => {
                 :phylo-metrics="phyloMetrics"
                 :is-share-ready="isBabyMode ? false : isShareReady"
                 :last-copy-status="lastCopyStatus"
-                :tree-data="displayTreeData"
                 :sticker-by-animal-id="babyModeStickers"
-                :tree-width="800"
-                :tree-height="400"
                 @copy="copyShareText"
-                @node-click="emit('nodeClick', $event)"
               />
             </div>
           </div>
@@ -446,12 +443,8 @@ onUnmounted(() => {
           :phylo-metrics="phyloMetrics"
           :is-share-ready="isBabyMode ? false : isShareReady"
           :last-copy-status="lastCopyStatus"
-          :tree-data="displayTreeData"
           :sticker-by-animal-id="babyModeStickers"
-          :tree-width="380"
-          :tree-height="600"
           @copy="copyShareText"
-          @node-click="emit('nodeClick', $event)"
         />
       </div>
       <!-- Collapsed state: thin strip with expand button at top + vertical status -->
@@ -512,7 +505,7 @@ onUnmounted(() => {
   bottom: 0;
   /* Align with notebook-sheet's right edge */
   right: 0;
-  width: 400px;
+  width: 360px;
   max-width: 90vw;
   background: var(--color-paper, #FDFBF5);
   border-left: 1px solid var(--color-border-subtle, #E2D6C3);
@@ -670,7 +663,8 @@ onUnmounted(() => {
   flex: 1 1 0;
   min-width: 0;
   padding: 1.5rem;
-  overflow: visible;
+  overflow-x: hidden;
+  overflow-y: auto;
   transition: flex 0.25s ease-out, opacity 0.2s ease-out;
   display: flex;
   flex-direction: column;
@@ -805,7 +799,7 @@ onUnmounted(() => {
   border-radius: 0.5rem;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   width: 100%;
-  max-width: 42rem;
+  max-width: 28rem;
   max-height: 90vh;
   overflow: hidden;
   display: flex;

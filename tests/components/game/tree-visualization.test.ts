@@ -823,6 +823,58 @@ describe("treeVisualization", () => {
     });
   });
 
+  describe("target concealment until game end", () => {
+    async function mountWithReveal(showTarget: boolean) {
+      const treeData = createSimpleTreeData();
+      const wrapper = mountWithStubs(TreeVisualization, {
+        props: {
+          treeData,
+          showTarget,
+        },
+      });
+      await nextTick();
+      await new Promise(resolve => setTimeout(resolve, 100));
+      return wrapper;
+    }
+
+    function findTargetGroup(wrapper: ReturnType<typeof mountWithStubs>) {
+      const groups = wrapper.findAll("g[role='button']");
+      const target = groups.find(group => group.classes().includes("tree-node--target"));
+      expect(target).toBeTruthy();
+      return target!;
+    }
+
+    it("keeps the mystery target non-interactive and unnamed while concealed", async () => {
+      const wrapper = await mountWithReveal(false);
+      const targetGroup = findTargetGroup(wrapper);
+
+      expect(targetGroup.attributes("tabindex")).toBe("-1");
+      expect(targetGroup.attributes("style") ?? "").toContain("pointer-events: none");
+      expect(targetGroup.attributes("aria-label")).toMatch(/unknown/i);
+      expect(targetGroup.attributes("aria-label")).not.toMatch(/Tiger/i);
+
+      await targetGroup.trigger("click");
+      await nextTick();
+      expect(wrapper.emitted("nodeClick")).toBeFalsy();
+    });
+
+    it("reveals target name, focusability, and click after showTarget (hasEnded)", async () => {
+      const wrapper = await mountWithReveal(true);
+      const targetGroup = findTargetGroup(wrapper);
+
+      expect(targetGroup.attributes("aria-label")).toMatch(/Tiger/i);
+      expect(targetGroup.attributes("aria-label")).not.toMatch(/unknown/i);
+      expect(targetGroup.attributes("style") ?? "").not.toContain("pointer-events: none");
+
+      await targetGroup.trigger("click");
+      await nextTick();
+
+      const emitted = wrapper.emitted("nodeClick");
+      expect(emitted).toBeTruthy();
+      expect(emitted![0]![0]).toMatchObject({ id: "target", isTarget: true });
+    });
+  });
+
   describe("responsive Behavior", () => {
     it("updates dimensions on window resize", async () => {
       const treeData = createSimpleTreeData();

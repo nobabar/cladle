@@ -24,6 +24,22 @@ export type GameStatus = "idle" | "playing" | "won" | "lost";
 export type CompletionStatus = "playing" | "won" | "lost";
 export type GameMode = "daily" | "free-play" | "baby";
 
+/**
+ * Prefer a non-empty incoming string; otherwise keep the current value.
+ * @param next - Candidate value from a locale fetch
+ * @param current - Existing target field
+ * @returns The preferred string, or undefined when both are empty
+ */
+function preferNonEmptyString(
+  next: string | undefined,
+  current: string | undefined,
+): string | undefined {
+  if (typeof next === "string" && next.trim().length > 0) {
+    return next;
+  }
+  return current;
+}
+
 export interface GuessEntry {
   /** The guessed animal */
   animal: Animal;
@@ -644,7 +660,8 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
-     * Replace target fields from a locale-specific fetch (name, description, wiki URLs).
+     * Merge locale-specific fetch fields onto the current target (name, description, wiki, photo).
+     * Baby Mode keeps the beginner catalog name and offline lineage; only enriches media/copy.
      * Updates the target leaf on the phylogenetic tree when present.
      * @param animal - Locale-specific animal payload for the current target taxon
      */
@@ -653,18 +670,63 @@ export const useGameStore = defineStore("game", {
         return;
       }
 
-      this.target = animal;
+      if (this.gameMode === "baby") {
+        const enriched: Animal = {
+          ...this.target,
+          imageUrl: preferNonEmptyString(animal.imageUrl, this.target.imageUrl),
+          description: preferNonEmptyString(animal.description, this.target.description),
+          wikipediaUrl: preferNonEmptyString(animal.wikipediaUrl, this.target.wikipediaUrl),
+          url: preferNonEmptyString(animal.url, this.target.url),
+        };
+        this.target = enriched;
 
-      const targetNode = this.treeData?.target;
-      if (targetNode) {
-        targetNode.name = animal.name;
-        if (targetNode.data) {
-          targetNode.data = animal;
+        const targetNode = this.treeData?.target;
+        if (targetNode?.data) {
+          targetNode.data = {
+            ...targetNode.data,
+            imageUrl: enriched.imageUrl,
+            description: enriched.description,
+            wikipediaUrl: enriched.wikipediaUrl,
+            url: enriched.url,
+          };
+        }
+      } else {
+        this.target = animal;
+
+        const targetNode = this.treeData?.target;
+        if (targetNode) {
+          targetNode.name = animal.name;
+          if (targetNode.data) {
+            targetNode.data = animal;
+          }
         }
       }
 
       if (this.gameMode) {
         this.saveModeState(this.gameMode);
+      }
+    },
+
+    /**
+     * Drop English Wikipedia copy before a non-English locale fetch so the UI does not flash EN text.
+     * Keeps photo/lineage for offline baby mode.
+     */
+    clearTargetDescriptionForLocaleSync(): void {
+      if (!this.target?.description) {
+        return;
+      }
+
+      this.target = {
+        ...this.target,
+        description: undefined,
+      };
+
+      const targetNode = this.treeData?.target;
+      if (targetNode?.data) {
+        targetNode.data = {
+          ...targetNode.data,
+          description: undefined,
+        };
       }
     },
 

@@ -63,7 +63,6 @@
     "openPicker": "Choisir un animal",
     "guessAnimal": "Deviner {name}",
     "alreadyGuessed": "{name}, déjà deviné",
-    "winTreeTitle": "Ton arbre",
     "clades": {
       "Actinopterygii": "Poissons",
       "Animalia": "Animaux",
@@ -482,8 +481,6 @@
     "evolutionaryDistanceHelpAria": "Qu'est-ce que la distance évolutive ?",
     "evolutionaryDistanceHelp": "Indique à quel point votre meilleur essai était proche sur l'échelle taxonomique : plus la valeur est basse, plus vous étiez proche de l'animal mystère.",
     "resultsCopiedToClipboard": "Résultats copiés dans le presse-papiers",
-    "copyResultsToClipboard": "Copier les résultats dans le presse-papiers",
-    "completePhylogeneticTree": "Arbre phylogénétique complet",
-    "learningFootnote": "Chaque essai suit une branche réelle du vivant, prenez un moment pour voir comment les espèces sont liées les unes aux autres."
+    "copyResultsToClipboard": "Copier les résultats dans le presse-papiers"
   }
 }

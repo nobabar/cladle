@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-09-20T16:26:35.288Z",
+  "generatedAt": "2026-09-22T19:07:03.720Z",
   "animals": [
     {
       "id": "47144",
@@ -74,7 +74,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/47144"
+      "url": "https://www.inaturalist.org/taxa/47144",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/307568930/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Canis%20familiaris",
+      "description": "The <b>domestic dog</b> (<i>Canis lupus familiaris</i> or <i>Canis familiaris</i>) is a canid in the genus <i>Canis</i>, and is the most widely abundant terrestrial carnivore. The dog and the extant gray wolf are sister taxa as modern wolves are not closely related to the wolves that were first domesticated, which implies that the direct ancestor of the dog is extinct. The dog is the first species to be domesticated and has been selectively bred over millennia for..."
     },
     {
       "id": "42069",
@@ -148,7 +151,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/42069"
+      "url": "https://www.inaturalist.org/taxa/42069",
+      "imageUrl": "https://static.inaturalist.org/photos/265916780/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Vulpes%20vulpes",
+      "description": "The <b>red fox</b> (<i>Vulpes vulpes</i>) is the largest of the true foxes and one of the most widely distributed members of the order Carnivora, being present across the entire Northern Hemisphere from the Arctic Circle to North Africa, North America and Eurasia. It is listed as least concern by the IUCN. Its range has increased alongside human expansion, having been introduced to Australia, where it is considered harmful to native mammals and bird populations. Due to..."
     },
     {
       "id": "118552",
@@ -228,7 +234,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/118552"
+      "url": "https://www.inaturalist.org/taxa/118552",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/129658776/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Felis%20catus",
+      "description": "The <b>cat</b> (<i><b>Felis catus</b></i>), commonly referred to as the <b>domestic cat</b> or <b>house cat</b>, is the only domesticated species in the family Felidae. Recent advances in archaeology and genetics have shown that the domestication of the cat occurred in the Near East around 7500 BC. It is commonly kept as a house pet and farm cat, but also ranges freely as a feral cat avoiding human contact. It is valued by humans for companionship and its..."
     },
     {
       "id": "41964",
@@ -308,7 +317,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/41964"
+      "url": "https://www.inaturalist.org/taxa/41964",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/9225318/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Panthera%20leo",
+      "description": "The <b>lion</b> (<i>Panthera leo</i>) is a species in the family Felidae and a member of the genus <i>Panthera</i>. It has been listed as Vulnerable on the IUCN Red List since 1996, as populations in African range countries declined by about 43% since the early 1990s. Lion populations are untenable outside designated protected areas. Although the cause of the decline is not fully understood, habitat loss and conflicts with humans are the greatest causes of concern. The..."
     },
     {
       "id": "41641",
@@ -388,7 +400,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/41641"
+      "url": "https://www.inaturalist.org/taxa/41641",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/1491897/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Ursus%20arctos",
+      "description": "The <b>brown bear</b> (<i>Ursus arctos</i>) is the most widely distributed bear and is found across much of northern Eurasia and North America. It is one of the largest living terrestrial members of the order Carnivora, rivaled in body size only by its close cousin, the polar bear (<i>Ursus maritimus</i>), which is much less variable in size and slightly larger on average."
     },
     {
       "id": "41659",
@@ -468,7 +483,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/41659"
+      "url": "https://www.inaturalist.org/taxa/41659",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/150277588/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Ailuropoda%20melanoleuca",
+      "description": "The <b>giant panda</b> (<i>Ailuropoda melanoleuca</i>, literally \"black and white cat-foot\"; Chinese: 大熊猫; pinyin: <i>dà xióng māo</i>, literally \"big bear cat\"), also known as <b>panda bear</b> or simply <b>panda</b>, is a bear native to south central China. It is easily recognized by the large, distinctive black patches around its eyes, over the ears, and across its round body. The name \"giant panda\" is sometimes used to distinguish it from the unrelated red panda. Though it belongs to..."
     },
     {
       "id": "209233",
@@ -542,7 +560,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/209233"
+      "url": "https://www.inaturalist.org/taxa/209233",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/23672580/medium.jpeg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Equus%20caballus",
+      "description": "The <b>horse</b> (<i>Equus ferus caballus</i>) is one of two extant subspecies of <i>Equus ferus</i>. It is an odd-toed ungulate mammal belonging to the taxonomic family Equidae. The horse has evolved over the past 45 to 55 million years from a small multi-toed creature, <i>Eohippus</i>, into the large, single-toed animal of today. Humans began to domesticate horses around 4000 BC, and their domestication is believed to have been widespread by 3000 BC. Horses in the subspecies <i>caballus</i> are..."
     },
     {
       "id": "43335",
@@ -616,7 +637,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/43335"
+      "url": "https://www.inaturalist.org/taxa/43335",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/335469754/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Equus%20quagga",
+      "description": "The <b>plains zebra</b> (<i>Equus quagga</i>, formerly <i>Equus burchellii</i>), also known as the <b>common zebra</b> or <b>Burchell's zebra</b>, or locally as the \"<b>quagga</b>\" (not to be confused with the extinct subspecies), is the most common and geographically widespread species of zebra. It ranges from the south of Ethiopia through East Africa to as far south as Botswana and eastern South Africa. The plains zebra remains common in game reserves, but is threatened by human activities such as..."
     },
     {
       "id": "74113",
@@ -708,7 +732,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/74113"
+      "url": "https://www.inaturalist.org/taxa/74113",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/408007934/medium.jpeg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Bos%20taurus",
+      "description": "<b>Cattle</b>—colloquially <b>cows</b>—are the most common type of large domesticated ungulates. They are a prominent modern member of the subfamily Bovinae, are the most widespread species of the genus <i>Bos</i>, and are most commonly classified collectively as <i><b>Bos taurus</b></i>."
     },
     {
       "id": "121578",
@@ -800,7 +827,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/121578"
+      "url": "https://www.inaturalist.org/taxa/121578",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/632127459/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Ovis%20aries",
+      "description": "The <b>sheep</b> (<i>Ovis aries</i>) is a quadrupedal, ruminant mammal typically kept as livestock. Like all ruminants, sheep are members of the order Artiodactyla, the even-toed ungulates. Although the name \"sheep\" applies to many species in the genus <i>Ovis</i>, in everyday usage it almost always refers to <i>Ovis aries</i>. Numbering a little over one billion, domestic sheep are also the most numerous species of sheep. An adult female sheep is referred to as a <i>ewe</i> (/juː/), an..."
     },
     {
       "id": "123070",
@@ -892,7 +922,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/123070"
+      "url": "https://www.inaturalist.org/taxa/123070",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/6035700/medium.jpeg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Capra%20hircus",
+      "description": "The <b>domestic goat</b> (<i>Capra aegagrus hircus</i>) is a subspecies of goat domesticated from the wild goat of southwest Asia and Eastern Europe."
     },
     {
       "id": "42223",
@@ -984,7 +1017,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/42223"
+      "url": "https://www.inaturalist.org/taxa/42223",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/110157765/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Odocoileus%20virginianus",
+      "description": "The <b>white-tailed deer</b> (<i>Odocoileus virginianus</i>), also known as the <b>whitetail</b> or <b>Virginia deer</b>, is a medium-sized deer native to the United States, Canada, Mexico, Central America, and South America as far south as Peru and Bolivia. It has also been introduced to New Zealand, Cuba, Jamaica, Hispaniola, Puerto Rico, Bahamas, Lesser Antilles, and some countries in Europe, such as Finland, the Czech Republic, and Serbia. In the Americas, it is the most widely distributed wild ungulate."
     },
     {
       "id": "42157",
@@ -1064,7 +1100,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/42157"
+      "url": "https://www.inaturalist.org/taxa/42157",
+      "imageUrl": "https://static.inaturalist.org/photos/308239525/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/giraffe",
+      "description": "The <b>giraffe</b> (<i>Giraffa</i>) is a genus of African even-toed ungulate mammals, the tallest living terrestrial animals and the largest ruminants. The genus currently consists of one species, <i>Giraffa camelopardalis</i>, the type species. Seven other species are extinct, prehistoric species known from fossils. Taxonomic classifications of one to eight extant giraffe species have been described, based upon research into the mitochondrial and nuclear DNA, as well as morphological measurements of <i>Giraffa,</i> but the IUCN currently recognizes only..."
     },
     {
       "id": "41482",
@@ -1168,7 +1207,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/41482"
+      "url": "https://www.inaturalist.org/taxa/41482",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/611231392/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Tursiops%20truncatus",
+      "description": "The <b>common bottlenose dolphin</b> (<i>Tursiops truncatus</i>), or <b>Atlantic bottlenose dolphin</b>, is the most well-known species from the family Delphinidae."
     },
     {
       "id": "41553",
@@ -1260,7 +1302,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/41553"
+      "url": "https://www.inaturalist.org/taxa/41553",
+      "imageUrl": "https://static.inaturalist.org/photos/194385336/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Balaenoptera%20musculus",
+      "description": "The <b>blue whale</b> (<i>Balaenoptera musculus</i>) is a marine mammal belonging to the baleen whales (Mysticeti). At up to 29.9 metres (98 ft) in length and with a maximum recorded weight of 173 tonnes (190 short tons) and probably reaching over 181 tonnes (200 short tons), it is the largest animal known to have ever existed."
     },
     {
       "id": "43460",
@@ -1364,7 +1409,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/43460"
+      "url": "https://www.inaturalist.org/taxa/43460",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/8739674/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Macaca%20mulatta",
+      "description": "The <b>rhesus macaque</b> (<i>Macaca mulatta</i>) is one of the best-known species of Old World monkeys. It is listed as Least Concern in the IUCN Red List of Threatened Species in view of its wide distribution, presumed large population, and its tolerance of a broad range of habitats. Native to South, Central, and Southeast Asia, rhesus macaque troops inhabit a great variety of habitats, from grasslands to arid and forested areas, but also close to human settlements."
     },
     {
       "id": "43584",
@@ -1468,7 +1516,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/43584"
+      "url": "https://www.inaturalist.org/taxa/43584",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/80550183/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Homo%20sapiens",
+      "description": "<i><b>Homo sapiens</b></i> is the systematic name used in taxonomy (also known as binomial nomenclature) for anatomically modern humans, i.e. the only extant human species. The name is Latin for \"wise man\" and was introduced in 1758 by Carl Linnaeus (who is himself also the type specimen)."
     },
     {
       "id": "43580",
@@ -1572,7 +1623,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/43580"
+      "url": "https://www.inaturalist.org/taxa/43580",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/282241201/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Gorilla%20gorilla",
+      "description": "The <b>western gorilla</b> (<i>Gorilla gorilla</i>) is a great ape—the type species as well as the most populous species of the genus <i>Gorilla</i>."
     },
     {
       "id": "42888",
@@ -1658,7 +1712,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/42888"
+      "url": "https://www.inaturalist.org/taxa/42888",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/53221252/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Eastern%20grey%20kangaroo",
+      "description": "The <b>eastern grey kangaroo</b> (<i><b>Macropus giganteus</b></i>) is a marsupial found in the eastern third of Australia, with a population of several million. It is also known as the <b>great grey kangaroo</b> and the <b>forester kangaroo</b>. Although a big eastern grey male can typically weigh up to 69 kg (152 lb) and have a length of well over 2 m (6 ft 7 in), the scientific name, <i>Macropus giganteus</i> (gigantic large-foot), is misleading: the red kangaroo of the semi-arid inland is larger,..."
     },
     {
       "id": "42983",
@@ -1732,7 +1789,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/42983"
+      "url": "https://www.inaturalist.org/taxa/42983",
+      "imageUrl": "https://static.inaturalist.org/photos/425371537/medium.jpeg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Phascolarctos%20cinereus",
+      "description": "The <b>koala</b> (<i>Phascolarctos cinereus</i>, or, inaccurately, <b>koala bear</b>) is an arboreal herbivorous marsupial native to Australia. It is the only extant representative of the family Phascolarctidae and its closest living relatives are the wombats, which comprise the family Vombatidae. The koala is found in coastal areas of the mainland's eastern and southern regions, inhabiting Queensland, New South Wales, Victoria, and South Australia. It is easily recognisable by its stout, tailless body and large head with round,..."
     },
     {
       "id": "44705",
@@ -1836,7 +1896,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/44705"
+      "url": "https://www.inaturalist.org/taxa/44705",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/451428449/medium.jpeg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Mus%20musculus",
+      "description": "The <b>house mouse</b> (<i>Mus musculus</i>) is a small mammal of the order Rodentia, characteristically having a pointed snout, small rounded ears, and a long naked or almost hairless tail. It is one of the most numerous species of the genus <i>Mus</i>. Although a wild animal, the house mouse mainly lives in association with humans."
     },
     {
       "id": "46001",
@@ -1934,7 +1997,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/46001"
+      "url": "https://www.inaturalist.org/taxa/46001",
+      "imageUrl": "https://static.inaturalist.org/photos/6235808/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Sciurus%20vulgaris",
+      "description": "The <b>red squirrel</b> or <b>Eurasian red squirrel</b> (<i>Sciurus vulgaris</i>) is a species of tree squirrel in the genus <i>Sciurus</i> common throughout Eurasia. The red squirrel is an arboreal, omnivorous rodent."
     },
     {
       "id": "43794",
@@ -2014,7 +2080,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/43794"
+      "url": "https://www.inaturalist.org/taxa/43794",
+      "imageUrl": "https://static.inaturalist.org/photos/139683466/medium.jpeg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Castor%20canadensis",
+      "description": "The <b>North American beaver</b> (<i>Castor canadensis</i>) is one of two extant beaver species. It is native to North America and introduced to Patagonia in South America and some European countries (e.g. Finland). In the United States and Canada, the species is often referred to simply as \"beaver\", though this causes some confusion because another distantly related rodent, <i>Aplodontia rufa</i>, is often called the \"mountain beaver\". Other vernacular names, including <b>American beaver</b> and <b>Canadian beaver</b>, distinguish this..."
     },
     {
       "id": "43151",
@@ -2088,7 +2157,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/43151"
+      "url": "https://www.inaturalist.org/taxa/43151",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/520690657/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Oryctolagus%20cuniculus",
+      "description": "The <b>European rabbit</b> or <b>common rabbit</b> (<i>Oryctolagus cuniculus</i>) is a species of rabbit native to southwestern Europe (Spain, Portugal and Western France) and northwest Africa (Morocco and Algeria). It has been widely introduced elsewhere, often with devastating effects on local biodiversity. However, its decline in its native range (caused by the diseases myxomatosis and rabbit calicivirus, as well as overhunting and habitat loss), has caused the decline of its highly dependent predators, the Iberian lynx and..."
     },
     {
       "id": "6930",
@@ -2144,7 +2216,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/6930"
+      "url": "https://www.inaturalist.org/taxa/6930",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/95268822/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Anas%20platyrhynchos",
+      "description": "The <b>mallard</b> (/ˈmælɑːrd/ or /ˈmælərd/) (<i>Anas platyrhynchos</i>) is a dabbling duck that breeds throughout the temperate and subtropical Americas, Eurasia, and North Africa and has been introduced to New Zealand, Australia, Peru, Brazil, Uruguay, Argentina, Chile, the Falkland Islands, and South Africa. This duck belongs to the subfamily Anatinae of the waterfowl family Anatidae. The male birds (drakes) have a glossy green head and are grey on wings and belly while the females (hens or ducks)..."
     },
     {
       "id": "6921",
@@ -2200,7 +2275,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/6921"
+      "url": "https://www.inaturalist.org/taxa/6921",
+      "imageUrl": "https://static.inaturalist.org/photos/264781420/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Cygnus%20olor",
+      "description": "The <b>mute swan</b> (<i>Cygnus olor</i>) is a species of swan and a member of the waterfowl family Anatidae. It is native to much of Eurasia, and (as a rare winter visitor) the far north of Africa. It is an introduced species in North America, Australasia and southern Africa. The name 'mute' derives from it being less vocal than other swan species. Measuring 125 to 170 cm (49 to 67 in) in length, this large swan is wholly white..."
     },
     {
       "id": "882",
@@ -2256,7 +2334,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/882"
+      "url": "https://www.inaturalist.org/taxa/882",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/3784873/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Gallus%20gallus",
+      "description": "The <b>red junglefowl</b> (<i>Gallus gallus</i>) is a tropical member of the family Phasianidae. It is the primary progenitor of the domestic chicken (though genetic evidence strongly suggests some past hybridisation with the grey junglefowl as well). The red junglefowl was first domesticated at least five thousand years ago in Asia. Since then it has spread around the world, and the domestic form is kept globally as a very productive food source of both meat and eggs."
     },
     {
       "id": "1204",
@@ -2312,7 +2393,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/1204"
+      "url": "https://www.inaturalist.org/taxa/1204",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/165318600/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Pavo%20cristatus",
+      "description": "The <b>Indian peafowl</b> or <b>blue peafowl</b> (<i>Pavo cristatus</i>), a large and brightly coloured bird, is a species of peafowl native to South Asia, but introduced in many other parts of the world."
     },
     {
       "id": "39659",
@@ -2380,7 +2464,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/39659"
+      "url": "https://www.inaturalist.org/taxa/39659",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/197457958/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Chelonia%20mydas",
+      "description": "The <b>green sea turtle</b> (<i>Chelonia mydas</i>), also known as the <b>green turtle</b>, <b>black (sea) turtle</b> or <b>Pacific green turtle</b>, is a large sea turtle of the family Cheloniidae. It is the only species in the genus <i><b>Chelonia</b></i>. Its range extends throughout tropical and subtropical seas around the world, with two distinct populations in the Atlantic and Pacific Oceans, but it is also found in the Indian Ocean. The common name comes from the usually green fat..."
     },
     {
       "id": "238252",
@@ -2442,7 +2529,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/238252"
+      "url": "https://www.inaturalist.org/taxa/238252",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/56087430/medium.jpeg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Python%20bivittatus",
+      "description": "The <b>Burmese python</b> (<i>Python bivittatus</i>) is one of the five largest species of snakes in the world (about the third-largest as measured either by length or weight). It is native to a large area of tropical South and Southeast Asia. Until 2009, it was considered a subspecies of <i>Python molurus</i>, but now is recognized as belonging to a distinct species."
     },
     {
       "id": "35912",
@@ -2516,7 +2606,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/35912"
+      "url": "https://www.inaturalist.org/taxa/35912",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/343743366/medium.jpeg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Lacerta%20agilis",
+      "description": "The <b>sand lizard</b> (<i>Lacerta agilis</i>) is a lacertid lizard distributed across most of Europe and eastwards to Mongolia. It does not occur in the Iberian peninsula or European Turkey. Its distribution is often patchy."
     },
     {
       "id": "341972",
@@ -2572,7 +2665,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/341972"
+      "url": "https://www.inaturalist.org/taxa/341972",
+      "imageUrl": "https://static.inaturalist.org/photos/545741360/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Crocodylus%20niloticus",
+      "description": "The <b>Nile crocodile</b> (<i>Crocodylus niloticus</i>) is an African crocodile, the largest freshwater predator in Africa, and may be considered the second largest extant reptile in the world, after the saltwater crocodile (<i>Crocodylus porosus</i>). The Nile crocodile is quite widespread throughout Sub-Saharan Africa, occurring mostly in the central, eastern, and southern regions of the continent and lives in different types of aquatic environments such as lakes, rivers and marshlands. Although capable of living in saline environments, this..."
     },
     {
       "id": "58612",
@@ -2646,7 +2742,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/58612"
+      "url": "https://www.inaturalist.org/taxa/58612",
+      "imageUrl": "https://static.inaturalist.org/photos/203973907/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Carassius%20auratus",
+      "description": "The <b>goldfish</b> (<i>Carassius auratus</i>) is a freshwater fish in the family Cyprinidae of order Cypriniformes. It is one of the most commonly kept aquarium fish."
     },
     {
       "id": "144017",
@@ -2714,7 +2813,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/144017"
+      "url": "https://www.inaturalist.org/taxa/144017",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/487402233/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Arothron%20hispidus",
+      "description": "The <b>white-spotted puffer</b> (<i>Arothron hispidus</i>) is a medium to large-sized puffer fish, it can reach 50 cm length. It is light grey in color, or greyish or yellowish, and clearly covered with more or less regular white points, that become concentric contrasting white and dark grey lines that radiate around the eyes and pectoral fins. The ventral part is white. The \"shoulder\" (around the pectoral fins) is dark. It also has concentric contrasting white and dark grey..."
     },
     {
       "id": "48662",
@@ -2800,7 +2902,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/48662"
+      "url": "https://www.inaturalist.org/taxa/48662",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/227923335/medium.jpeg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Danaus%20plexippus",
+      "description": "The <b>monarch butterfly</b> or simply <b>monarch</b> (<i>Danaus plexippus</i>) is a milkweed butterfly (subfamily Danainae) in the family Nymphalidae. Other common names depending on region include <b>milkweed</b>, <b>common tiger</b>, <b>wanderer</b>, and <b>black veined brown</b>. It may be the most familiar North American butterfly, and is considered an iconic pollinator species. Its wings feature an easily recognizable black, orange, and white pattern, with a wingspan of 8.9–10.2 cm (​3 1⁄2–4 in) The viceroy butterfly is similar in color and..."
     },
     {
       "id": "47219",
@@ -2904,7 +3009,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/47219"
+      "url": "https://www.inaturalist.org/taxa/47219",
+      "imageUrl": "https://static.inaturalist.org/photos/2369526/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Apis%20mellifera",
+      "description": "The <b>western honey bee</b> or <b>European honey bee</b> (<i>Apis mellifera</i>) is the most common of the 7–12 species of honey bee worldwide. The genus name <i>Apis</i> is Latin for \"bee\", and <i>mellifera</i> is the Latin for \"honey-bearing\", referring to the species' production of honey for the winter."
     },
     {
       "id": "52628",
@@ -2984,7 +3092,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/52628"
+      "url": "https://www.inaturalist.org/taxa/52628",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/156036389/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Araneus%20diadematus",
+      "description": "The spider species <i><b>Araneus diadematus</b></i> is commonly called the <b>European garden spider</b>, <b>diadem spider</b>, <b>cross spider</b> and <b>crowned orb weaver</b>. It is sometimes called the <b>pumpkin spider</b>, although this name is also used for a different species, <i>Araneus marmoreus</i>. It is an orb-weaver spider found in Europe and North America."
     },
     {
       "id": "127713",
@@ -3070,7 +3181,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/127713"
+      "url": "https://www.inaturalist.org/taxa/127713",
+      "imageUrl": "https://static.inaturalist.org/photos/169448714/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Pandinus%20imperator",
+      "description": "The <b>Emperor Scorpion</b>, <i><b>Pandinus imperator</b></i>, is a species of scorpion native to rainforests and savannas in West Africa. It is one of the largest scorpions in the world and lives for 6–8 years. Its body is black, but like other scorpions it glows pastel green or blue under ultraviolet light. It is a popular species in the pet trade, and is protected by CITES."
     },
     {
       "id": "120553",
@@ -3174,7 +3288,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/120553"
+      "url": "https://www.inaturalist.org/taxa/120553",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/29905995/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Cancer%20pagurus",
+      "description": "<i><b>Cancer pagurus</b></i>, commonly known as the <b>edible crab</b> or <b>brown crab</b>, is a species of crab found in the North Sea, North Atlantic Ocean and perhaps in the Mediterranean Sea. It is a robust crab of a reddish-brown colour, having an oval carapace with a characteristic \"pie crust\" edge and black tips to the claws. A mature adult may have a carapace width of up to 25 cm (10 in) and weigh up to 3 kg (6.6 lb). <i>C. pagurus</i>..."
     },
     {
       "id": "62410",
@@ -3266,7 +3383,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/62410"
+      "url": "https://www.inaturalist.org/taxa/62410",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/88240797/medium.jpeg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Homarus%20gammarus",
+      "description": "<i><b>Homarus gammarus</b></i>, known as the <b>European lobster</b> or <b>common lobster</b>, is a species of clawed lobster from the eastern Atlantic Ocean, Mediterranean Sea and parts of the Black Sea. It is closely related to the American lobster, <i>H. americanus</i>. It may grow to a length of 60 cm (24 in) and a mass of 6 kilograms (13 lb), and bears a conspicuous pair of claws. In life, the lobsters are blue, only becoming \"lobster red\" on cooking. Mating occurs in..."
     },
     {
       "id": "118851",
@@ -3358,7 +3478,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/118851"
+      "url": "https://www.inaturalist.org/taxa/118851",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/315874081/medium.jpeg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Crangon%20crangon",
+      "description": "<i><b>Crangon crangon</b></i> is a commercially important species of caridean shrimp fished mainly in the southern North Sea, although also found in the Irish Sea, Baltic Sea, Mediterranean Sea, and Black Sea, as well as off much of Scandinavia and parts of Morocco's Atlantic coast. Its common names include <b>brown shrimp</b>, <b>common shrimp</b>, <b>bay shrimp</b>, and <b>sand shrimp</b>, while translation of its French name <i>crevette grise</i> (or its Dutch equivalent <i>grijze garnaal</i>) sometimes leads to the English..."
     },
     {
       "id": "49315",
@@ -3432,7 +3555,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/49315"
+      "url": "https://www.inaturalist.org/taxa/49315",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/166419253/medium.jpeg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Octopus%20vulgaris",
+      "description": "The <b>common octopus</b> (<i>Octopus vulgaris</i>) is a mollusc belonging to the class Cephalopoda. <i>Octopus vulgaris</i> is the most studied of all octopus species."
     },
     {
       "id": "61523",
@@ -3536,7 +3662,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/61523"
+      "url": "https://www.inaturalist.org/taxa/61523",
+      "imageUrl": "https://inaturalist-open-data.s3.amazonaws.com/photos/2536439/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Helix%20pomatia",
+      "description": "<i><b>Helix pomatia</b></i>, common names the <b>Roman snail</b>, <b>Burgundy snail</b>, <b>edible snail</b> or <b>escargot</b>, is a species of large, edible, air-breathing land snail, a terrestrial pulmonate gastropod mollusk in the family Helicidae. It is a European species. In the English language it is called by the French name <i>escargot</i> when used in cooking (<i>escargot</i> simply means 'snail'). Although this species is highly prized as a food it is difficult to cultivate and rarely farmed commercially."
     },
     {
       "id": "53462",
@@ -3610,7 +3739,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/53462"
+      "url": "https://www.inaturalist.org/taxa/53462",
+      "imageUrl": "https://static.inaturalist.org/photos/18145221/medium.jpeg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Ostrea%20edulis",
+      "description": "<b><i>Ostrea edulis</i>,</b> commonly known as the <b>European flat oyster</b>, is a species of oyster native to Europe. In the British Isles, regional names include <b>Colchester native oyster</b>, <b>mud oyster</b>, or <b>edible oyster</b>. In France, <i>Ostrea edulis</i> are known as <i>huîtres plates</i> (flat oysters) except for those that come from the Belon River estuary in Brittany, France, which are known as <b>Belons</b>."
     },
     {
       "id": "48328",
@@ -3672,7 +3804,10 @@
           "rankLevel": 10
         }
       ],
-      "url": "https://www.inaturalist.org/taxa/48328"
+      "url": "https://www.inaturalist.org/taxa/48328",
+      "imageUrl": "https://static.inaturalist.org/photos/128613708/medium.jpg",
+      "wikipediaUrl": "https://en.wikipedia.org/wiki/Aurelia%20aurita",
+      "description": "<i><b>Aurelia aurita</b></i> (also called the <b>common jellyfish</b>, <b>moon jellyfish</b>, <b>moon jelly</b>, or <b>saucer jelly</b>) is a widely studied species of the genus <i>Aurelia</i>. All species in the genus are closely related, and it is difficult to identify <i>Aurelia</i> medusae without genetic sampling; most of what follows applies equally to all species of the genus. The most common method used to identify the species consists of selecting a jellyfish from a harbour using a device, usually a..."
     }
   ]
 }

@@ -280,7 +280,7 @@ onMounted(() => {
           >
             <GameTreeVisualization
               :tree-data="treeData"
-              :show-target="false"
+              :show-target="gameStore.hasEnded"
               baby-mode-tree
               :sticker-by-animal-id="stickerByAnimalId"
               class="w-full h-full"
@@ -290,7 +290,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <GameWinState @node-click="handleNodeClick" />
+      <GameWinState />
 
       <GameInformationPanelPostit
         :is-open="isInformationPanelOpen"

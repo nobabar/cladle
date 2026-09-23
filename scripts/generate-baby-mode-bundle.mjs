@@ -151,6 +151,14 @@ async function fetchTaxonWithAncestors(id, attempt = 1) {
 function mapToAnimal(taxon, beginnerName, scientificName) {
   const ancestors = taxon.ancestors ?? [];
   const lineage = buildLineageFromAncestors(ancestors, taxon);
+  const imageUrl = taxon.default_photo?.medium_url || undefined;
+  const rawWikipediaUrl = taxon.wikipedia_url || undefined;
+  const wikipediaUrl = typeof rawWikipediaUrl === "string" && rawWikipediaUrl.trim()
+    ? encodeURI(rawWikipediaUrl.trim())
+    : undefined;
+  const description = typeof taxon.wikipedia_summary === "string" && taxon.wikipedia_summary.trim()
+    ? taxon.wikipedia_summary.trim()
+    : undefined;
 
   return {
     id: String(taxon.id),
@@ -158,6 +166,9 @@ function mapToAnimal(taxon, beginnerName, scientificName) {
     scientificName,
     lineage,
     url: `https://www.inaturalist.org/taxa/${taxon.id}`,
+    ...(imageUrl ? { imageUrl } : {}),
+    ...(wikipediaUrl ? { wikipediaUrl } : {}),
+    ...(description ? { description } : {}),
   };
 }
 
@@ -180,6 +191,14 @@ async function main() {
     const animal = mapToAnimal(taxon, organism.beginnerName, organism.scientificName);
     if (animal.lineage.length === 0) {
       throw new Error(`Empty lineage for ${organism.beginnerName} (${organism.id})`);
+    }
+    if (!animal.imageUrl || !animal.wikipediaUrl || !animal.description) {
+      throw new Error(
+        `Missing reveal media for ${organism.beginnerName} (${organism.id}): `
+        + `imageUrl=${Boolean(animal.imageUrl)}, `
+        + `wikipediaUrl=${Boolean(animal.wikipediaUrl)}, `
+        + `description=${Boolean(animal.description)}`,
+      );
     }
 
     animals.push(animal);

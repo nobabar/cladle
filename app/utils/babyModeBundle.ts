@@ -144,7 +144,7 @@ export function listBabyModeAnimals(): Animal[] {
 
 /**
  * Map view for O(1) lookups by id.
- * @returns New map of id → Animal.
+ * @returns New map of id -> Animal.
  */
 export function getBabyModeAnimalsById(): Map<string, Animal> {
   return new Map(getAnimalsByIdMap());
