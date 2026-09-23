@@ -126,6 +126,18 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/**
+ * Wikipedia summaries often include NBSP / other irregular spaces that trip ESLint.
+ * @param text - Raw wikipedia summary HTML/text
+ * @returns Text with irregular whitespace normalized to ASCII spaces
+ */
+function sanitizeDescription(text) {
+  return text
+    .replace(/[\u00A0\u1680\u180E\u2000-\u200B\u2028\u2029\u202F\u205F\u3000\uFEFF]/g, " ")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
 async function fetchTaxonWithAncestors(id, attempt = 1) {
   const url = `${INATURALIST_BASE_URL}/taxa/${id}?include_ancestors=true`;
   try {
@@ -157,7 +169,7 @@ function mapToAnimal(taxon, beginnerName, scientificName) {
     ? encodeURI(rawWikipediaUrl.trim())
     : undefined;
   const description = typeof taxon.wikipedia_summary === "string" && taxon.wikipedia_summary.trim()
-    ? taxon.wikipedia_summary.trim()
+    ? sanitizeDescription(taxon.wikipedia_summary)
     : undefined;
 
   return {
