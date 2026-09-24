@@ -65,14 +65,15 @@ function handleSelect(animal: Animal, close?: () => void): void {
     >
       <UButton
         type="button"
-        color="neutral"
-        variant="outline"
+        color="primary"
+        variant="solid"
+        size="md"
         :disabled="disabled"
         :icon="uiIcon.emojiPicker"
         :aria-label="t('babyMode.openPicker')"
         :aria-expanded="isOpen"
         aria-haspopup="dialog"
-        class="baby-organism-picker__trigger min-h-[44px] touch-target notebook-button-secondary"
+        class="baby-organism-picker__trigger min-h-[44px] touch-target font-bold"
       >
         {{ t("babyMode.openPicker") }}
       </UButton>

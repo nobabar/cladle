@@ -204,7 +204,7 @@ onMounted(() => {
     <div class="notebook-sheet">
       <div class="notebook-holes" aria-hidden="true" />
       <div class="container mx-auto">
-        <header class="mb-4 sm:mb-6 md:mb-8 relative">
+        <header class="mb-5 sm:mb-6 md:mb-8 relative">
           <GameGlobalHeaderControls
             game-mode="baby"
             :puzzle-date="gameStore.puzzleDate"
@@ -233,7 +233,7 @@ onMounted(() => {
 
         <div
           v-if="gameStore.error && isCriticalError(gameStore.error)"
-          class="max-w-2xl mx-auto mb-4"
+          class="w-full max-w-2xl mx-auto mb-4"
         >
           <GameErrorMessage
             :error="gameStore.error"
@@ -243,7 +243,7 @@ onMounted(() => {
 
         <div
           v-if="gameStore.isPlaying"
-          class="max-w-2xl mx-auto mb-3 sm:mb-4 text-center"
+          class="w-full max-w-2xl mx-auto mb-4 sm:mb-5 text-center"
         >
           <p
             class="text-xs sm:text-sm text-[var(--color-ink-subtle)]
@@ -253,7 +253,7 @@ onMounted(() => {
           </p>
         </div>
 
-        <div class="max-w-2xl mx-auto mb-4 sm:mb-6 md:mb-8">
+        <div class="w-full max-w-2xl mx-auto mb-5 sm:mb-6 md:mb-8">
           <GameBabyOrganismPicker
             :disabled="!gameStore.isPlaying"
             :animals="localizedBabyAnimals"
@@ -263,11 +263,10 @@ onMounted(() => {
           />
         </div>
 
-        <div class="max-w-6xl mx-auto mt-4 sm:mt-6 md:mt-8 mb-4 sm:mb-6 md:mb-8">
+        <div class="game-tree-section mt-2 sm:mt-4 md:mt-6 mb-2">
           <div
             v-if="gameStore.isRenderingTree"
-            class="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]
-            flex items-center justify-center"
+            class="game-tree-frame flex items-center justify-center"
           >
             <GameLoadingIndicator
               :message="t('common.updatingTree')"
@@ -276,7 +275,7 @@ onMounted(() => {
           </div>
           <div
             v-else
-            class="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]"
+            class="game-tree-frame"
           >
             <GameTreeVisualization
               :tree-data="treeData"

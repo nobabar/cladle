@@ -168,7 +168,6 @@
     "treeFullscreen": "Enter fullscreen",
     "treeExitFullscreen": "Exit fullscreen",
     "treeZoomLevel": "Zoom level {percent}%",
-    "recentGuesses": "Recent Guesses",
     "lcaLabel": "LCA",
     "treeAriaRoot": "Phylogenetic tree showing evolutionary relationships",
     "treeAriaSvg": "Phylogenetic tree visualization",

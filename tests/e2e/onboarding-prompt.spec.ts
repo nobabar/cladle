@@ -33,8 +33,7 @@ test("onboarding prompt dismisses after several game actions without persisting 
   await searchInput.fill("wol");
   await page.getByRole("option", { name: /Gray Wolf/i }).click();
 
-  const recentGuesses = page.locator(".notebook-guess-history");
-  await expect(recentGuesses.getByText("Gray Wolf", { exact: true })).toBeVisible({
+  await expect(page.getByText(/Guesses remaining:\s*19/)).toBeVisible({
     timeout: 15_000,
   });
 

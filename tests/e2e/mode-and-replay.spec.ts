@@ -129,18 +129,13 @@ test("free-play reset behavior clears progress", async ({ page }) => {
   await expect(lionOption).toHaveCount(0);
   await expect
     .poll(async () => {
-      const hasRecentGuess = await page
-        .locator(".notebook-guess-history")
-        .getByText("Lion", { exact: true })
-        .isVisible()
-        .catch(() => false);
+      const hasGuessProgress = await page.getByText(/Guesses remaining:\s*19/).isVisible().catch(() => false);
       const hasEndState = await page.getByRole("heading", { name: /You Won!|Game Over/ }).isVisible().catch(() => false);
-      return hasRecentGuess || hasEndState;
+      return hasGuessProgress || hasEndState;
     })
     .toBe(true);
 
   await page.getByRole("button", { name: "New Random Animal" }).dispatchEvent("click");
-  await expect(page.locator(".notebook-guess-history")).toHaveCount(0);
   await expect(page.getByText(/Guesses remaining:\s*20/)).toBeVisible();
 });
 
@@ -150,7 +145,9 @@ test("persistence across mode switch keeps each mode state", async ({ page }) =>
   const dailySearch = page.getByRole("combobox", { name: "Search for an animal" });
   await dailySearch.fill("lion");
   await page.getByRole("option", { name: /Lion/i }).click();
-  await expect(page.locator(".notebook-guess-history").getByText("Lion", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Guesses remaining:\s*19/)).toBeVisible();
+  await expect(page.getByText("Updating tree...")).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.locator(".tree-node-labels").getByText("Lion", { exact: true })).toBeVisible();
 
   await goToFreePlayFromDaily(page);
   await expect(page).toHaveURL(/\/free-play/);
@@ -159,16 +156,19 @@ test("persistence across mode switch keeps each mode state", async ({ page }) =>
   const freePlaySearch = page.getByRole("combobox", { name: "Search for an animal" });
   await freePlaySearch.fill("wolf");
   await page.getByRole("option", { name: /Gray Wolf/i }).click();
-  await expect(page.locator(".notebook-guess-history").getByText("Gray Wolf", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Guesses remaining:\s*19/)).toBeVisible();
+  await expect(page.getByText("Updating tree...")).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.locator(".tree-node-labels").getByText("Gray Wolf", { exact: true })).toBeVisible();
 
   await goToDailyFromFreePlay(page);
   await expect(page).toHaveURL(/\/$/);
   await waitForGameSearchReady(page);
-  await expect(page.locator(".notebook-guess-history").getByText("Lion", { exact: true })).toBeVisible();
-  await expect(page.locator(".notebook-guess-history").getByText("Gray Wolf", { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/Guesses remaining:\s*19/)).toBeVisible();
+  await expect(page.locator(".tree-node-labels").getByText("Lion", { exact: true })).toBeVisible();
+  await expect(page.locator(".tree-node-labels").getByText("Gray Wolf", { exact: true })).toHaveCount(0);
 
   await goToFreePlayFromDaily(page);
   await expect(page).toHaveURL(/\/free-play/);
   await waitForGameSearchReady(page);
-  await expect(page.locator(".notebook-guess-history").getByText("Gray Wolf", { exact: true })).toBeVisible();
+  await expect(page.locator(".tree-node-labels").getByText("Gray Wolf", { exact: true })).toBeVisible();
 });

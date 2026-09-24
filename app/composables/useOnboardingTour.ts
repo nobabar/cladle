@@ -245,11 +245,12 @@ export function useOnboardingTour() {
       clearSearchHitboxObserver();
     }
 
-    function clearPostitStepListener() {
+    function clearPostitStepListener(options: { clearAdvanceTimeout?: boolean } = {}) {
+      const { clearAdvanceTimeout = true } = options;
       cleanupPostitStepListener?.();
       cleanupPostitStepListener = null;
       clearPostitStepRefresh();
-      if (postitAdvanceTimeout) {
+      if (clearAdvanceTimeout && postitAdvanceTimeout) {
         clearTimeout(postitAdvanceTimeout);
         postitAdvanceTimeout = null;
       }
@@ -282,12 +283,12 @@ export function useOnboardingTour() {
       if (didAdvanceFromPostitStep) {
         return;
       }
-      if (!canMoveNext()) {
-        return;
-      }
       didAdvanceFromPostitStep = true;
       clearPostitStepListener();
-      onboardingDriver?.moveNext();
+      // Element may already be gone from the DOM; still advance while the tour is active.
+      if (onboardingDriver?.isActive()) {
+        onboardingDriver.moveNext();
+      }
     }
 
     function snapPageToTop() {
@@ -442,7 +443,10 @@ export function useOnboardingTour() {
             };
           },
           onDeselected: () => {
-            clearPostitStepListener();
+            // Closing the post-it unmounts the highlight target and can trigger
+            // onDeselected before the close-driven advance timeout fires. Keep that
+            // timeout so sticky-tab / drag close can still move to the help step.
+            clearPostitStepListener({ clearAdvanceTimeout: false });
           },
           popover: {
             title: t("onboarding.daily.postitTitle"),
@@ -451,9 +455,7 @@ export function useOnboardingTour() {
             align: "start",
             onNextClick: () => {
               closeInformationPostit();
-              if (canMoveNext()) {
-                onboardingDriver?.moveNext();
-              }
+              moveFromPostitToPreferencesOnce();
             },
           },
         },
