@@ -36,7 +36,6 @@ const {
 } = useHintRequest();
 const route = useRoute();
 const router = useRouter();
-const isDevMode = computed(() => import.meta.dev);
 const api = useBiologicalAPI();
 const { isDesktop } = useResponsive();
 const { t } = useI18n();
@@ -459,7 +458,7 @@ onBeforeUnmount(() => {
       <!-- Game page structure -->
       <div class="container mx-auto">
         <!-- Header -->
-        <header class="mb-4 sm:mb-6 md:mb-8 relative">
+        <header class="mb-5 sm:mb-6 md:mb-8 relative">
           <GameGlobalHeaderControls
             data-onboarding="daily-header"
             game-mode="daily"
@@ -493,7 +492,7 @@ onBeforeUnmount(() => {
         <!-- Store-Level Error Display (Critical Errors Only) -->
         <div
           v-if="gameStore.error && isCriticalError(gameStore.error)"
-          class="max-w-2xl mx-auto mb-4"
+          class="w-full max-w-2xl mx-auto mb-4"
         >
           <GameErrorMessage
             :error="gameStore.error"
@@ -504,7 +503,7 @@ onBeforeUnmount(() => {
         <!-- Game Status Display -->
         <div
           v-if="gameStore.isPlaying"
-          class="max-w-2xl mx-auto mb-3 sm:mb-4 text-center"
+          class="w-full max-w-2xl mx-auto mb-4 sm:mb-5 text-center"
         >
           <p
             class="text-xs sm:text-sm text-[var(--color-ink-subtle)]
@@ -517,7 +516,7 @@ onBeforeUnmount(() => {
         <!-- Animal Search Component -->
         <div
           data-onboarding="daily-search"
-          class="max-w-2xl mx-auto mb-4 sm:mb-6 md:mb-8"
+          class="w-full max-w-2xl mx-auto mb-5 sm:mb-6 md:mb-8"
         >
           <div class="flex items-center gap-2">
             <div class="min-w-0 flex-1">
@@ -550,24 +549,23 @@ onBeforeUnmount(() => {
         <!-- Phylogenetic Tree Visualization -->
         <div
           data-onboarding="daily-tree"
-          class="max-w-6xl mx-auto mt-4 sm:mt-6 md:mt-8 mb-4 sm:mb-6 md:mb-8"
+          class="game-tree-section mt-2 sm:mt-4 md:mt-6 mb-2"
         >
-          <h2 class="text-lg sm:text-xl md:text-2xl font-semibold mb-3 sm:mb-4 text-center">
+          <h2 class="text-lg sm:text-xl md:text-2xl font-semibold mb-3 sm:mb-4 text-center shrink-0">
             {{ t("game.phylogeneticTree") }}
           </h2>
           <!-- Progressive disclosure: Show hint only when tree is empty -->
           <p
             v-if="!treeData || treeData.nodes.length === 0"
             class="text-xs sm:text-sm text-center text-[var(--color-ink-subtle)]
-            dark:text-[var(--color-ink-subtle)] mb-2"
+            dark:text-[var(--color-ink-subtle)] mb-2 shrink-0"
           >
             {{ t("game.treeEmptyHint") }}
           </p>
           <!-- Tree Rendering Loading Indicator -->
           <div
             v-if="gameStore.isRenderingTree"
-            class="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]
-            flex items-center justify-center"
+            class="game-tree-frame flex items-center justify-center"
           >
             <GameLoadingIndicator
               :message="t('common.updatingTree')"
@@ -576,7 +574,7 @@ onBeforeUnmount(() => {
           </div>
           <div
             v-else
-            class="w-full h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px]"
+            class="game-tree-frame"
           >
             <GameTreeVisualization
               :tree-data="treeData"
@@ -589,47 +587,11 @@ onBeforeUnmount(() => {
           <p
             v-if="treeData && treeData.nodes.length > 0"
             class="mt-2 text-xs sm:text-sm text-center text-[var(--color-ink-subtle)]
-            dark:text-[var(--color-ink-subtle)]"
+            dark:text-[var(--color-ink-subtle)] shrink-0"
           >
             <span class="hidden sm:inline">{{ t("game.treeInteractionHintDesktop") }}</span>
             <span class="sm:hidden">{{ t("game.treeInteractionHintMobile") }}</span>
           </p>
-        </div>
-
-        <!-- Dev-only: recent guesses + LCA -->
-        <div
-          v-if="isDevMode && gameStore.isPlaying && gameStore.guesses.length > 0"
-          class="max-w-2xl mx-auto mt-4 sm:mt-6 md:mt-8 notebook-guess-history"
-        >
-          <h2
-            class="text-base sm:text-lg md:text-xl font-semibold mb-3 sm:mb-4
-            text-[var(--color-ink)] dark:text-[var(--color-ink)]"
-          >
-            {{ t("game.recentGuesses") }}
-          </h2>
-          <ul class="space-y-0">
-            <li
-              v-for="guess in gameStore.guesses.slice().reverse().slice(0, 3)"
-              :key="guess.timestamp"
-              class="flex flex-col sm:flex-row justify-between items-start sm:items-center
-              gap-1 sm:gap-2 py-2 sm:py-3 border-b border-[var(--color-border-subtle)]
-              dark:border-[var(--color-border-subtle)] last:border-b-0
-              notebook-guess-row"
-            >
-              <span
-                class="font-medium text-sm sm:text-base text-[var(--color-ink)]
-                dark:text-[var(--color-ink)]"
-              >
-                {{ guess.animal.name }}
-              </span>
-              <span
-                class="text-xs sm:text-sm text-[var(--color-ink-subtle)]
-                dark:text-[var(--color-ink-subtle)] before:content-['['] after:content-[']']"
-              >
-                {{ t("game.lcaLabel") }}: {{ guess.lca.clade }}
-              </span>
-            </li>
-          </ul>
         </div>
       </div>
 

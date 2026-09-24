@@ -379,7 +379,7 @@ html {
 
 /* Notebook-style layout shell */
 .notebook-layout {
-  min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--color-desk, #E8E0D4);
   padding: var(--space-2, 0.5rem); /* 8px on mobile */
 }
@@ -392,16 +392,16 @@ html {
 
 @media (min-width: 1024px) {
   .notebook-layout {
-    padding: var(--space-6, 2rem); /* 32px on desktop - reveals desk around sheet */
+    padding: var(--space-5, 1.5rem); /* 24px on desktop - reveals desk around sheet */
   }
 }
 
 /* Paper sheet container */
 .notebook-sheet {
   background-color: var(--color-paper, #FDFBF5);
-  /* Height adapts to content - no min-height constraint */
-  height: fit-content;
-  min-height: calc(100vh - var(--space-4, 1rem) * 2);
+  height: auto;
+  /* Match .notebook-layout vertical padding (space-2 * 2) */
+  min-height: calc(100dvh - var(--space-2, 0.5rem) * 2);
   padding: var(--space-4, 1rem) var(--space-3, 0.75rem); /* 16px top/bottom, 12px sides on mobile */
   position: relative;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -414,12 +414,12 @@ html {
 
 @media (min-width: 768px) {
   .notebook-sheet {
-    padding-top: var(--space-6, 2rem); /* 32px top */
-    padding-bottom: var(--space-6, 2rem); /* 32px bottom */
+    padding-top: var(--space-5, 1.5rem); /* 24px top */
+    padding-bottom: var(--space-5, 1.5rem); /* 24px bottom */
     padding-left: 72px; /* 48px (margin line) + 24px (equal spacing) */
     padding-right: 24px; /* Equal spacing to match left side after margin */
-    height: fit-content;
-    min-height: calc(100vh - var(--space-8, 4rem));
+    /* Match .notebook-layout vertical padding (space-4 * 2) */
+    min-height: calc(100dvh - var(--space-4, 1rem) * 2);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
     overflow: visible;
   }
@@ -427,14 +427,83 @@ html {
 
 @media (min-width: 1024px) {
   .notebook-sheet {
-    padding-top: var(--space-7, 3rem); /* 48px top */
-    padding-bottom: var(--space-7, 3rem); /* 48px bottom */
+    padding-top: var(--space-6, 2rem); /* 32px top */
+    padding-bottom: var(--space-6, 2rem); /* 32px bottom */
     padding-left: 96px; /* 64px (margin line) + 32px (equal spacing) */
     padding-right: 32px; /* Equal spacing to match left side after margin */
     max-width: 1200px;
-    height: fit-content;
-    min-height: calc(100vh - var(--space-8, 4rem));
+    /* Match .notebook-layout vertical padding (space-5 * 2) */
+    min-height: calc(100dvh - var(--space-5, 1.5rem) * 2);
     overflow: visible;
+  }
+}
+
+/*
+ * Game pages: fill the sheet with a column layout so the tree can grow into
+ * leftover viewport space without forcing document pages into the same model.
+ */
+.notebook-layout:not(.notebook-layout--document) .notebook-sheet {
+  display: flex;
+  flex-direction: column;
+}
+
+.notebook-layout:not(.notebook-layout--document) .notebook-sheet > .container {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  align-items: stretch;
+  min-height: 0;
+  width: 100%;
+}
+
+/*
+ * Flex column + mx-auto children shrink-wrap to content width. Force full
+ * width so max-w-* caps still apply (search bar, status, etc.).
+ */
+.notebook-layout:not(.notebook-layout--document) .notebook-sheet > .container > .max-w-2xl {
+  width: 100%;
+}
+
+.game-tree-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 72rem; /* matches max-w-6xl */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/*
+ * Tree canvas: grow into leftover sheet space, but cap height so tall
+ * viewports do not turn the tree into a full-bleed panel.
+ */
+.game-tree-frame {
+  flex: 1 1 0;
+  width: 100%;
+  min-height: 16rem; /* ~256px */
+  max-height: 21.25rem; /* ~340px */
+}
+
+@media (min-width: 640px) {
+  .game-tree-frame {
+    min-height: 18.75rem; /* ~300px */
+    max-height: 27.5rem; /* ~440px */
+  }
+}
+
+@media (min-width: 768px) {
+  .game-tree-frame {
+    min-height: 20rem; /* ~320px */
+    max-height: 31.25rem; /* ~500px */
+  }
+}
+
+@media (min-width: 1024px) {
+  .game-tree-frame {
+    min-height: 22.5rem; /* ~360px */
+    max-height: 36.25rem; /* ~580px */
   }
 }
 
@@ -573,23 +642,6 @@ html {
 
 .notebook-button-secondary:active {
   background-color: var(--color-surface);
-}
-
-/* Notebook-style guess history - aligned to grid lines */
-.notebook-guess-history {
-  position: relative;
-}
-
-.notebook-guess-row {
-  position: relative;
-  padding-left: 0;
-}
-
-/* Align guess rows to notebook grid (16px spacing matches grid) */
-@media (min-width: 768px) {
-  .notebook-guess-row {
-    padding-left: 0;
-  }
 }
 
 /* Notebook-style error messages - teacher red pen */

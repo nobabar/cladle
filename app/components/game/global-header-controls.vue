@@ -8,6 +8,8 @@ interface Props {
   puzzleDate?: string;
   nextPuzzleIn?: string;
   isSoon?: boolean;
+  /** When true, free-play "New Random Animal" is disabled (e.g. while loading). */
+  newRandomDisabled?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -15,10 +17,12 @@ const props = withDefaults(defineProps<Props>(), {
   puzzleDate: "",
   nextPuzzleIn: "",
   isSoon: false,
+  newRandomDisabled: false,
 });
 
 const emit = defineEmits<{
   exitReplay: [];
+  newRandomAnimal: [];
 }>();
 
 const { t } = useI18n();
@@ -120,6 +124,27 @@ const headerMobileMenuItems = computed(() => {
         :next-puzzle-in="props.nextPuzzleIn"
         :show-timer="props.isSoon"
       />
+    </div>
+
+    <!-- Free play: new random animal sits where the date is on daily/baby. -->
+    <div
+      v-else-if="props.gameMode === 'free-play'"
+      class="absolute top-0 left-0 z-[1] sm:top-5 sm:left-2 flex items-start"
+    >
+      <UButton
+        type="button"
+        color="primary"
+        variant="solid"
+        size="sm"
+        :disabled="props.newRandomDisabled"
+        :icon="icons.refresh"
+        :aria-label="t('freePlay.newRandomAnimal')"
+        :title="t('freePlay.newRandomAnimal')"
+        class="min-h-[44px] touch-target font-bold"
+        @click="emit('newRandomAnimal')"
+      >
+        <span class="max-sm:hidden">{{ t("freePlay.newRandomAnimal") }}</span>
+      </UButton>
     </div>
 
     <div

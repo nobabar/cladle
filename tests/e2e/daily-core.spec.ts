@@ -83,22 +83,17 @@ test("daily persistence survives refresh and resets with new day", async ({ page
   await searchInput.fill("lion");
   await page.getByRole("option", { name: /Lion/i }).click();
 
-  const recentGuesses = page.locator(".notebook-guess-history");
-  await expect(recentGuesses.getByText("Recent Guesses")).toBeVisible();
-  await expect(recentGuesses.getByText("Lion", { exact: true })).toBeVisible();
   await expect(page.getByText(/Guesses remaining:\s*19/)).toBeVisible();
 
   await page.reload();
   await waitForDailyGameReady(page);
   await dismissOnboardingPromptIfPresent(page);
-  await expect(recentGuesses.getByText("Lion", { exact: true })).toBeVisible();
   await expect(page.getByText(/Guesses remaining:\s*19/)).toBeVisible();
 
   await reloadWithStaleDailyPuzzle(page);
   await dismissOnboardingPromptIfPresent(page);
   await expect(page.getByText(/Guesses remaining:\s*20/)).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Search for an animal" })).toHaveCount(1);
-  await expect(page.locator(".notebook-guess-history")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /You Won!|Game Over/ })).toHaveCount(0);
 });
 
@@ -209,6 +204,5 @@ test("cross-day rollover resets to a fresh daily puzzle", async ({ page }) => {
     timeout: 30_000,
   });
   await expect(page.getByText(/Guesses remaining:\s*20/)).toBeVisible({ timeout: 30_000 });
-  await expect(page.locator(".notebook-guess-history")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /You Won!/ })).toHaveCount(0);
 });

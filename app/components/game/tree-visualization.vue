@@ -1146,7 +1146,8 @@ async function copyTreeAsMermaid(): Promise<void> {
 .tree-visualization {
   width: 100%;
   height: 100%;
-  min-height: 400px;
+  /* Fill the viewport-sized .game-tree-frame; avoid fixed mins that overflow short screens */
+  min-height: 0;
   position: relative;
   background: var(--color-surface, #f9fafb);
   border: 1px solid var(--color-border-subtle, #e5e7eb);
@@ -1212,7 +1213,7 @@ async function copyTreeAsMermaid(): Promise<void> {
 .tree-visualization__svg {
   width: 100%;
   height: 100%;
-  min-height: 400px;
+  min-height: 0;
 }
 
 .tree-edge-rough {
@@ -1511,12 +1512,7 @@ async function copyTreeAsMermaid(): Promise<void> {
 /* Mobile optimizations (< 768px) */
 @media (max-width: 767px) {
   .tree-visualization {
-    min-height: 300px;
     border-radius: 6px;
-  }
-
-  .tree-visualization__svg {
-    min-height: 300px;
   }
 
   .tree-visualization__toolbar {
@@ -1547,14 +1543,6 @@ async function copyTreeAsMermaid(): Promise<void> {
 
 /* Tablet optimizations (768px - 1023px) */
 @media (min-width: 768px) and (max-width: 1023px) {
-  .tree-visualization {
-    min-height: 400px;
-  }
-
-  .tree-visualization__svg {
-    min-height: 400px;
-  }
-
   .tree-node__text {
     font-size: 13px;
   }
@@ -1567,14 +1555,6 @@ async function copyTreeAsMermaid(): Promise<void> {
 
 /* Desktop optimizations (>= 1024px) */
 @media (min-width: 1024px) {
-  .tree-visualization {
-    min-height: 500px;
-  }
-
-  .tree-visualization__svg {
-    min-height: 500px;
-  }
-
   .tree-node__text {
     font-size: 14px;
   }
