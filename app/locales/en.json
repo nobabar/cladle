@@ -322,7 +322,7 @@
   "help": {
     "metaTitle": "Cladle - How to play",
     "metaDescription": "Learn how Cladle works: guessing the mystery animal, daily puzzles, free play, reading the tree, and what taxonomy and phylogeny mean here.",
-    "backLink": "Back to home",
+    "backLink": "Return",
     "title": "How to play",
     "lead": "Cladle is a guessing game built on real taxonomy. You try to name a hidden animal in as few tries as possible; after each guess, the game shows how your species fits next to the mystery animal on a branching tree.",
     "roundTitle": "How a round works",
