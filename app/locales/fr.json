@@ -322,7 +322,7 @@
   "help": {
     "metaTitle": "Cladle - Comment jouer",
     "metaDescription": "Comprendre Cladle : trouver l’animal mystère, puzzle du jour, mode libre, lecture de l’arbre, taxonomie et phylogénie.",
-    "backLink": "Retour à l’accueil",
+    "backLink": "Retour",
     "title": "Comment jouer",
     "lead": "Cladle est un jeu de devinettes fondé sur la taxonomie. Vous devez trouver un animal mystère en aussi peu d’essais que possible. Après chaque proposition, le jeu montre comment cette espèce se place relativement à l’animal mystère sur un arbre phylogénétique.",
     "roundTitle": "Déroulement d’une partie",
