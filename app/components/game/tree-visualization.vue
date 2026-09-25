@@ -1522,7 +1522,7 @@ async function copyTreeAsMermaid(): Promise<void> {
   }
 
   .tree-node__text {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .tree-node {

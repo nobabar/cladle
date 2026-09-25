@@ -392,7 +392,7 @@ onUnmounted(() => {
   min-height: 2.15rem;
   margin: 0;
   padding: 0 0.15rem;
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   line-height: 1.3;
   text-align: center;
   color: var(--color-ink-subtle, #6b7280);
@@ -401,7 +401,7 @@ onUnmounted(() => {
 }
 
 .win-state-gallery__polaroid--focus .win-state-gallery__polaroid-caption {
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
   min-height: 2.5rem;
   -webkit-line-clamp: 3;
   line-clamp: 3;
@@ -464,12 +464,12 @@ onUnmounted(() => {
   }
 
   .win-state-gallery__polaroid-caption {
-    font-size: 0.65rem;
+    font-size: 0.75rem;
     min-height: 2.35rem;
   }
 
   .win-state-gallery__polaroid--focus .win-state-gallery__polaroid-caption {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     min-height: 2.75rem;
   }
 }
@@ -490,12 +490,12 @@ onUnmounted(() => {
   }
 
   .win-state-gallery__polaroid-caption {
-    font-size: 0.7rem;
+    font-size: 0.8125rem;
     min-height: 2.5rem;
   }
 
   .win-state-gallery__polaroid--focus .win-state-gallery__polaroid-caption {
-    font-size: 0.8125rem;
+    font-size: 0.875rem;
     min-height: 3rem;
   }
 }
@@ -539,13 +539,13 @@ onUnmounted(() => {
   }
 
   .win-state-gallery__polaroid-caption {
-    font-size: 0.5rem;
-    min-height: 1.55rem;
+    font-size: 0.75rem;
+    min-height: 2rem;
   }
 
   .win-state-gallery__polaroid--focus .win-state-gallery__polaroid-caption {
-    font-size: 0.5625rem;
-    min-height: 1.75rem;
+    font-size: 0.75rem;
+    min-height: 2.15rem;
   }
 }
 

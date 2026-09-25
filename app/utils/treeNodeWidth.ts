@@ -3,18 +3,41 @@ import type { TreeNode } from "~/types/tree";
 const DEFAULT_FONT_SIZE = 14;
 /** Matches `.tree-node__text--emoji` in tree-visualization.vue. */
 const EMOJI_ONLY_FONT_SIZE = 26;
-const DEFAULT_FONT_FAMILY = "system-ui, -apple-system, sans-serif";
-/** Canvas measureText stack when readable font is active (matches --font-readable). */
-const READABLE_MEASURE_STACK = "\"Atkinson Hyperlegible Next\", system-ui, -apple-system, sans-serif";
+
+/**
+ * Indie Flower `@font-face` `size-adjust` in `app/assets/css/main.css`
+ * (x-height match to Atkinson Hyperlegible Next: 0.496 / 0.365 ≈ 1.36).
+ */
+export const INDIE_FLOWER_SIZE_ADJUST = 1.36;
+
+const DEFAULT_FONT_FAMILY
+  = "\"Indie Flower\", \"Atkinson Hyperlegible Next\", system-ui, -apple-system, sans-serif";
+const READABLE_MEASURE_STACK
+  = "\"Atkinson Hyperlegible Next\", system-ui, -apple-system, sans-serif";
+
+function isReadableFontActive(): boolean {
+  return typeof document !== "undefined"
+    && document.documentElement.classList.contains("font-readable");
+}
 
 function measureFontFamilyForDocument(): string {
   if (typeof document === "undefined") {
     return DEFAULT_FONT_FAMILY;
   }
-  return document.documentElement.classList.contains("font-readable")
-    ? READABLE_MEASURE_STACK
-    : DEFAULT_FONT_FAMILY;
+  return isReadableFontActive() ? READABLE_MEASURE_STACK : DEFAULT_FONT_FAMILY;
 }
+
+/**
+ * Whether measurement should treat Indie Flower's size-adjust as applying.
+ * Canvas uses the face metrics when the font is loaded; the SSR/char-width
+ * fallback must apply the factor explicitly.
+ * @param fontFamily - Font stack being measured
+ * @returns True when Indie Flower size-adjust should scale the SSR estimate
+ */
+function shouldApplyIndieFlowerSizeAdjust(fontFamily: string): boolean {
+  return fontFamily.includes("Indie Flower") && !isReadableFontActive();
+}
+
 const HORIZONTAL_PADDING = 20;
 const MIN_BOX_WIDTH = 60;
 
@@ -32,8 +55,13 @@ export function measureTreeLabelBoxWidth(
   fontFamily: string = measureFontFamilyForDocument(),
 ): number {
   const label = text ?? "";
+  const applyIndieAdjust = shouldApplyIndieFlowerSizeAdjust(fontFamily);
+
   if (typeof window === "undefined") {
-    const avgCharWidth = fontSize * 0.6;
+    const effectiveSize = applyIndieAdjust
+      ? fontSize * INDIE_FLOWER_SIZE_ADJUST
+      : fontSize;
+    const avgCharWidth = effectiveSize * 0.6;
     const textWidth = label.length * avgCharWidth;
     return Math.max(MIN_BOX_WIDTH, textWidth + HORIZONTAL_PADDING * 2);
   }
@@ -41,11 +69,15 @@ export function measureTreeLabelBoxWidth(
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   if (!context) {
-    const avgCharWidth = fontSize * 0.6;
+    const effectiveSize = applyIndieAdjust
+      ? fontSize * INDIE_FLOWER_SIZE_ADJUST
+      : fontSize;
+    const avgCharWidth = effectiveSize * 0.6;
     const textWidth = label.length * avgCharWidth;
     return Math.max(MIN_BOX_WIDTH, textWidth + HORIZONTAL_PADDING * 2);
   }
 
+  // Canvas uses the loaded @font-face, including size-adjust on Indie Flower.
   context.font = `${fontSize}px ${fontFamily}`;
   const textWidth = context.measureText(label).width;
   return Math.max(MIN_BOX_WIDTH, textWidth + HORIZONTAL_PADDING * 2);
