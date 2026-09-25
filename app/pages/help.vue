@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { resolveDocumentOverlayReturnPath } from "~/utils/documentOverlayReturn";
 
 const { t } = useI18n();
 
@@ -14,11 +15,11 @@ useSeoMeta({
 });
 
 /**
- * Close to `/` with history replacement so browser scroll restoration
- * does not jump back to the footer click position.
+ * Close to the previous in-app page (or home) with history replacement so
+ * browser scroll restoration does not jump back to the footer click position.
  */
 function closeDocumentOverlay() {
-  navigateTo("/", { replace: true });
+  navigateTo(resolveDocumentOverlayReturnPath(), { replace: true });
 }
 
 function startTourFromHelp() {
