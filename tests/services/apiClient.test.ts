@@ -15,7 +15,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import "fake-indexeddb/auto";
 import { createApiClient } from "~/services/apiClient";
 import type { BiologicalAPIClient } from "~/composables/useBiologicalAPI";
-import { cacheService } from "~/services/cacheService";
+import { CacheKeys, cacheService } from "~/services/cacheService";
 
 // Mock globalThis fetch
 globalThis.fetch = vi.fn();
@@ -1490,24 +1490,82 @@ describe("api client", () => {
           ok: true,
           status: 200,
           json: async () => mockDetailResponse,
-        } as Response)
-        .mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: async () => mockSearchResponse,
         } as Response);
 
-      // Act - First request (cache miss: search + detail)
+      // First request (cache miss: search + detail)
       const result1 = await client.fetchCladeData("Mammalia");
 
-      // Second request: search again for taxon id, then detail from IndexedDB bundle
+      // Second request: name->id mapping + taxon payload from IndexedDB (no network)
       const result2 = await client.fetchCladeData("Mammalia");
 
       // Assert
       expect(result1.data).toEqual(result2.data);
-      // First request: search + detail; second: search only (no detail fetch)
-      expect(globalThis.fetch).toHaveBeenCalledTimes(3);
+      // First request: search + detail; second: fully served from cache
+      expect(globalThis.fetch).toHaveBeenCalledTimes(2);
       expect(result2.data?.name).toBe("Mammalia");
+    });
+
+    it("should serve clade from cache with zero network when name mapping and payload exist", async () => {
+      const clade = {
+        name: "Animalia",
+        rank: "kingdom",
+        description: "Animals.",
+      };
+      await cacheService.set(
+        "clades",
+        CacheKeys.cladeByName("Animalia"),
+        { taxonId: 48460 },
+      );
+      await cacheService.set(
+        "clades",
+        CacheKeys.cladeByTaxonId(48460),
+        { locales: { en: clade } },
+      );
+
+      const result = await client.fetchCladeData("Animalia");
+
+      expect(result.error).toBeNull();
+      expect(result.data?.name).toBe("Animalia");
+      expect(result.data?.description).toBe("Animals.");
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    });
+
+    it("should skip name search when only the name->id mapping is cached", async () => {
+      await cacheService.set(
+        "clades",
+        CacheKeys.cladeByName("Mammalia"),
+        { taxonId: 40151 },
+      );
+
+      /* eslint-disable camelcase */
+      const mockDetailResponse = {
+        results: [{
+          id: 40151,
+          name: "Mammalia",
+          rank: "class",
+          wikipedia_summary: "Mammals are vertebrates.",
+        }],
+      };
+      /* eslint-enable camelcase */
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockDetailResponse,
+      } as Response);
+
+      const result = await client.fetchCladeData("Mammalia");
+
+      expect(result.data?.name).toBe("Mammalia");
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/taxa/40151"),
+        expect.any(Object),
+      );
+      expect(globalThis.fetch).not.toHaveBeenCalledWith(
+        expect.stringContaining("/taxa?q="),
+        expect.any(Object),
+      );
     });
 
     it("should not cache error responses", async () => {

@@ -16,6 +16,22 @@ export interface LocaleKeyedBundle<T> {
   locales: Partial<Record<string, T>>;
 };
 
+/**
+ * Name -> taxon-id mapping stored under {@link CacheKeys.cladeByName}.
+ * Payload lives under {@link CacheKeys.cladeByTaxonId}; resolve name -> id -> clade.
+ */
+export interface CladeNameMapping {
+  taxonId: number;
+};
+
+/**
+ * Values stored in the `clades` IndexedDB object store.
+ */
+export type CladeCacheValue
+  = | Clade
+    | LocaleKeyedBundle<Clade>
+    | CladeNameMapping;
+
 const DB_NAME = "cladle-cache";
 const DB_VERSION = 1;
 
@@ -68,7 +84,7 @@ interface CladleCacheDB extends DBSchema {
   };
   clades: {
     key: string;
-    value: CacheEntry<Clade | LocaleKeyedBundle<Clade>>;
+    value: CacheEntry<CladeCacheValue>;
   };
   lca: {
     key: string;
@@ -278,13 +294,49 @@ export function createCacheService(): CacheService {
 export const cacheService = createCacheService();
 
 /**
+ * Normalize clade names for cache keys (lowercase, trimmed).
+ * @param name - Clade scientific name
+ * @returns Normalized name suitable for IndexedDB keys
+ */
+export function normalizeCladeCacheName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+/**
+ * Type guard for {@link CladeNameMapping} entries in the clades store.
+ * @param value - Raw cache value
+ * @returns True when value is a name -> taxon-id mapping
+ */
+export function isCladeNameMapping(value: unknown): value is CladeNameMapping {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  if ("locales" in value || "name" in value) {
+    return false;
+  }
+  const taxonId = (value as { taxonId?: unknown }).taxonId;
+  return typeof taxonId === "number" && Number.isFinite(taxonId);
+}
+
+/**
  * Utility functions for generating consistent cache keys
  */
 export const CacheKeys = {
   animal: (animalId: string): string => `animal:${animalId}`,
   taxonGallery: (taxonId: string): string => `gallery:${taxonId}`,
+  /**
+   * Full clade payload (locale bundle) keyed by iNaturalist taxon id.
+   * @param taxonId - iNaturalist taxon id
+   * @returns `clade:taxon:{id}` cache key
+   */
   cladeByTaxonId: (taxonId: string | number): string => `clade:taxon:${taxonId}`,
-  clade: (cladeName: string): string => `clade:${cladeName}`,
+  /**
+   * Name -> taxon-id mapping. Normalize via {@link normalizeCladeCacheName}.
+   * @param cladeName - Scientific clade name (any casing)
+   * @returns `clade:name:{normalized}` cache key
+   */
+  cladeByName: (cladeName: string): string =>
+    `clade:name:${normalizeCladeCacheName(cladeName)}`,
 
   /**
    * Sorted IDs so A|B and B|A share one cache entry.

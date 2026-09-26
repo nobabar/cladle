@@ -9,8 +9,14 @@ import type { TaxonGalleryPhoto } from "~/types/taxonGallery";
 import type { Clade } from "~/types/clade";
 import type { ApiError, ApiResponse } from "~/types/api";
 import type { BiologicalAPIClient } from "~/composables/useBiologicalAPI";
-import { CacheKeys, cacheService, TTL_VALUES } from "~/services/cacheService";
-import type { LocaleKeyedBundle } from "~/services/cacheService";
+import {
+  CacheKeys,
+  cacheService,
+  isCladeNameMapping,
+  normalizeCladeCacheName,
+  TTL_VALUES,
+} from "~/services/cacheService";
+import type { CladeNameMapping, LocaleKeyedBundle } from "~/services/cacheService";
 import {
   validateAnimalData,
   validateCladeData,
@@ -518,7 +524,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
     }
 
     // Use iNaturalist's relevance-ranked search endpoint.
-    // Unlike /taxa, /search ranks by textual match score (better for "Tiger" → Panthera tigris).
+    // Unlike /taxa, /search ranks by textual match score (better for "Tiger" -> Panthera tigris).
     // Caveat: /search doesn't support the same filters (rank/taxon_id) we used before, so we
     // post-filter results client-side to keep only Animalia + species/subspecies taxa.
     // Try to use iconic_taxa filter if supported by the search endpoint
@@ -815,17 +821,183 @@ class INaturalistAPIClient implements BiologicalAPIClient {
   }
 
   /**
-   * Fetch clade data by name
-   * Implements hybrid caching: checks IndexedDB cache first, then fetches from API
+   * Read a cached name -> taxon-id mapping from IndexedDB.
+   * @param cladeName - Clade scientific name
+   * @returns Taxon id when mapped, otherwise null
+   */
+  private async resolveCladeTaxonIdFromCache(cladeName: string): Promise<number | null> {
+    const raw = await cacheService.get<CladeNameMapping>("clades", CacheKeys.cladeByName(cladeName));
+    if (!isCladeNameMapping(raw)) {
+      return null;
+    }
+    return raw.taxonId;
+  }
+
+  /**
+   * Persist name -> taxon-id so later opens skip the iNaturalist name search.
+   * @param cladeName - Clade scientific name to map
+   * @param taxonId - iNaturalist taxon id
+   */
+  private async writeCladeNameMapping(cladeName: string, taxonId: number): Promise<void> {
+    const trimmed = cladeName.trim();
+    if (!trimmed) {
+      return;
+    }
+    const mapping: CladeNameMapping = { taxonId };
+    await cacheService.set(
+      "clades",
+      CacheKeys.cladeByName(trimmed),
+      mapping,
+      TTL_VALUES.CLADE,
+    );
+  }
+
+  /**
+   * Write name -> id mappings for the lookup name and the canonical clade name.
+   * @param lookupName - Name used to request the clade
+   * @param canonicalName - Scientific name from the API payload
+   * @param taxonId - iNaturalist taxon id
+   */
+  private async writeCladeNameMappings(
+    lookupName: string,
+    canonicalName: string,
+    taxonId: number,
+  ): Promise<void> {
+    await this.writeCladeNameMapping(lookupName, taxonId);
+    if (normalizeCladeCacheName(canonicalName) !== normalizeCladeCacheName(lookupName)) {
+      await this.writeCladeNameMapping(canonicalName, taxonId);
+    }
+  }
+
+  /**
+   * Load a localized clade from the taxon-id cache key, applying wiki summary cleanup.
+   * @param taxonId - iNaturalist taxon id
+   * @param localeKey - Normalized locale cache key
+   * @returns Cached clade when present for this locale, otherwise null
+   */
+  private async getCachedCladeByTaxonId(
+    taxonId: number,
+    localeKey: string,
+  ): Promise<Clade | null> {
+    const cacheKey = CacheKeys.cladeByTaxonId(taxonId);
+    const cachedRaw = await cacheService.get<Clade | LocaleKeyedBundle<Clade>>(
+      "clades",
+      cacheKey,
+    );
+    if (cachedRaw === null || isCladeNameMapping(cachedRaw)) {
+      return null;
+    }
+
+    const bundle = this.toCladeBundle(cachedRaw);
+    const hit = this.pickLocalized(bundle, localeKey);
+    if (!hit) {
+      return null;
+    }
+
+    const ctx: TaxonDescriptionContext = {
+      scientificName: hit.name,
+      commonName: hit.preferredCommonName,
+    };
+    const description = cleanTaxonWikiSummary(hit.description, ctx);
+    let data: Clade = { ...hit, description };
+    if (!description && hit.wikipediaUrl) {
+      data = await this.enrichEntityWikipediaRestIfNeeded(data, localeKey, ctx);
+    }
+    return data;
+  }
+
+  /**
+   * Fetch clade detail by taxon id, validate, enrich, and write both cache keys.
+   * @param taxonId - iNaturalist taxon id
+   * @param localeKey - Normalized locale cache key
+   * @param lookupName - Name used for the original request (for name mapping)
+   * @returns ApiResponse with clade data or error
+   */
+  private async fetchAndCacheCladeByTaxonId(
+    taxonId: number,
+    localeKey: string,
+    lookupName: string,
+  ): Promise<ApiResponse<Clade>> {
+    const detailUrl = this.withLocaleParams(`${INATURALIST_BASE_URL}/taxa/${taxonId}`);
+    const detailResponse = await this.makeRequest<INaturalistResponse>(detailUrl);
+
+    if (!detailResponse.results || detailResponse.results.length === 0) {
+      return this.createErrorResponse(
+        getUserFriendlyError("CLADE_NOT_FOUND"),
+        "CLADE_NOT_FOUND",
+      );
+    }
+
+    const taxon = detailResponse.results[0]!;
+    const mergedTaxon = await this.hydrateTaxonWikipediaFromEnglishInatIfNeeded(
+      String(taxonId),
+      taxon,
+      localeKey,
+    );
+    const mappedClade = this.mapToClade(mergedTaxon);
+
+    const validation = validateCladeData(mappedClade);
+
+    if (!validation.valid) {
+      this.logError("Clade Data Validation Failed", {
+        cladeName: lookupName,
+        taxonId,
+        errors: validation.errors,
+        rawData: taxon,
+      });
+
+      return this.createErrorResponse(
+        getUserFriendlyError("VALIDATION_ERROR"),
+        "VALIDATION_ERROR",
+        { validationErrors: validation.errors },
+      );
+    }
+
+    let data = validation.data!;
+    data = await this.enrichEntityWikipediaRestIfNeeded(data, localeKey, {
+      scientificName: data.name,
+      commonName: data.preferredCommonName,
+    });
+
+    const cacheKey = CacheKeys.cladeByTaxonId(taxonId);
+    const cachedAgain = await cacheService.get<Clade | LocaleKeyedBundle<Clade>>(
+      "clades",
+      cacheKey,
+    );
+    const bundle = this.toCladeBundle(
+      cachedAgain !== null && !isCladeNameMapping(cachedAgain) ? cachedAgain : null,
+    );
+    bundle.locales[localeKey] = data;
+    await cacheService.set("clades", cacheKey, bundle, TTL_VALUES.CLADE);
+    await this.writeCladeNameMappings(lookupName, data.name, taxonId);
+
+    return { data, error: null };
+  }
+
+  /**
+   * Fetch clade data by name.
+   * Resolves name -> taxon id from IndexedDB when possible (skips iNaturalist search),
+   * then loads the locale bundle by id. Writes both keys on a successful network fetch.
    * @param name - Name of the clade to fetch
    * @returns Promise resolving to ApiResponse with Clade data or error
    */
   async fetchCladeData(name: string): Promise<ApiResponse<Clade>> {
     const localeKey = this.normalizeLocaleCacheKey();
-
-    const searchUrl = this.withLocaleParams(`${INATURALIST_BASE_URL}/taxa?q=${encodeURIComponent(name)}`);
+    const searchUrl = this.withLocaleParams(
+      `${INATURALIST_BASE_URL}/taxa?q=${encodeURIComponent(name)}`,
+    );
 
     try {
+      let taxonId = await this.resolveCladeTaxonIdFromCache(name);
+
+      if (taxonId !== null) {
+        const cached = await this.getCachedCladeByTaxonId(taxonId, localeKey);
+        if (cached) {
+          return { data: cached, error: null };
+        }
+        return await this.fetchAndCacheCladeByTaxonId(taxonId, localeKey, name);
+      }
+
       const searchResponse = await this.makeRequest<INaturalistResponse>(searchUrl);
 
       if (!searchResponse.results || searchResponse.results.length === 0) {
@@ -835,79 +1007,16 @@ class INaturalistAPIClient implements BiologicalAPIClient {
         );
       }
 
-      const taxonId = searchResponse.results[0]!.id;
-      const cacheKey = CacheKeys.cladeByTaxonId(taxonId);
+      taxonId = searchResponse.results[0]!.id;
+      await this.writeCladeNameMapping(name, taxonId);
 
-      const cachedRaw = await cacheService.get<Clade | LocaleKeyedBundle<Clade>>(
-        "clades",
-        cacheKey,
-      );
-      if (cachedRaw !== null) {
-        const bundle = this.toCladeBundle(cachedRaw);
-        const hit = this.pickLocalized(bundle, localeKey);
-        if (hit) {
-          const ctx: TaxonDescriptionContext = {
-            scientificName: hit.name,
-            commonName: hit.preferredCommonName,
-          };
-          const description = cleanTaxonWikiSummary(hit.description, ctx);
-          let data: Clade = { ...hit, description };
-          if (!description && hit.wikipediaUrl) {
-            data = await this.enrichEntityWikipediaRestIfNeeded(data, localeKey, ctx);
-          }
-          return { data, error: null };
-        }
+      const cachedAfterSearch = await this.getCachedCladeByTaxonId(taxonId, localeKey);
+      if (cachedAfterSearch) {
+        await this.writeCladeNameMappings(name, cachedAfterSearch.name, taxonId);
+        return { data: cachedAfterSearch, error: null };
       }
 
-      const detailUrl = this.withLocaleParams(`${INATURALIST_BASE_URL}/taxa/${taxonId}`);
-      const detailResponse = await this.makeRequest<INaturalistResponse>(detailUrl);
-
-      if (!detailResponse.results || detailResponse.results.length === 0) {
-        return this.createErrorResponse(
-          getUserFriendlyError("CLADE_NOT_FOUND"),
-          "CLADE_NOT_FOUND",
-        );
-      }
-
-      const taxon = detailResponse.results[0]!;
-      const mergedTaxon = await this.hydrateTaxonWikipediaFromEnglishInatIfNeeded(
-        String(taxonId),
-        taxon,
-        localeKey,
-      );
-      const mappedClade = this.mapToClade(mergedTaxon);
-
-      const validation = validateCladeData(mappedClade);
-
-      if (!validation.valid) {
-        this.logError("Clade Data Validation Failed", {
-          cladeName: name,
-          errors: validation.errors,
-          rawData: taxon,
-        });
-
-        return this.createErrorResponse(
-          getUserFriendlyError("VALIDATION_ERROR"),
-          "VALIDATION_ERROR",
-          { validationErrors: validation.errors },
-        );
-      }
-
-      let data = validation.data!;
-      data = await this.enrichEntityWikipediaRestIfNeeded(data, localeKey, {
-        scientificName: data.name,
-        commonName: data.preferredCommonName,
-      });
-
-      const cachedAgain = await cacheService.get<Clade | LocaleKeyedBundle<Clade>>(
-        "clades",
-        cacheKey,
-      );
-      const bundle = this.toCladeBundle(cachedAgain);
-      bundle.locales[localeKey] = data;
-      await cacheService.set("clades", cacheKey, bundle, TTL_VALUES.CLADE);
-
-      return { data, error: null };
+      return await this.fetchAndCacheCladeByTaxonId(taxonId, localeKey, name);
     } catch (error) {
       return this.handleError(error, searchUrl);
     }

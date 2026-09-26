@@ -7,7 +7,12 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import "fake-indexeddb/auto";
-import { CacheService } from "~/services/cacheService";
+import {
+  CacheKeys,
+  CacheService,
+  isCladeNameMapping,
+  normalizeCladeCacheName,
+} from "~/services/cacheService";
 
 describe("cacheService", () => {
   let cacheService: CacheService;
@@ -387,13 +392,27 @@ describe("cacheService", () => {
       expect(await cacheService.get("animals", cacheKey)).toEqual(animal);
     });
 
-    it("should handle clade cache keys", async () => {
+    it("should handle clade cache keys by taxon id and by name", async () => {
       const clade = { name: "Mammalia", rank: "class" };
-      const cacheKey = `clade:${clade.name}`;
+      const taxonKey = CacheKeys.cladeByTaxonId(40151);
+      const nameKey = CacheKeys.cladeByName("Mammalia");
 
-      await cacheService.set("clades", cacheKey, clade);
+      await cacheService.set("clades", taxonKey, { locales: { en: clade } });
+      await cacheService.set("clades", nameKey, { taxonId: 40151 });
 
-      expect(await cacheService.get("clades", cacheKey)).toEqual(clade);
+      expect(await cacheService.get("clades", taxonKey)).toEqual({ locales: { en: clade } });
+      expect(await cacheService.get("clades", nameKey)).toEqual({ taxonId: 40151 });
+      expect(CacheKeys.cladeByName("  MAMMALIA ")).toBe(nameKey);
+    });
+
+    it("should normalize clade names for cache keys", () => {
+      expect(normalizeCladeCacheName("  Animalia ")).toBe("animalia");
+      expect(CacheKeys.cladeByName("Animalia")).toBe("clade:name:animalia");
+      expect(isCladeNameMapping({ taxonId: 48460 })).toBe(true);
+      expect(isCladeNameMapping({ name: "Animalia", rank: "kingdom" })).toBe(false);
+      expect(isCladeNameMapping({ locales: { en: { name: "Animalia", rank: "kingdom" } } })).toBe(
+        false,
+      );
     });
 
     it("should handle LCA cache keys with sorted IDs", async () => {
