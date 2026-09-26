@@ -6,9 +6,9 @@ const EMOJI_ONLY_FONT_SIZE = 26;
 
 /**
  * Indie Flower `@font-face` `size-adjust` in `app/assets/css/main.css`
- * (x-height match to Atkinson Hyperlegible Next: 0.496 / 0.365 ≈ 1.36).
+ * (milder than full Atkinson x-height match of ≈1.36).
  */
-export const INDIE_FLOWER_SIZE_ADJUST = 1.36;
+export const INDIE_FLOWER_SIZE_ADJUST = 1.18;
 
 const DEFAULT_FONT_FAMILY
   = "\"Indie Flower\", \"Atkinson Hyperlegible Next\", system-ui, -apple-system, sans-serif";
