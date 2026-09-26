@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { useUiIcons } from "~/composables/useUiIcons";
 import { DEFAULT_MAX_GUESSES } from "~/stores/gameStore";
+import { HINT_GUESS_COST } from "~/types/hint";
 import { formatNextUtcMidnightInLocal } from "~/utils/dateUtils";
 
 const emit = defineEmits<{
@@ -12,6 +13,7 @@ const icons = useUiIcons();
 const localMidnightUtc = computed(() => formatNextUtcMidnightInLocal(locale.value));
 
 const maxGuesses = DEFAULT_MAX_GUESSES;
+const hintCost = HINT_GUESS_COST;
 </script>
 
 <template>
@@ -47,6 +49,15 @@ const maxGuesses = DEFAULT_MAX_GUESSES;
           <p>{{ t("help.roundP1") }}</p>
           <p>{{ t("help.roundP2", { maxGuesses }) }}</p>
         </div>
+      </section>
+
+      <section>
+        <h2 class="text-lg sm:text-xl font-semibold mb-2">
+          {{ t("help.hintsTitle") }}
+        </h2>
+        <p class="text-[var(--color-ink-muted)]">
+          {{ t("help.hintsP1", { cost: hintCost }) }}
+        </p>
       </section>
 
       <section>

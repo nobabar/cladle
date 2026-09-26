@@ -1,5 +1,6 @@
 import { computed } from "vue";
 import { driver } from "driver.js";
+import { HINT_GUESS_COST } from "~/types/hint";
 
 /** Persisted tour completion */
 export const ONBOARDING_DAILY_TOUR_COMPLETE_KEY = "cladle:onboarding:daily:v1";
@@ -33,9 +34,12 @@ export function useOnboardingTour() {
       return;
     }
 
+    function isPostitOpen(): boolean {
+      return !!document.querySelector("[data-onboarding='daily-information-postit']");
+    }
+
     function ensureInformationPostitIsOpen(preferredNode?: Element | null): Promise<void> {
       return new Promise((resolve) => {
-        const isPostitOpen = () => !!document.querySelector("[data-onboarding='daily-information-postit']");
         if (isPostitOpen()) {
           resolve();
           return;
@@ -60,7 +64,13 @@ export function useOnboardingTour() {
           }
 
           targetNode.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
-          window.setTimeout(resolve, 220);
+          window.setTimeout(() => {
+            // Toggle race: the synthetic click can close an already-opening panel.
+            if (!isPostitOpen() && targetNode.isConnected) {
+              targetNode.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+            }
+            window.setTimeout(resolve, 220);
+          }, 220);
         }, 80);
       });
     }
@@ -263,6 +273,13 @@ export function useOnboardingTour() {
       didAdvanceFromTreeStep = true;
       clearTreeStepListener();
       await ensureInformationPostitIsOpen(clickedNode);
+      // Driver highlights the post-it step next; wait until the target exists so the
+      // step binds correctly instead of racing the open animation.
+      if (!isPostitOpen()) {
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, 220);
+        });
+      }
       if (canMoveNext()) {
         onboardingDriver?.moveNext();
       }
@@ -352,8 +369,10 @@ export function useOnboardingTour() {
         },
         {
           element: "[data-onboarding='daily-search']",
-          onHighlighted: () => {
+          // Attach before the highlight animation ends so early interactions still advance.
+          onHighlightStarted: () => {
             didAdvanceFromSearchStep = false;
+            clearSearchStepListener();
             const searchRoot = document.querySelector<HTMLElement>("[data-onboarding='daily-search']");
             searchRoot?.classList.add("onboarding-search-hitbox");
             if (searchRoot) {
@@ -389,9 +408,20 @@ export function useOnboardingTour() {
           },
         },
         {
+          element: "[data-onboarding='daily-hint']",
+          popover: {
+            title: t("onboarding.daily.hintTitle"),
+            description: t("onboarding.daily.hintBody", { cost: HINT_GUESS_COST }),
+            side: "bottom",
+            align: "end",
+          },
+        },
+        {
           element: "[data-onboarding='daily-tree']",
-          onHighlighted: () => {
+          // Attach before the highlight animation ends so early node clicks still advance.
+          onHighlightStarted: () => {
             didAdvanceFromTreeStep = false;
+            clearTreeStepListener();
 
             const onTreeNodeClick = (event: Event) => {
               const target = event.target as Element | null;
@@ -424,8 +454,9 @@ export function useOnboardingTour() {
         },
         {
           element: "[data-onboarding='daily-information-postit']",
-          onHighlighted: () => {
+          onHighlightStarted: () => {
             didAdvanceFromPostitStep = false;
+            clearPostitStepListener();
             setupPostitStepRefresh();
             const onPostitClosed = () => {
               if (postitAdvanceTimeout) {
@@ -461,7 +492,7 @@ export function useOnboardingTour() {
         },
         {
           element: "[data-onboarding='footer-help-link']",
-          onHighlighted: () => {
+          onHighlightStarted: () => {
             onboardingDriver?.setConfig({
               stagePadding: 8,
             });

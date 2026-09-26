@@ -528,13 +528,18 @@ onBeforeUnmount(() => {
                 @select="handleAnimalSelect"
               />
             </div>
-            <GameHintControl
+            <div
               v-if="gameStore.isPlaying"
-              :disabled="isHintControlDisabled"
-              :disabled-reason="hintDisabledReasonKey"
-              :announcement="hintAnnouncement"
-              @confirm="handleHintConfirm"
-            />
+              data-onboarding="daily-hint"
+              class="shrink-0"
+            >
+              <GameHintControl
+                :disabled="isHintControlDisabled"
+                :disabled-reason="hintDisabledReasonKey"
+                :announcement="hintAnnouncement"
+                @confirm="handleHintConfirm"
+              />
+            </div>
           </div>
           <!-- First-time user hint (progressive disclosure) -->
           <p

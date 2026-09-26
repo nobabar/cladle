@@ -55,16 +55,21 @@ test("guided tour advances with next-only navigation", async ({ page }) => {
   await startGuidedTourFromHelp(page);
 
   await page.getByRole("button", { name: "Next" }).click();
-  await expect(page.getByText("Search and submit a guess")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Search and submit a guess" })).toBeVisible();
 
   const searchInput = page.getByRole("combobox", { name: "Search for an animal" });
   await searchInput.fill("lion");
   await page.getByRole("option", { name: /Lion/i }).click();
-  await expect(page.getByText("Read the tree clues")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Optional hints" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByRole("dialog", { name: "Read the tree clues" })).toBeVisible();
 
   // Tree step Next opens the postit via a node click; needs at least one guess on the tree.
   await page.getByRole("button", { name: "Next" }).click();
-  await expect(page.getByText("4 / 5")).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("dialog", { name: "Inspect node details" })).toBeVisible({
+    timeout: 10_000,
+  });
 });
 
 test("guided tour can progress through interactive actions", async ({ page }) => {
@@ -76,13 +81,18 @@ test("guided tour can progress through interactive actions", async ({ page }) =>
   const searchInput = page.getByRole("combobox", { name: "Search for an animal" });
   await searchInput.fill("lion");
   await page.getByRole("option", { name: /Lion/i }).click();
-  await expect(page.getByText("Read the tree clues")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Optional hints" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByRole("dialog", { name: "Read the tree clues" })).toBeVisible();
 
   await page
     .locator("[data-onboarding='daily-tree'] .tree-node-group-rough[role='button']")
     .first()
     .click();
-  await expect(page.getByText("Inspect node details")).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Inspect node details" })).toBeVisible({
+    timeout: 10_000,
+  });
   await expect(page.locator("[data-onboarding='daily-information-postit']")).toBeVisible();
 
   await closePostitFromStickyTab(page);
