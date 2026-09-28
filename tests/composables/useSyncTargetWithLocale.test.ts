@@ -59,6 +59,7 @@ describe("useSyncTargetWithLocale", () => {
     const english = createMockAnimal("Tiger");
     const french = { ...english, name: "Tigre", description: "<p>Grand felin.</p>" };
     store.setTargetAnimal(english);
+    store.status = "won";
 
     fetchAnimalData.mockResolvedValue({ data: french, error: null });
 
@@ -75,6 +76,7 @@ describe("useSyncTargetWithLocale", () => {
 
   it("refetches when the target taxon id changes after mount", async () => {
     const store = useGameStore();
+    store.status = "won";
     fetchAnimalData.mockResolvedValue({ data: null, error: null });
 
     mountSyncHarness();
@@ -89,6 +91,7 @@ describe("useSyncTargetWithLocale", () => {
     };
     fetchAnimalData.mockResolvedValue({ data: enriched, error: null });
     store.setTargetAnimal(zebra);
+    store.status = "won";
 
     await vi.waitFor(() => {
       expect(fetchAnimalData).toHaveBeenCalledWith("43335");
@@ -99,9 +102,10 @@ describe("useSyncTargetWithLocale", () => {
     expect(store.target?.description).toContain("Striped");
   });
 
-  it("skips the network for baby mode when English UI already has complete bundle media", async () => {
+  it("refetches baby mode English reveal instead of treating the bundle as offline", async () => {
     const store = useGameStore();
     store.gameMode = "baby";
+    store.status = "won";
     store.setTargetAnimal({
       ...createMockAnimal("Zebra", "43335"),
       imageUrl: "https://example.com/zebra.jpg",
@@ -109,12 +113,23 @@ describe("useSyncTargetWithLocale", () => {
       wikipediaUrl: "https://en.wikipedia.org/wiki/Equus%20quagga",
     });
 
+    const enriched = {
+      ...createMockAnimal("Zebra", "43335"),
+      name: "Zebra",
+      imageUrl: "https://example.com/zebra-inat.jpg",
+      description: "<p>iNaturalist English copy.</p>",
+      wikipediaUrl: "https://en.wikipedia.org/wiki/Equus%20quagga",
+    };
+    fetchAnimalData.mockResolvedValue({ data: enriched, error: null });
+
     mountSyncHarness();
     await nextTick();
-    await new Promise(resolve => setTimeout(resolve, 20));
+    await vi.waitFor(() => {
+      expect(fetchAnimalData).toHaveBeenCalledWith("43335");
+    });
+    await nextTick();
 
-    expect(fetchAnimalData).not.toHaveBeenCalled();
-    expect(store.target?.description).toContain("Bundle English");
+    expect(store.target?.description).toContain("iNaturalist");
   });
 
   it("clears English baby description before fetching a non-English locale", async () => {
@@ -123,12 +138,14 @@ describe("useSyncTargetWithLocale", () => {
 
     const store = useGameStore();
     store.gameMode = "baby";
+    store.status = "won";
     store.setTargetAnimal({
       ...createMockAnimal("Zebra", "43335"),
       imageUrl: "https://example.com/zebra.jpg",
       description: "<p>English flash.</p>",
       wikipediaUrl: "https://en.wikipedia.org/wiki/Equus%20quagga",
     });
+    store.status = "won";
 
     let resolveFetch: (value: { data: Animal; error: null }) => void = () => undefined;
     fetchAnimalData.mockImplementation(

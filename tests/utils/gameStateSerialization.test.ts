@@ -69,6 +69,7 @@ describe("gameStateSerialization", () => {
     const daily = {
       status: "playing" as const,
       target: mockAnimal("1", "Tiger"),
+      gameToken: null,
       guesses: [mockGuess()],
       hints: [mockHint()],
       maxGuesses: 20,
@@ -87,6 +88,7 @@ describe("gameStateSerialization", () => {
     expect(parsed!.gameMode).toBe("daily");
     expect(parsed!.dailyState).toMatchObject({
       status: "playing",
+      target: mockAnimal("1", "Tiger"),
       maxGuesses: 20,
       puzzleDate: "2026-03-22",
     });
@@ -104,6 +106,7 @@ describe("gameStateSerialization", () => {
     const baby = {
       status: "playing" as const,
       target: mockAnimal("47144", "Dog"),
+      gameToken: null,
       guesses: [],
       hints: [],
       maxGuesses: 20,
@@ -121,6 +124,71 @@ describe("gameStateSerialization", () => {
     expect(parsed!.version).toBe(PERSISTED_GAME_STATE_SCHEMA_VERSION);
     expect(parsed!.gameMode).toBe("baby");
     expect(parsed!.babyModeState?.puzzleDate).toBe("2026-08-29");
+    expect(parsed!.babyModeState?.target?.id).toBe("47144");
+  });
+
+  it("strips target from sealed playing snapshots on serialize/parse", () => {
+    const daily = {
+      status: "playing" as const,
+      target: mockAnimal("1", "Tiger"),
+      gameToken: "sealed-token",
+      guesses: [mockGuess()],
+      hints: [],
+      maxGuesses: 20,
+      treeData: null,
+      puzzleDate: "2026-03-22",
+    };
+    const raw = serializePersistedGameState({
+      gameMode: "daily",
+      dailyState: daily,
+      freePlayState: null,
+      babyModeState: null,
+    });
+    const parsed = parsePersistedGameState(raw);
+    expect(parsed!.dailyState?.target).toBeNull();
+    expect(parsed!.dailyState?.gameToken).toBe("sealed-token");
+  });
+
+  it("strips target from playing snapshots when parsing sealed legacy stored JSON", () => {
+    const raw = JSON.stringify({
+      version: PERSISTED_GAME_STATE_SCHEMA_VERSION,
+      gameMode: "daily",
+      dailyState: {
+        status: "playing",
+        target: mockAnimal("1", "Tiger"),
+        gameToken: "sealed-token",
+        guesses: [],
+        hints: [],
+        maxGuesses: 20,
+        treeData: null,
+        puzzleDate: "2026-03-22",
+      },
+      freePlayState: null,
+      babyModeState: null,
+    });
+    const parsed = parsePersistedGameState(raw);
+    expect(parsed!.dailyState?.target).toBeNull();
+  });
+
+  it("keeps target after won games", () => {
+    const daily = {
+      status: "won" as const,
+      target: mockAnimal("1", "Tiger"),
+      gameToken: "token",
+      guesses: [mockGuess()],
+      hints: [],
+      maxGuesses: 20,
+      treeData: null,
+      puzzleDate: "2026-03-22",
+    };
+    const raw = serializePersistedGameState({
+      gameMode: "daily",
+      dailyState: daily,
+      freePlayState: null,
+      babyModeState: null,
+    });
+    const parsed = parsePersistedGameState(raw);
+    expect(parsed!.dailyState?.target?.id).toBe("1");
   });
 
   it("defaults babyModeState to null when field is omitted", () => {
@@ -236,6 +304,7 @@ describe("gameStateSerialization", () => {
       dailyState: {
         status: "playing",
         target: null,
+        gameToken: null,
         guesses: [],
         hints: [],
         maxGuesses: 20,

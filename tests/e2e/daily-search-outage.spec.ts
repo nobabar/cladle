@@ -1,9 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { gotoDailyAndWaitForShell } from "./helpers/daily-shell";
+import { mockGameApi } from "./helpers/gameApi";
 import { isINaturalistSearchUrl, mockINaturalistTaxa } from "./helpers/inaturalist";
 
 test.beforeEach(async ({ page }) => {
   await mockINaturalistTaxa(page);
+  await mockGameApi(page);
 });
 
 test("API outage shows dedicated iNaturalist message after repeated failures", async ({ page }) => {

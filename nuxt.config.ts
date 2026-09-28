@@ -151,6 +151,7 @@ export default defineNuxtConfig({
     githubToken: "",
     githubOwner: "nobabar",
     githubRepo: "cladle",
+    puzzleSecret: "",
     public: {
       piniaPluginPersistedstate: {
         storage: "localStorage",

@@ -1,7 +1,6 @@
 import { onMounted, watch } from "vue";
 import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 import { useGameStore } from "~/stores/gameStore";
-import type { Animal } from "~/types/animal";
 
 function isEnglishLocale(locale: string): boolean {
   return locale === "en" || locale.startsWith("en-");
@@ -12,20 +11,8 @@ function hasNonEmpty(value: string | undefined): boolean {
 }
 
 /**
- * Baby Mode offline bundle already ships English reveal media.
- * @param target - Current mystery animal
- * @returns True when English UI can rely on the offline bundle alone
- */
-function babyBundleCompleteForEnglish(target: Animal): boolean {
-  return hasNonEmpty(target.imageUrl)
-    && hasNonEmpty(target.description)
-    && hasNonEmpty(target.wikipediaUrl);
-}
-
-/**
- * Keeps the mystery/target animal name and description aligned with the active UI locale.
- * Refetches from the API (locale-aware cache) when locale changes or the target taxon changes.
- * Baby Mode skips the network when the English UI can use a complete offline bundle payload.
+ * Keep target name/description aligned with the UI locale after won/lost.
+ * Skips while the round is in progress (target not revealed yet).
  */
 export function useSyncTargetWithLocale(): void {
   const gameStore = useGameStore();
@@ -40,18 +27,16 @@ export function useSyncTargetWithLocale(): void {
     if (!targetId || !target) {
       return;
     }
-
-    const englishUi = isEnglishLocale(locale.value);
-    if (
-      gameStore.gameMode === "baby"
-      && englishUi
-      && babyBundleCompleteForEnglish(target)
-    ) {
+    // Target id is not client-visible until won/lost.
+    if (gameStore.status === "playing" || gameStore.status === "idle") {
       return;
     }
 
-    // Avoid flashing English Wikipedia copy while waiting for a localized fetch.
-    if (gameStore.gameMode === "baby" && !englishUi && hasNonEmpty(target.description)) {
+    if (
+      gameStore.gameMode === "baby"
+      && !isEnglishLocale(locale.value)
+      && hasNonEmpty(target.description)
+    ) {
       gameStore.clearTargetDescriptionForLocaleSync();
     }
 
@@ -76,9 +61,9 @@ export function useSyncTargetWithLocale(): void {
   );
 
   watch(
-    () => gameStore.target?.id,
-    (targetId) => {
-      if (targetId) {
+    [() => gameStore.target?.id, () => gameStore.status],
+    () => {
+      if (gameStore.target?.id) {
         void syncTargetLocale();
       }
     },

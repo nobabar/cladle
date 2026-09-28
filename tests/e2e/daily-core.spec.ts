@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { gotoDailyAndWaitForShell, reloadWithStaleDailyPuzzle, waitForDailyGameReady } from "./helpers/daily-shell";
+import { buildE2EGameToken, mockGameApi } from "./helpers/gameApi";
 import { mockINaturalist } from "./helpers/inaturalist";
 import { skipOnboardingPrompt } from "./helpers/onboarding";
 
@@ -45,6 +46,7 @@ async function clickShareCopyButton(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await mockINaturalist(page);
+  await mockGameApi(page);
   await skipOnboardingPrompt(page);
 });
 
@@ -99,46 +101,19 @@ test("daily persistence survives refresh and resets with new day", async ({ page
 
 test("loss path from incorrect guess", async ({ page }) => {
   const today = new Date().toISOString().slice(0, 10);
-  const tigerAnimal = {
-    id: "41967",
-    name: "Tiger",
-    scientificName: "Panthera tigris",
-    lineage: [
-      { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
-      { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
-      { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
-      { id: "taxon-3", name: "Carnivora", rank: "order", rankLevel: 40 },
-      { id: "taxon-4", name: "Felidae", rank: "family", rankLevel: 30 },
-      { id: "taxon-5", name: "Panthera", rank: "genus", rankLevel: 20 },
-      { id: "taxon-6", name: "Panthera tigris", rank: "species", rankLevel: 10 },
-    ],
-  };
+  const gameToken = buildE2EGameToken("daily", "41967", 1);
 
-  await page.addInitScript(({ date, target }) => {
-    interface SeedAnimal {
-      id: string;
-      name: string;
-      scientificName: string;
-      lineage: Array<{
-        id: string;
-        name: string;
-        rank: string;
-        rankLevel?: number;
-      }>;
-    }
-
+  await page.addInitScript(({ date, token }) => {
     interface SeedTreeNode {
       id: string;
       type: "clade" | "animal";
       name: string;
       cladeData?: { name: string; rank: string };
-      data?: SeedAnimal;
       children: SeedTreeNode[];
       isTarget?: boolean;
       depth: number;
     }
 
-    const typedTarget = target as SeedAnimal;
     const root: SeedTreeNode = {
       id: "root",
       type: "clade",
@@ -148,10 +123,9 @@ test("loss path from incorrect guess", async ({ page }) => {
       depth: 0,
     };
     const targetNode: SeedTreeNode = {
-      id: `animal-${typedTarget.id}`,
+      id: "animal-mystery",
       type: "animal",
-      name: typedTarget.name,
-      data: typedTarget,
+      name: "?",
       children: [],
       isTarget: true,
       depth: 1,
@@ -163,8 +137,10 @@ test("loss path from incorrect guess", async ({ page }) => {
       gameMode: "daily",
       dailyState: {
         status: "playing",
-        target,
+        target: null,
+        gameToken: token,
         guesses: [],
+        hints: [],
         maxGuesses: 1,
         treeData: {
           root,
@@ -173,11 +149,13 @@ test("loss path from incorrect guess", async ({ page }) => {
           guesses: [],
         },
         puzzleDate: date,
+        serverHintAvailable: true,
       },
       freePlayState: null,
+      babyModeState: null,
     };
     localStorage.setItem("cladle-game-store", JSON.stringify(persisted));
-  }, { date: today, target: tigerAnimal });
+  }, { date: today, token: gameToken });
 
   await gotoDailyAndWaitForShell(page);
 

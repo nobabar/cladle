@@ -22,11 +22,13 @@ const GAME_MODES = new Set<PersistedGameMode>(["daily", "free-play", "baby"]);
 export interface SerializeModeStateInput {
   status: GameStatus;
   target: Animal | null;
+  gameToken: string | null;
   guesses: GuessEntry[];
   hints: HintEntry[];
   maxGuesses: number;
   treeData: TreeData | null;
   puzzleDate: string;
+  serverHintAvailable?: boolean;
 }
 
 export interface SerializePersistedGameStateInput {
@@ -48,14 +50,18 @@ function serializeHintsForStorage(hints: HintEntry[]): StoredHintEntry[] {
 }
 
 function modeToWire(input: SerializeModeStateInput): PersistedModeGameState {
+  const sealedInProgress = Boolean(input.gameToken) && input.status === "playing";
   return {
     status: input.status,
-    target: input.target,
+    // Never persist the mystery while a sealed game is in progress.
+    target: sealedInProgress ? null : input.target,
+    gameToken: input.gameToken,
     guesses: serializeGuessesForStorage(input.guesses),
     hints: serializeHintsForStorage(input.hints),
     maxGuesses: input.maxGuesses,
     treeData: serializeTreeDataForStorage(input.treeData),
     puzzleDate: input.puzzleDate,
+    serverHintAvailable: input.serverHintAvailable,
   };
 }
 
@@ -160,14 +166,23 @@ function parseModeState(value: unknown): PersistedModeGameState | null {
     return null;
   }
 
+  const gameToken = typeof o.gameToken === "string" ? o.gameToken : null;
+  const status = o.status as PersistedGameStatus;
+  const rawTarget = (o.target ?? null) as Animal | null;
+
   return {
-    status: o.status as PersistedGameStatus,
-    target: (o.target ?? null) as Animal | null,
+    status,
+    // Strip leaked targets from older sealed snapshots still marked playing.
+    target: (gameToken && status === "playing") ? null : rawTarget,
+    gameToken,
     guesses: o.guesses as StoredGuessEntry[],
     hints,
     maxGuesses: o.maxGuesses,
     treeData: (o.treeData ?? null) as StoredTreeData | null,
     puzzleDate: o.puzzleDate,
+    serverHintAvailable: typeof o.serverHintAvailable === "boolean"
+      ? o.serverHintAvailable
+      : undefined,
   };
 }
 

@@ -449,7 +449,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       }
     }
 
-    // 2. Cache miss - fetch from API
+    // Cache miss - fetch from API
     // Include ancestor information to build lineage
     const url = this.withLocaleParams(`${INATURALIST_BASE_URL}/taxa/${id}?include_ancestors=true`);
 
@@ -493,7 +493,6 @@ class INaturalistAPIClient implements BiologicalAPIClient {
         commonName: data.name,
       });
 
-      // 3. Cache the validated result per locale under one taxon key
       const cachedAgain = await cacheService.get<Animal | LocaleKeyedBundle<Animal>>(
         "animals",
         cacheKey,
