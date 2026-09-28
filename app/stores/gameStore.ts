@@ -17,6 +17,7 @@ import type { HintEntry } from "~/types/hint";
 import { HINT_GUESS_COST } from "~/types/hint";
 import { resolveBabyModeLCA } from "~/utils/babyMode";
 import { buildHintCladeSelectorInput, selectHintClade } from "~/utils/hintCladeSelector";
+import { submitGameGuess, submitGameHint } from "~/services/gameApiClient";
 
 export const DEFAULT_MAX_GUESSES = 20;
 
@@ -52,8 +53,10 @@ export interface GuessEntry {
 interface ModeGameState {
   /** Current game status */
   status: GameStatus;
-  /** Target animal to guess */
+  /** Target animal; null until the game is won or lost */
   target: Animal | null;
+  /** Server game token */
+  gameToken: string | null;
   /** History of guesses */
   guesses: GuessEntry[];
   /** Paid hints (separate from animal guesses) */
@@ -68,6 +71,8 @@ interface ModeGameState {
   cladeMap: Map<string, TreeNode>;
   /** Current puzzle date (YYYY-MM-DD format) */
   puzzleDate: string;
+  /** Hint available (from last server response) */
+  serverHintAvailable: boolean;
 }
 
 interface GameState {
@@ -75,8 +80,10 @@ interface GameState {
   gameMode: GameMode | null;
   /** Current game status */
   status: GameStatus;
-  /** Target animal to guess */
+  /** Target animal; null until the game is won or lost */
   target: Animal | null;
+  /** Server game token */
+  gameToken: string | null;
   /** History of guesses */
   guesses: GuessEntry[];
   /** Paid hints (separate from animal guesses) */
@@ -91,6 +98,8 @@ interface GameState {
   cladeMap: Map<string, TreeNode>;
   /** Current puzzle date (YYYY-MM-DD format) */
   puzzleDate: string;
+  /** Hint available (from last server response) */
+  serverHintAvailable: boolean;
   /** Loading state for global operations (API calls, data loading) */
   isLoading: boolean;
   /** Store-level error (API/data errors) */
@@ -115,6 +124,7 @@ export const useGameStore = defineStore("game", {
     gameMode: null,
     status: "idle",
     target: null,
+    gameToken: null,
     guesses: [],
     hints: [],
     maxGuesses: DEFAULT_MAX_GUESSES,
@@ -122,6 +132,7 @@ export const useGameStore = defineStore("game", {
     nodeMap: new Map(),
     cladeMap: new Map(),
     puzzleDate: "",
+    serverHintAvailable: true,
     isLoading: false,
     error: null,
     isRenderingTree: false,
@@ -192,7 +203,13 @@ export const useGameStore = defineStore("game", {
     },
 
     hasHintAvailable(): boolean {
-      if (!this.target || this.status !== "playing" || this.isReplayMode) {
+      if (this.status !== "playing" || this.isReplayMode) {
+        return false;
+      }
+      if (this.gameToken) {
+        return this.serverHintAvailable;
+      }
+      if (!this.target) {
         return false;
       }
       return selectHintClade(buildHintCladeSelectorInput({
@@ -207,7 +224,7 @@ export const useGameStore = defineStore("game", {
       return (
         this.status === "playing"
         && !this.isReplayMode
-        && this.target !== null
+        && (this.gameToken !== null || this.target !== null)
         && this.guessesRemaining > HINT_GUESS_COST
         && this.hasHintAvailable
       );
@@ -379,6 +396,11 @@ export const useGameStore = defineStore("game", {
      * @param mode - The game mode to save state for
      */
     saveModeState(mode: GameMode): void {
+      // Never overwrite today's snapshot with a history-replay view.
+      if (this.isReplayMode) {
+        return;
+      }
+
       // Deep clone tree data (handle circular references by storing minimal data)
       let savedTreeData: TreeData | null = null;
       if (this.treeData) {
@@ -392,8 +414,12 @@ export const useGameStore = defineStore("game", {
         }));
       }
 
-      // Deep clone target animal
-      const savedTarget = this.target ? JSON.parse(JSON.stringify(this.target)) : null;
+      // Sealed games: never persist the mystery while still playing.
+      // Plaintext rounds (no gameToken) keep the target for restore.
+      const sealedInProgress = Boolean(this.gameToken) && this.status === "playing";
+      const savedTarget = sealedInProgress || !this.target
+        ? null
+        : JSON.parse(JSON.stringify(this.target));
 
       // Deep clone guesses
       const savedGuesses = this.guesses.map(guess => JSON.parse(JSON.stringify(guess)));
@@ -403,6 +429,7 @@ export const useGameStore = defineStore("game", {
       const state: ModeGameState = {
         status: this.status,
         target: savedTarget,
+        gameToken: this.gameToken,
         guesses: savedGuesses,
         hints: savedHints,
         maxGuesses: this.maxGuesses,
@@ -411,6 +438,7 @@ export const useGameStore = defineStore("game", {
         nodeMap: new Map(),
         cladeMap: new Map(),
         puzzleDate: this.puzzleDate,
+        serverHintAvailable: this.serverHintAvailable,
       };
 
       // Deep clone the entire state object to avoid any reference sharing
@@ -427,6 +455,7 @@ export const useGameStore = defineStore("game", {
       const finalState: ModeGameState = {
         status: clonedState.status,
         target: clonedState.target,
+        gameToken: clonedState.gameToken ?? null,
         guesses: clonedState.guesses,
         hints: clonedState.hints ?? [],
         maxGuesses: clonedState.maxGuesses,
@@ -434,6 +463,7 @@ export const useGameStore = defineStore("game", {
         nodeMap: new Map(),
         cladeMap: new Map(),
         puzzleDate: clonedState.puzzleDate,
+        serverHintAvailable: clonedState.serverHintAvailable ?? true,
       };
 
       if (mode === "daily") {
@@ -457,7 +487,12 @@ export const useGameStore = defineStore("game", {
         const state = JSON.parse(JSON.stringify(savedState));
 
         this.status = state.status;
-        this.target = state.target;
+        // Sealed in-progress rounds keep target null; plaintext snapshots restore target.
+        this.target = (state.gameToken && state.status === "playing")
+          ? null
+          : (state.target ?? null);
+        this.gameToken = state.gameToken ?? null;
+        this.serverHintAvailable = state.serverHintAvailable ?? true;
         this.guesses = state.guesses;
         this.hints = state.hints ?? [];
         this.maxGuesses = state.maxGuesses;
@@ -486,6 +521,8 @@ export const useGameStore = defineStore("game", {
         // No saved state, reset to initial
         this.status = "idle";
         this.target = null;
+        this.gameToken = null;
+        this.serverHintAvailable = true;
         this.guesses = [];
         this.hints = [];
         this.maxGuesses = DEFAULT_MAX_GUESSES;
@@ -553,21 +590,91 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
-     * Initialize a new game with a target animal
-     * @param target - The target animal to guess
-     * @param maxGuesses - Maximum number of guesses (default: DEFAULT_MAX_GUESSES)
+     * Start a game from POST /api/game/start. Target stays null until won/lost.
+     * @param params - Game start parameters
+     * @param params.mode - Game mode
+     * @param params.gameToken - Game token
+     * @param params.puzzleDate - Puzzle date
+     * @param params.maxGuesses - Maximum number of guesses
+     * @param forceNew - Force new game
+     */
+    initializeSealedGame(
+      params: {
+        mode: GameMode;
+        gameToken: string;
+        puzzleDate: string;
+        maxGuesses: number;
+      },
+      forceNew: boolean = false,
+    ): void {
+      const mode = params.mode;
+
+      if (this.gameMode && this.gameMode !== mode) {
+        this.switchGameMode(mode);
+        if (!forceNew && this.gameToken && this.status !== "idle") {
+          return;
+        }
+      } else if (!this.gameMode) {
+        this.gameMode = mode;
+        this.restoreModeState(mode);
+        if (!forceNew && this.gameToken && this.status !== "idle") {
+          return;
+        }
+      }
+
+      const expectedPuzzleDate = params.puzzleDate;
+      const hasValidState = Boolean(this.gameToken) && this.status !== "idle";
+      const isNewDay = (mode === "daily" || mode === "baby")
+        && this.puzzleDate !== expectedPuzzleDate;
+      const isFreePlayNewGame = mode === "free-play" && !hasValidState;
+
+      const shouldInitializeNew = forceNew || !hasValidState || isNewDay || isFreePlayNewGame;
+
+      if (shouldInitializeNew) {
+        this.target = null;
+        this.gameToken = params.gameToken;
+        this.serverHintAvailable = true;
+        this.guesses = [];
+        this.hints = [];
+        this.status = "playing";
+        this.maxGuesses = params.maxGuesses;
+        this.nodeMap = new Map();
+        this.cladeMap = new Map();
+        this.puzzleDate = expectedPuzzleDate;
+        this.treeData = this.initializeMysteryTree();
+        this.isReplayMode = false;
+        this.saveModeState(mode);
+      }
+    },
+
+    /**
+     * Set the target after won/lost and update the tree leaf.
+     * @param animal - The target animal
+     */
+    applyReveal(animal: Animal): void {
+      this.target = animal;
+      const targetNode = this.treeData?.target;
+      if (targetNode) {
+        targetNode.id = `animal-${animal.id}`;
+        targetNode.name = animal.name;
+        targetNode.data = animal;
+      }
+    },
+
+    /**
+     * Unit-test helper: start with a known target (no game token).
+     * @param target - The target animal
+     * @param maxGuesses - Maximum number of guesses
      */
     startGame(target: Animal, maxGuesses: number = DEFAULT_MAX_GUESSES): void {
-      this.target = target;
-      this.guesses = [];
-      this.hints = [];
-      this.status = "playing";
-      this.maxGuesses = maxGuesses;
-      this.nodeMap = new Map();
-      this.cladeMap = new Map();
-
-      // Initialize tree with root and target
-      this.treeData = this.initializeTree(target);
+      this.gameToken = null;
+      this.initializeGame(
+        target,
+        maxGuesses,
+        undefined,
+        this.gameMode ?? undefined,
+        true,
+      );
     },
 
     /**
@@ -630,6 +737,8 @@ export const useGameStore = defineStore("game", {
 
       if (shouldInitializeNew) {
         this.setTargetAnimal(target);
+        this.gameToken = null;
+        this.serverHintAvailable = true;
         this.guesses = [];
         this.hints = [];
         this.status = "playing";
@@ -773,6 +882,8 @@ export const useGameStore = defineStore("game", {
       }
       this.status = "idle";
       this.target = null;
+      this.gameToken = null;
+      this.serverHintAvailable = true;
       this.guesses = [];
       this.hints = [];
       this.treeData = null;
@@ -794,6 +905,8 @@ export const useGameStore = defineStore("game", {
       }
       this.status = "idle";
       this.target = null;
+      this.gameToken = null;
+      this.serverHintAvailable = true;
       this.guesses = [];
       this.hints = [];
       this.treeData = null;
@@ -804,6 +917,52 @@ export const useGameStore = defineStore("game", {
       this.error = null;
       this.isRenderingTree = false;
       this.babyModeState = null;
+    },
+
+    /**
+     * Tree with Animalia root and a "?" target leaf.
+     * @returns Initial tree data
+     */
+    initializeMysteryTree(): TreeData {
+      const rootNode: TreeNode = {
+        id: "root",
+        type: "clade",
+        name: "Animalia",
+        cladeData: {
+          name: "Animalia",
+          rank: "kingdom",
+        },
+        children: [],
+        depth: 0,
+      };
+
+      const targetNode: TreeNode = {
+        id: "animal-mystery",
+        type: "animal",
+        name: "?",
+        children: [],
+        isTarget: true,
+        depth: 1,
+      };
+
+      rootNode.children.push(targetNode);
+      targetNode.parent = rootNode;
+
+      rootNode.taxonomicDepth = 0;
+      rootNode.taxonomyPath = ["Animalia"];
+      this.cladeMap.set(this.normalizeCladeName("Animalia"), rootNode);
+
+      this.buildNodeMap(rootNode);
+
+      const allNodes = Array.from(this.nodeMap.values());
+      const guessNodes = allNodes.filter(node => node.isGuess);
+
+      return {
+        root: rootNode,
+        target: targetNode,
+        nodes: allNodes,
+        guesses: guessNodes,
+      };
     },
 
     /**
@@ -856,17 +1015,13 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
-     * Process a guess and update the tree
+     * Process a guess via the server when gameToken is set, otherwise locally.
      * @param guess - The guessed animal
-     * @throws Error if game is not active or guess is invalid
+     * @returns A promise that resolves when the guess is processed
      */
-    processGuess(guess: Animal): void {
+    processGuess(guess: Animal): Promise<void> {
       if (this.status !== "playing") {
         throw new Error("Game is not active");
-      }
-
-      if (!this.target) {
-        throw new Error("No target animal set");
       }
 
       if (this.guessesRemaining <= 0) {
@@ -875,6 +1030,14 @@ export const useGameStore = defineStore("game", {
 
       if (this.guesses.some(g => g.animal.id === guess.id)) {
         throw new Error("Animal already guessed");
+      }
+
+      if (this.gameToken) {
+        return this.processGuessViaServer(guess);
+      }
+
+      if (!this.target) {
+        throw new Error("No target animal set");
       }
 
       let lcaResult = calculateLCA(guess, this.target);
@@ -904,13 +1067,54 @@ export const useGameStore = defineStore("game", {
           this.saveModeState(this.gameMode!);
         }, 0);
       }
+
+      return Promise.resolve();
+    },
+
+    /**
+     * Process a guess via the server when gameToken is set.
+     * @param guess - The guessed animal
+     * @returns A promise that resolves when the guess is processed
+     */
+    async processGuessViaServer(guess: Animal): Promise<void> {
+      if (!this.gameToken) {
+        throw new Error("No sealed game token");
+      }
+
+      const response = await submitGameGuess({
+        gameToken: this.gameToken,
+        animalId: guess.id,
+      });
+
+      this.gameToken = response.gameToken;
+
+      const guessEntry: GuessEntry = {
+        animal: guess,
+        lca: response.lca,
+        timestamp: Date.now(),
+      };
+
+      this.guesses.push(guessEntry);
+      this.updateTreeWithGuess(guess, response.lca);
+      this.serverHintAvailable = response.hasHintAvailable;
+      this.status = response.status;
+
+      if (response.reveal) {
+        this.applyReveal(response.reveal);
+      }
+
+      if (this.gameMode) {
+        setTimeout(() => {
+          this.saveModeState(this.gameMode!);
+        }, 0);
+      }
     },
 
     /**
      * Spend guess budget for a paid hint and reveal the next clade on the target path.
-     * @throws Error when game is inactive, replay, insufficient guesses, or no hint available
+     * @returns A promise that resolves when the hint is processed
      */
-    requestHint(): void {
+    requestHint(): Promise<void> {
       if (this.isReplayMode) {
         throw new Error("Hints are not available in replay mode");
       }
@@ -919,12 +1123,16 @@ export const useGameStore = defineStore("game", {
         throw new Error("Game is not active");
       }
 
-      if (!this.target) {
-        throw new Error("No target animal set");
-      }
-
       if (this.guessesRemaining <= HINT_GUESS_COST) {
         throw new Error("Not enough guesses remaining for a hint");
+      }
+
+      if (this.gameToken) {
+        return this.requestHintViaServer();
+      }
+
+      if (!this.target) {
+        throw new Error("No target animal set");
       }
 
       const selected = selectHintClade(buildHintCladeSelectorInput({
@@ -947,10 +1155,62 @@ export const useGameStore = defineStore("game", {
       };
 
       this.hints.push(hintEntry);
-      this.revealCladeOnTree(selected);
+      this.revealCladeOnTree({
+        clade: selected.clade,
+        rank: selected.rank,
+        depth: selected.depth,
+        path: selected.path,
+      });
 
       if (this.guessesRemaining <= 0) {
         this.status = "lost";
+      }
+
+      if (this.gameMode) {
+        setTimeout(() => {
+          this.saveModeState(this.gameMode!);
+        }, 0);
+      }
+
+      return Promise.resolve();
+    },
+
+    /**
+     * Spend guess budget for a paid hint and reveal the next clade on the target path via the server.
+     * @returns A promise that resolves when the hint is processed
+     */
+    async requestHintViaServer(): Promise<void> {
+      if (!this.gameToken) {
+        throw new Error("No sealed game token");
+      }
+
+      const response = await submitGameHint({
+        gameToken: this.gameToken,
+      });
+
+      this.gameToken = response.gameToken;
+
+      const hintEntry: HintEntry = {
+        timestamp: Date.now(),
+        cost: response.hint.cost,
+        revealedClade: response.hint.revealedClade,
+        rank: response.hint.rank,
+        depth: response.hint.depth,
+        path: [...response.hint.path],
+      };
+
+      this.hints.push(hintEntry);
+      this.revealCladeOnTree({
+        clade: response.hint.revealedClade,
+        rank: response.hint.rank,
+        depth: response.hint.depth,
+        path: response.hint.path,
+      });
+      this.serverHintAvailable = response.hasHintAvailable;
+      this.status = response.status;
+
+      if (response.reveal) {
+        this.applyReveal(response.reveal);
       }
 
       if (this.gameMode) {
@@ -1433,8 +1693,13 @@ export const useGameStore = defineStore("game", {
      * @returns True if LCA is an ancestor of target
      */
     isAncestorOfTarget(lcaResult: LCAResult): boolean {
-      if (!this.target || !lcaResult.path) {
+      if (!lcaResult.path) {
         return false;
+      }
+
+      // No local target yet: LCA came from the server.
+      if (!this.target) {
+        return true;
       }
 
       // Check if the LCA clade appears in the target's lineage at the correct depth
@@ -1626,6 +1891,8 @@ export const useGameStore = defineStore("game", {
     resetGame(): void {
       this.status = "idle";
       this.target = null;
+      this.gameToken = null;
+      this.serverHintAvailable = true;
       this.guesses = [];
       this.hints = [];
       this.treeData = null;

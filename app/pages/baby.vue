@@ -5,8 +5,9 @@ import type { TreeNode } from "~/types/tree";
 import { useDailyPuzzleTime } from "~/composables/useDailyPuzzleTime";
 import { useResponsive } from "~/composables/useResponsive";
 import { useGameStore } from "~/stores/gameStore";
-import { BABY_MODE_MAX_GUESSES, babyModeStickerMap, hasBabyModeCladeInCatalog, selectBabyModeTarget, simplifyBabyModeTree } from "~/utils/babyMode";
-import { getBabyModeAnimal, listBabyModeAnimals } from "~/utils/babyModeBundle";
+import { babyModeStickerMap, hasBabyModeCladeInCatalog, simplifyBabyModeTree } from "~/utils/babyMode";
+import { listBabyModeAnimals } from "~/utils/babyModeBundle";
+import { startGameSession } from "~/services/gameApiClient";
 
 const gameStore = useGameStore();
 const { isDesktop } = useResponsive();
@@ -35,10 +36,22 @@ function handleAnimalSelect(animal: Animal) {
   try {
     gameStore.clearError();
     gameStore.setRenderingTree(true);
-    gameStore.processGuess(animal);
-    setTimeout(() => {
-      gameStore.setRenderingTree(false);
-    }, 500);
+    void gameStore.processGuess(animal)
+      .catch((error: unknown) => {
+        if (error instanceof Error) {
+          gameStore.setError({
+            message: error.message,
+            code: "GAME_STATE_ERROR",
+            type: "ui",
+            details: error,
+          });
+        }
+      })
+      .finally(() => {
+        setTimeout(() => {
+          gameStore.setRenderingTree(false);
+        }, 500);
+      });
   } catch (error) {
     gameStore.setRenderingTree(false);
     if (error instanceof Error) {
@@ -98,32 +111,18 @@ watchEffect(() => {
   }
 });
 
-function startBabyGame(forceNew = false): void {
+async function startBabyGame(forceNew = false): Promise<void> {
   gameStore.clearError();
   gameStore.setLoading(true);
 
   try {
-    const puzzleDate = gameStore.getCurrentDate();
-    const targetId = selectBabyModeTarget(puzzleDate);
-    const targetAnimal = getBabyModeAnimal(targetId);
-
-    if (!targetAnimal) {
-      gameStore.setError({
-        message: t("babyMode.errors.bundleUnavailable"),
-        code: "BABY_BUNDLE_UNAVAILABLE",
-        type: "data",
-      });
-      gameStore.setLoading(false);
-      return;
-    }
-
-    gameStore.initializeGame(
-      targetAnimal,
-      BABY_MODE_MAX_GUESSES,
-      puzzleDate,
-      "baby",
-      forceNew,
-    );
+    const session = await startGameSession("baby");
+    gameStore.initializeSealedGame({
+      mode: "baby",
+      gameToken: session.gameToken,
+      puzzleDate: session.puzzleDate,
+      maxGuesses: session.maxGuesses,
+    }, forceNew);
     gameStore.setLoading(false);
   } catch (error) {
     gameStore.setLoading(false);
@@ -146,7 +145,11 @@ function restoreBabyModeStateIfNeeded(): void {
     return;
   }
 
-  if (gameStore.gameMode === "baby" && gameStore.babyModeState && !gameStore.target) {
+  if (
+    gameStore.gameMode === "baby"
+    && gameStore.babyModeState
+    && (!gameStore.gameToken || gameStore.status === "idle")
+  ) {
     gameStore.restoreModeState("baby");
     return;
   }
@@ -171,7 +174,7 @@ function checkAndInitializeBabyPuzzle(): void {
   }
 
   const today = gameStore.getCurrentDate();
-  const hasValidBabyState = gameStore.target
+  const hasValidBabyState = gameStore.gameToken
     && gameStore.gameMode === "baby"
     && gameStore.puzzleDate === today
     && gameStore.status !== "idle";
@@ -181,12 +184,12 @@ function checkAndInitializeBabyPuzzle(): void {
   }
 
   const needsInitialization = gameStore.gameMode !== "baby"
-    || !gameStore.target
+    || !gameStore.gameToken
     || gameStore.status === "idle"
     || gameStore.puzzleDate !== today;
 
   if (needsInitialization) {
-    startBabyGame();
+    void startBabyGame();
   }
 }
 

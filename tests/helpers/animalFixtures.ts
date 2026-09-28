@@ -95,7 +95,7 @@ export function bear(): Animal {
 const TIGER_GAP_STEP_IDS = new Set(["848317", "848320", "848324"]);
 
 /**
- * Shorter guess path: Mammalia → Carnivora with no Theria / Placentalia / Laurasiatheria steps.
+ * Shorter guess path: Mammalia -> Carnivora with no Theria / Placentalia / Laurasiatheria steps.
  * @returns The tiger lineage through carnivora.
  */
 export function tigerLineageThroughCarnivora(): TaxonInLineage[] {

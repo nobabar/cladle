@@ -1,9 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { gotoDailyAndWaitForShell } from "./helpers/daily-shell";
+import { mockGameApi } from "./helpers/gameApi";
 import { mockINaturalist } from "./helpers/inaturalist";
 
 test.beforeEach(async ({ page }) => {
   await mockINaturalist(page);
+  await mockGameApi(page);
 });
 
 test("keyboard-only flow navigates search suggestions", async ({ page }) => {

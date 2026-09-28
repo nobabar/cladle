@@ -39,11 +39,23 @@ export function useHintRequest() {
     if (!gameStore.canRequestHint) {
       return;
     }
-    gameStore.requestHint();
-    const clade = gameStore.hints.at(-1)?.revealedClade;
-    if (clade) {
-      hintAnnouncement.value = t("game.hint.success", { clade });
-    }
+    void gameStore.requestHint()
+      .then(() => {
+        const clade = gameStore.hints.at(-1)?.revealedClade;
+        if (clade) {
+          hintAnnouncement.value = t("game.hint.success", { clade });
+        }
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error) {
+          gameStore.setError({
+            message: error.message,
+            code: "HINT_ERROR",
+            type: "ui",
+            details: error,
+          });
+        }
+      });
   }
 
   return {

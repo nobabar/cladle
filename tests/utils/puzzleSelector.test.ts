@@ -18,13 +18,15 @@ import {
   selectRandomTargetAnimal,
   selectTargetAnimal,
   selectTargetAnimalWithDifficulty,
-} from "~/utils/puzzleSelector";
+} from "../../server/utils/puzzleSelector";
+
+const PUZZLE_SECRET = "unit-test-puzzle-secret-key";
 
 describe("puzzleSelector", () => {
   describe("selectTargetAnimal", () => {
     it("should return a valid animal ID for a valid date", () => {
       const date = "2024-01-01";
-      const animalId = selectTargetAnimal(date);
+      const animalId = selectTargetAnimal(date, PUZZLE_SECRET);
 
       expect(animalId).toBeDefined();
       expect(typeof animalId).toBe("string");
@@ -37,12 +39,24 @@ describe("puzzleSelector", () => {
 
     it("should be deterministic - same date returns same animal", () => {
       const date = "2024-06-15";
-      const animalId1 = selectTargetAnimal(date);
-      const animalId2 = selectTargetAnimal(date);
-      const animalId3 = selectTargetAnimal(date);
+      const animalId1 = selectTargetAnimal(date, PUZZLE_SECRET);
+      const animalId2 = selectTargetAnimal(date, PUZZLE_SECRET);
+      const animalId3 = selectTargetAnimal(date, PUZZLE_SECRET);
 
       expect(animalId1).toBe(animalId2);
       expect(animalId2).toBe(animalId3);
+    });
+
+    it("should change selection when the server secret changes", () => {
+      const otherSecret = "unit-test-other-puzzle-secret";
+      const idsA: string[] = [];
+      const idsB: string[] = [];
+      for (let day = 1; day <= 60; day++) {
+        const d = `2024-01-${String(((day - 1) % 28) + 1).padStart(2, "0")}`;
+        idsA.push(selectTargetAnimal(d, PUZZLE_SECRET));
+        idsB.push(selectTargetAnimal(d, otherSecret));
+      }
+      expect(idsA.some((id, i) => id !== idsB[i])).toBe(true);
     });
 
     it("should return different animals for different dates", () => {
@@ -50,9 +64,9 @@ describe("puzzleSelector", () => {
       const date2 = "2024-01-02";
       const date3 = "2024-12-31";
 
-      const animalId1 = selectTargetAnimal(date1);
-      const animalId2 = selectTargetAnimal(date2);
-      const animalId3 = selectTargetAnimal(date3);
+      const animalId1 = selectTargetAnimal(date1, PUZZLE_SECRET);
+      const animalId2 = selectTargetAnimal(date2, PUZZLE_SECRET);
+      const animalId3 = selectTargetAnimal(date3, PUZZLE_SECRET);
 
       // At least two should be different (very likely all three)
       const allSame = animalId1 === animalId2 && animalId2 === animalId3;
@@ -71,7 +85,7 @@ describe("puzzleSelector", () => {
 
       const selectedAnimals = new Set<string>();
       for (const date of dates) {
-        const animalId = selectTargetAnimal(date);
+        const animalId = selectTargetAnimal(date, PUZZLE_SECRET);
         selectedAnimals.add(animalId);
       }
 
@@ -81,27 +95,27 @@ describe("puzzleSelector", () => {
     });
 
     it("should throw error for invalid date format", () => {
-      expect(() => selectTargetAnimal("invalid-date")).toThrow("Invalid date format");
-      expect(() => selectTargetAnimal("2024/01/01")).toThrow("Invalid date format");
-      expect(() => selectTargetAnimal("01-01-2024")).toThrow("Invalid date format");
-      expect(() => selectTargetAnimal("2024-1-1")).toThrow("Invalid date format");
+      expect(() => selectTargetAnimal("invalid-date", PUZZLE_SECRET)).toThrow("Invalid date format");
+      expect(() => selectTargetAnimal("2024/01/01", PUZZLE_SECRET)).toThrow("Invalid date format");
+      expect(() => selectTargetAnimal("01-01-2024", PUZZLE_SECRET)).toThrow("Invalid date format");
+      expect(() => selectTargetAnimal("2024-1-1", PUZZLE_SECRET)).toThrow("Invalid date format");
     });
 
     it("should throw error for invalid date values", () => {
-      expect(() => selectTargetAnimal("2024-13-01")).toThrow("Invalid date");
-      expect(() => selectTargetAnimal("2024-02-30")).toThrow("Invalid date");
-      expect(() => selectTargetAnimal("2024-00-01")).toThrow("Invalid date");
+      expect(() => selectTargetAnimal("2024-13-01", PUZZLE_SECRET)).toThrow("Invalid date");
+      expect(() => selectTargetAnimal("2024-02-30", PUZZLE_SECRET)).toThrow("Invalid date");
+      expect(() => selectTargetAnimal("2024-00-01", PUZZLE_SECRET)).toThrow("Invalid date");
     });
 
     it("should handle leap year dates correctly", () => {
       const leapDate = "2024-02-29";
-      const animalId = selectTargetAnimal(leapDate);
+      const animalId = selectTargetAnimal(leapDate, PUZZLE_SECRET);
 
       expect(animalId).toBeDefined();
       expect(typeof animalId).toBe("string");
 
       // Verify deterministic
-      expect(selectTargetAnimal(leapDate)).toBe(animalId);
+      expect(selectTargetAnimal(leapDate, PUZZLE_SECRET)).toBe(animalId);
     });
 
     it("should handle edge case dates", () => {
@@ -112,7 +126,7 @@ describe("puzzleSelector", () => {
       ];
 
       for (const date of dates) {
-        const animalId = selectTargetAnimal(date);
+        const animalId = selectTargetAnimal(date, PUZZLE_SECRET);
         expect(animalId).toBeDefined();
         expect(typeof animalId).toBe("string");
       }
@@ -122,7 +136,7 @@ describe("puzzleSelector", () => {
   describe("selectTargetAnimalWithDifficulty", () => {
     it("should return a valid animal ID for a valid date", () => {
       const date = "2024-01-01";
-      const animalId = selectTargetAnimalWithDifficulty(date);
+      const animalId = selectTargetAnimalWithDifficulty(date, PUZZLE_SECRET);
 
       expect(animalId).toBeDefined();
       expect(typeof animalId).toBe("string");
@@ -135,9 +149,9 @@ describe("puzzleSelector", () => {
 
     it("should be deterministic - same date returns same animal", () => {
       const date = "2024-06-15";
-      const animalId1 = selectTargetAnimalWithDifficulty(date);
-      const animalId2 = selectTargetAnimalWithDifficulty(date);
-      const animalId3 = selectTargetAnimalWithDifficulty(date);
+      const animalId1 = selectTargetAnimalWithDifficulty(date, PUZZLE_SECRET);
+      const animalId2 = selectTargetAnimalWithDifficulty(date, PUZZLE_SECRET);
+      const animalId3 = selectTargetAnimalWithDifficulty(date, PUZZLE_SECRET);
 
       expect(animalId1).toBe(animalId2);
       expect(animalId2).toBe(animalId3);
@@ -153,9 +167,9 @@ describe("puzzleSelector", () => {
       const date2 = "2024-01-02";
       const date3 = "2024-12-31";
 
-      const animalId1 = selectTargetAnimalWithDifficulty(date1);
-      const animalId2 = selectTargetAnimalWithDifficulty(date2);
-      const animalId3 = selectTargetAnimalWithDifficulty(date3);
+      const animalId1 = selectTargetAnimalWithDifficulty(date1, PUZZLE_SECRET);
+      const animalId2 = selectTargetAnimalWithDifficulty(date2, PUZZLE_SECRET);
+      const animalId3 = selectTargetAnimalWithDifficulty(date3, PUZZLE_SECRET);
 
       // At least two should be different (very likely all three)
       const allSame = animalId1 === animalId2 && animalId2 === animalId3;
@@ -175,7 +189,7 @@ describe("puzzleSelector", () => {
 
       const difficultyCounts = { easy: 0, medium: 0, hard: 0 };
       for (const date of dates) {
-        const animalId = selectTargetAnimalWithDifficulty(date);
+        const animalId = selectTargetAnimalWithDifficulty(date, PUZZLE_SECRET);
         const animal = getCuratedAnimalById(animalId);
         if (animal) {
           difficultyCounts[animal.difficulty]++;
@@ -208,13 +222,13 @@ describe("puzzleSelector", () => {
     });
 
     it("should throw error for invalid date format", () => {
-      expect(() => selectTargetAnimalWithDifficulty("invalid-date")).toThrow("Invalid date format");
-      expect(() => selectTargetAnimalWithDifficulty("2024/01/01")).toThrow("Invalid date format");
+      expect(() => selectTargetAnimalWithDifficulty("invalid-date", PUZZLE_SECRET)).toThrow("Invalid date format");
+      expect(() => selectTargetAnimalWithDifficulty("2024/01/01", PUZZLE_SECRET)).toThrow("Invalid date format");
     });
 
     it("should throw error for invalid date values", () => {
-      expect(() => selectTargetAnimalWithDifficulty("2024-13-01")).toThrow("Invalid date");
-      expect(() => selectTargetAnimalWithDifficulty("2024-02-30")).toThrow("Invalid date");
+      expect(() => selectTargetAnimalWithDifficulty("2024-13-01", PUZZLE_SECRET)).toThrow("Invalid date");
+      expect(() => selectTargetAnimalWithDifficulty("2024-02-30", PUZZLE_SECRET)).toThrow("Invalid date");
     });
   });
 
@@ -454,7 +468,7 @@ describe("puzzleSelector", () => {
       const day = String(now.getDate()).padStart(2, "0");
       const dateString = `${year}-${month}-${day}`;
 
-      const animalId = selectTargetAnimal(dateString);
+      const animalId = selectTargetAnimal(dateString, PUZZLE_SECRET);
       expect(animalId).toBeDefined();
 
       const animal = getCuratedAnimalById(animalId);
@@ -466,13 +480,13 @@ describe("puzzleSelector", () => {
 
       for (const date of dates) {
         // selectTargetAnimal should be deterministic
-        const results1 = selectTargetAnimal(date);
-        const results2 = selectTargetAnimal(date);
+        const results1 = selectTargetAnimal(date, PUZZLE_SECRET);
+        const results2 = selectTargetAnimal(date, PUZZLE_SECRET);
         expect(results1).toBe(results2);
 
         // selectTargetAnimalWithDifficulty should also be deterministic
-        const result3 = selectTargetAnimalWithDifficulty(date);
-        const result4 = selectTargetAnimalWithDifficulty(date);
+        const result3 = selectTargetAnimalWithDifficulty(date, PUZZLE_SECRET);
+        const result4 = selectTargetAnimalWithDifficulty(date, PUZZLE_SECRET);
         expect(result3).toBe(result4);
 
         // Verify both return valid IDs

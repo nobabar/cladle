@@ -225,6 +225,27 @@ export class CacheService {
     return data !== null;
   }
 
+  /**
+   * Delete a single cache entry by key.
+   * @param store - Store name (animals, clades, or lca)
+   * @param key - Cache key
+   */
+  async delete(store: CacheStore, key: string): Promise<void> {
+    try {
+      if (!this.db) {
+        await this.init();
+      }
+
+      if (!this.db) {
+        return;
+      }
+
+      await this.db.delete(store, key);
+    } catch (error: any) {
+      console.error(`Cache delete failed for ${store}:${key}:`, error);
+    }
+  }
+
   async clear(store: CacheStore): Promise<void> {
     try {
       if (!this.db) {
