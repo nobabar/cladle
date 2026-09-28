@@ -15,14 +15,16 @@ import {
   hasBabyModeCladeLabel,
   isBabyModeOrganism,
   resolveBabyModeLCA,
-  selectBabyModeTarget,
-  selectRandomBabyModeTarget,
   simplifyBabyModeTree,
 } from "~/utils/babyMode";
+import {
+  selectBabyModeTarget,
+  selectRandomBabyModeTarget,
+} from "../../server/utils/babyTarget";
 import type { TreeNode } from "~/types/tree";
 import type { LCAResult } from "~/utils/lcaCalculator";
-import { CURATED_ANIMALS } from "~/utils/puzzleSelector";
-import * as puzzleSelector from "~/utils/puzzleSelector";
+import { CURATED_ANIMALS } from "../../server/utils/puzzleSelector";
+import * as puzzleSelector from "../../server/utils/puzzleSelector";
 
 const BEGINNER_NAME_PATTERN = /^[a-z]+(?: [a-z]+)?$/i;
 const ALLOWED_GROUPS = new Set([
@@ -321,16 +323,30 @@ describe("babyMode", () => {
   });
 
   describe("selectBabyModeTarget", () => {
-    it("is deterministic for the same date", () => {
+    const secretA = "unit-test-baby-secret-aaa";
+    const secretB = "unit-test-baby-secret-bbb";
+
+    it("is deterministic for the same date and secret", () => {
       const date = "2024-06-15";
-      expect(selectBabyModeTarget(date)).toBe(selectBabyModeTarget(date));
+      expect(selectBabyModeTarget(date, secretA)).toBe(selectBabyModeTarget(date, secretA));
+    });
+
+    it("changes when the server secret changes", () => {
+      const idsA: string[] = [];
+      const idsB: string[] = [];
+      for (let day = 1; day <= 60; day++) {
+        const d = `2024-01-${String(((day - 1) % 28) + 1).padStart(2, "0")}`;
+        idsA.push(selectBabyModeTarget(d, secretA));
+        idsB.push(selectBabyModeTarget(d, secretB));
+      }
+      expect(idsA.some((id, i) => id !== idsB[i])).toBe(true);
     });
 
     it("can return different organisms for different dates", () => {
       const ids = [
-        selectBabyModeTarget("2024-01-01"),
-        selectBabyModeTarget("2024-01-02"),
-        selectBabyModeTarget("2024-12-31"),
+        selectBabyModeTarget("2024-01-01", secretA),
+        selectBabyModeTarget("2024-01-02", secretA),
+        selectBabyModeTarget("2024-12-31", secretA),
       ];
       expect(new Set(ids).size).toBeGreaterThan(1);
     });
@@ -339,7 +355,7 @@ describe("babyMode", () => {
       const babyIds = new Set(BABY_MODE_ORGANISMS.map(organism => organism.id));
       for (let day = 1; day <= 28; day++) {
         const date = `2026-03-${String(day).padStart(2, "0")}`;
-        expect(babyIds.has(selectBabyModeTarget(date))).toBe(true);
+        expect(babyIds.has(selectBabyModeTarget(date, secretA))).toBe(true);
       }
     });
 
@@ -347,7 +363,7 @@ describe("babyMode", () => {
       const withDifficulty = vi.spyOn(puzzleSelector, "selectTargetAnimalWithDifficulty");
       const withoutDifficulty = vi.spyOn(puzzleSelector, "selectTargetAnimal");
 
-      selectBabyModeTarget("2024-06-15");
+      selectBabyModeTarget("2024-06-15", secretA);
 
       expect(withDifficulty).not.toHaveBeenCalled();
       expect(withoutDifficulty).not.toHaveBeenCalled();
@@ -357,13 +373,13 @@ describe("babyMode", () => {
     });
 
     it("throws the same class of errors as selectTargetAnimal for invalid dates", () => {
-      expect(() => selectBabyModeTarget("invalid-date")).toThrow("Invalid date format");
-      expect(() => selectBabyModeTarget("2024/01/01")).toThrow("Invalid date format");
-      expect(() => selectBabyModeTarget("01-01-2024")).toThrow("Invalid date format");
-      expect(() => selectBabyModeTarget("2024-1-1")).toThrow("Invalid date format");
-      expect(() => selectBabyModeTarget("2024-13-01")).toThrow("Invalid date");
-      expect(() => selectBabyModeTarget("2024-02-30")).toThrow("Invalid date");
-      expect(() => selectBabyModeTarget("2024-00-01")).toThrow("Invalid date");
+      expect(() => selectBabyModeTarget("invalid-date", secretA)).toThrow("Invalid date format");
+      expect(() => selectBabyModeTarget("2024/01/01", secretA)).toThrow("Invalid date format");
+      expect(() => selectBabyModeTarget("01-01-2024", secretA)).toThrow("Invalid date format");
+      expect(() => selectBabyModeTarget("2024-1-1", secretA)).toThrow("Invalid date format");
+      expect(() => selectBabyModeTarget("2024-13-01", secretA)).toThrow("Invalid date");
+      expect(() => selectBabyModeTarget("2024-02-30", secretA)).toThrow("Invalid date");
+      expect(() => selectBabyModeTarget("2024-00-01", secretA)).toThrow("Invalid date");
     });
   });
 

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { waitForDailyGameReady } from "./helpers/daily-shell";
+import { mockGameApi } from "./helpers/gameApi";
 import { mockINaturalist } from "./helpers/inaturalist";
 
 async function startGuidedTourFromHelp(page: Page) {
@@ -37,6 +38,7 @@ async function closePostitFromStickyTab(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await mockINaturalist(page);
+  await mockGameApi(page);
 });
 
 test("guided tour can be closed via button but not via overlay click", async ({ page }) => {

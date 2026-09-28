@@ -4,11 +4,9 @@ import type { Animal } from "~/types/animal";
 import type { TreeNode } from "~/types/tree";
 import { useDailyPuzzleTime } from "~/composables/useDailyPuzzleTime";
 import { useResponsive } from "~/composables/useResponsive";
-import { DEFAULT_MAX_GUESSES, useGameStore } from "~/stores/gameStore";
-import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
+import { useGameStore } from "~/stores/gameStore";
 import { useOnboardingTour } from "~/composables/useOnboardingTour";
-import { apiErrorToGameError } from "~/utils/errorMessages";
-import { selectTargetAnimalWithDifficulty } from "~/utils/puzzleSelector";
+import { startGameSession } from "~/services/gameApiClient";
 import {
   buildHistoryEntry,
   clearOldHistory,
@@ -36,7 +34,6 @@ const {
 } = useHintRequest();
 const route = useRoute();
 const router = useRouter();
-const api = useBiologicalAPI();
 const { isDesktop } = useResponsive();
 const { t } = useI18n();
 
@@ -116,19 +113,28 @@ function handleAnimalSelect(animal: Animal) {
     // Set tree rendering state
     gameStore.setRenderingTree(true);
 
-    // Animal already has full lineage data from validation
-    gameStore.processGuess(animal);
     window.dispatchEvent(new CustomEvent("cladle:onboarding:guess-submitted"));
 
-    // Clear tree rendering state after a short delay to allow animation
-    setTimeout(() => {
-      gameStore.setRenderingTree(false);
-    }, 500);
+    void gameStore.processGuess(animal)
+      .catch((error: unknown) => {
+        if (error instanceof Error) {
+          gameStore.setError({
+            message: error.message,
+            code: "GAME_STATE_ERROR",
+            type: "ui",
+            details: error,
+          });
+        }
+      })
+      .finally(() => {
+        setTimeout(() => {
+          gameStore.setRenderingTree(false);
+        }, 500);
+      });
   } catch (error) {
     // Handle game state errors
     gameStore.setRenderingTree(false);
     if (error instanceof Error) {
-      // Convert to GameError and set in store
       gameStore.setError({
         message: error.message,
         code: "GAME_STATE_ERROR",
@@ -200,42 +206,13 @@ async function startNewGame() {
   gameStore.setLoading(true);
 
   try {
-    // Get current date in YYYY-MM-DD format
-    const puzzleDate = gameStore.getCurrentDate();
-
-    // Select target animal based on current date (deterministic selection)
-    let targetAnimalId: string;
-    try {
-      targetAnimalId = selectTargetAnimalWithDifficulty(puzzleDate);
-    } catch (error) {
-      console.error("Failed to select target animal:", error);
-      gameStore.setError({
-        message: t("errors.gameStart"),
-        code: "GAME_START_ERROR",
-        type: "data",
-        details: error,
-      });
-      gameStore.setLoading(false);
-      return;
-    }
-
-    const animalResponse = await api.fetchAnimalData(targetAnimalId);
-
-    if (animalResponse.error || !animalResponse.data) {
-      if (animalResponse.error) {
-        gameStore.setError(apiErrorToGameError(animalResponse.error));
-      } else {
-        gameStore.setError({
-          message: t("errors.gameStart"),
-          code: "GAME_START_ERROR",
-          type: "network",
-        });
-      }
-      gameStore.setLoading(false);
-      return;
-    }
-
-    gameStore.initializeGame(animalResponse.data, DEFAULT_MAX_GUESSES, puzzleDate, "daily");
+    const session = await startGameSession("daily");
+    gameStore.initializeSealedGame({
+      mode: "daily",
+      gameToken: session.gameToken,
+      puzzleDate: session.puzzleDate,
+      maxGuesses: session.maxGuesses,
+    }, true);
     gameStore.setLoading(false);
   } catch (error) {
     gameStore.setLoading(false);
@@ -293,8 +270,11 @@ function restoreDailyModeStateIfNeeded(): void {
     return;
   }
 
-  // Persisted mode snapshots can exist while root fields are still empty on reload.
-  if (gameStore.gameMode === "daily" && gameStore.dailyState && !gameStore.target) {
+  if (
+    gameStore.gameMode === "daily"
+    && gameStore.dailyState
+    && (!gameStore.gameToken || gameStore.status === "idle")
+  ) {
     gameStore.restoreModeState("daily");
     return;
   }
@@ -323,7 +303,7 @@ function checkAndInitializeDailyPuzzle() {
   }
 
   const today = gameStore.getCurrentDate();
-  const hasValidDailyState = gameStore.target
+  const hasValidDailyState = gameStore.gameToken
     && gameStore.gameMode === "daily"
     && gameStore.puzzleDate === today
     && gameStore.status !== "idle";
@@ -333,12 +313,12 @@ function checkAndInitializeDailyPuzzle() {
   }
 
   const needsInitialization = gameStore.gameMode !== "daily"
-    || !gameStore.target
+    || !gameStore.gameToken
     || gameStore.status === "idle"
     || gameStore.puzzleDate !== today;
 
   if (needsInitialization) {
-    startNewGame();
+    void startNewGame();
   }
 }
 

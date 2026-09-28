@@ -1,10 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { goToDailyFromFreePlay, goToFreePlayFromDaily, openPuzzleHistoryFromDaily } from "./helpers/daily-header";
 import { gotoDailyAndWaitForShell, waitForGameSearchReady } from "./helpers/daily-shell";
+import { buildE2EGameToken, mockGameApi } from "./helpers/gameApi";
 import { getTodayUtcDate, mockINaturalist } from "./helpers/inaturalist";
 
 test.beforeEach(async ({ page }) => {
   await mockINaturalist(page);
+  await mockGameApi(page);
 });
 
 test("free play entry is accessible from daily page", async ({ page }) => {
@@ -17,7 +19,8 @@ test("free play entry is accessible from daily page", async ({ page }) => {
 
 test("replay mode from history and return to today", async ({ page }) => {
   const today = getTodayUtcDate();
-  await page.addInitScript(({ date }) => {
+  const gameToken = buildE2EGameToken("daily", "41967", 20);
+  await page.addInitScript(({ date, token }) => {
     const tiger = {
       id: "41967",
       name: "Tiger",
@@ -48,15 +51,16 @@ test("replay mode from history and return to today", async ({ page }) => {
     };
 
     const root = { id: "root", type: "clade", name: "Animalia", cladeData: { name: "Animalia", rank: "kingdom" }, children: [], depth: 0 };
-    const targetNode = { id: "animal-41967", type: "animal", name: "Tiger", data: tiger, children: [], isTarget: true, depth: 1 };
-    (root as any).children = [targetNode];
+    const targetNode = { id: "animal-mystery", type: "animal", name: "?", children: [], isTarget: true, depth: 1 };
+    (root as { children: unknown[] }).children = [targetNode];
 
     const dailyPersisted = {
       version: 1,
       gameMode: "daily",
       dailyState: {
         status: "playing",
-        target: tiger,
+        target: null,
+        gameToken: token,
         guesses: [{
           animal: lion,
           lca: {
@@ -67,6 +71,7 @@ test("replay mode from history and return to today", async ({ page }) => {
           },
           timestamp: Date.now(),
         }],
+        hints: [],
         maxGuesses: 20,
         treeData: {
           root,
@@ -75,8 +80,10 @@ test("replay mode from history and return to today", async ({ page }) => {
           guesses: [],
         },
         puzzleDate: date,
+        serverHintAvailable: true,
       },
       freePlayState: null,
+      babyModeState: null,
     };
 
     const historyEntry = {
@@ -104,7 +111,7 @@ test("replay mode from history and return to today", async ({ page }) => {
 
     localStorage.setItem("cladle-game-store", JSON.stringify(dailyPersisted));
     localStorage.setItem("cladle-puzzle-history", JSON.stringify([historyEntry]));
-  }, { date: today });
+  }, { date: today, token: gameToken });
 
   await gotoDailyAndWaitForShell(page);
   await openPuzzleHistoryFromDaily(page);

@@ -3,10 +3,8 @@ import { computed, nextTick, onMounted, ref, watch, watchEffect } from "vue";
 import type { Animal } from "~/types/animal";
 import type { TreeNode } from "~/types/tree";
 import { useResponsive } from "~/composables/useResponsive";
-import { DEFAULT_MAX_GUESSES, useGameStore } from "~/stores/gameStore";
-import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
-import { apiErrorToGameError } from "~/utils/errorMessages";
-import { selectRandomTargetAnimal } from "~/utils/puzzleSelector";
+import { useGameStore } from "~/stores/gameStore";
+import { startGameSession } from "~/services/gameApiClient";
 import { useHintRequest } from "~/composables/useHintRequest";
 
 const gameStore = useGameStore();
@@ -16,7 +14,6 @@ const {
   isHintControlDisabled,
   handleHintConfirm,
 } = useHintRequest();
-const api = useBiologicalAPI();
 const { isDesktop } = useResponsive();
 const { t } = useI18n();
 
@@ -29,24 +26,27 @@ const guessHistory = computed(() => gameStore.guesses.map(g => g.animal));
  */
 function handleAnimalSelect(animal: Animal) {
   try {
-    // Clear any previous errors
     gameStore.clearError();
-
-    // Set tree rendering state
     gameStore.setRenderingTree(true);
-
-    // Animal already has full lineage data from validation
-    gameStore.processGuess(animal);
-
-    // Clear tree rendering state after a short delay to allow animation
-    setTimeout(() => {
-      gameStore.setRenderingTree(false);
-    }, 500);
+    void gameStore.processGuess(animal)
+      .catch((error: unknown) => {
+        if (error instanceof Error) {
+          gameStore.setError({
+            message: error.message,
+            code: "GAME_STATE_ERROR",
+            type: "ui",
+            details: error,
+          });
+        }
+      })
+      .finally(() => {
+        setTimeout(() => {
+          gameStore.setRenderingTree(false);
+        }, 500);
+      });
   } catch (error) {
-    // Handle game state errors
     gameStore.setRenderingTree(false);
     if (error instanceof Error) {
-      // Convert to GameError and set in store
       gameStore.setError({
         message: error.message,
         code: "GAME_STATE_ERROR",
@@ -110,46 +110,17 @@ watch(
  * Uses random selection to get a new animal each time
  */
 async function startNewGame() {
-  // Clear any previous errors
   gameStore.clearError();
-
-  // Set loading state
   gameStore.setLoading(true);
 
   try {
-    // Select random target animal (non-deterministic for free play)
-    let targetAnimalId: string;
-    try {
-      targetAnimalId = selectRandomTargetAnimal();
-    } catch (error) {
-      console.error("Failed to select target animal:", error);
-      gameStore.setError({
-        message: t("errors.gameStart"),
-        code: "GAME_START_ERROR",
-        type: "data",
-        details: error,
-      });
-      gameStore.setLoading(false);
-      return;
-    }
-
-    const animalResponse = await api.fetchAnimalData(targetAnimalId);
-
-    if (animalResponse.error || !animalResponse.data) {
-      if (animalResponse.error) {
-        gameStore.setError(apiErrorToGameError(animalResponse.error));
-      } else {
-        gameStore.setError({
-          message: t("errors.gameStart"),
-          code: "GAME_START_ERROR",
-          type: "network",
-        });
-      }
-      gameStore.setLoading(false);
-      return;
-    }
-
-    gameStore.initializeGame(animalResponse.data, DEFAULT_MAX_GUESSES, "", "free-play");
+    const session = await startGameSession("free-play");
+    gameStore.initializeSealedGame({
+      mode: "free-play",
+      gameToken: session.gameToken,
+      puzzleDate: session.puzzleDate,
+      maxGuesses: session.maxGuesses,
+    }, true);
     gameStore.setLoading(false);
   } catch (error) {
     gameStore.setLoading(false);
@@ -169,60 +140,7 @@ async function startNewGame() {
  * Reset game and start a new one with a different random animal
  */
 async function resetGame() {
-  // Clear any previous errors
-  gameStore.clearError();
-
-  // Set loading state
-  gameStore.setLoading(true);
-
-  try {
-    // Select random target animal (non-deterministic for free play)
-    let targetAnimalId: string;
-    try {
-      targetAnimalId = selectRandomTargetAnimal();
-    } catch (error) {
-      console.error("Failed to select target animal:", error);
-      gameStore.setError({
-        message: t("errors.gameStart"),
-        code: "GAME_START_ERROR",
-        type: "data",
-        details: error,
-      });
-      gameStore.setLoading(false);
-      return;
-    }
-
-    const animalResponse = await api.fetchAnimalData(targetAnimalId);
-
-    if (animalResponse.error || !animalResponse.data) {
-      if (animalResponse.error) {
-        gameStore.setError(apiErrorToGameError(animalResponse.error));
-      } else {
-        gameStore.setError({
-          message: t("errors.gameStart"),
-          code: "GAME_START_ERROR",
-          type: "network",
-        });
-      }
-      gameStore.setLoading(false);
-      return;
-    }
-
-    // Force new game by passing forceNew flag
-    gameStore.initializeGame(animalResponse.data, DEFAULT_MAX_GUESSES, "", "free-play", true);
-    gameStore.setLoading(false);
-  } catch (error) {
-    gameStore.setLoading(false);
-
-    if (error instanceof Error) {
-      gameStore.setError({
-        message: t("errors.gameStart"),
-        code: "GAME_START_ERROR",
-        type: "network",
-        details: error,
-      });
-    }
-  }
+  await startNewGame();
 }
 
 /**
@@ -264,7 +182,11 @@ function restoreFreePlayModeStateIfNeeded(): void {
     return;
   }
 
-  if (gameStore.gameMode === "free-play" && gameStore.freePlayState && !gameStore.target) {
+  if (
+    gameStore.gameMode === "free-play"
+    && gameStore.freePlayState
+    && (!gameStore.gameToken || gameStore.status === "idle")
+  ) {
     gameStore.restoreModeState("free-play");
     return;
   }
@@ -288,7 +210,7 @@ onMounted(() => {
   nextTick(() => {
     restoreFreePlayModeStateIfNeeded();
 
-    const hasValidFreePlayState = gameStore.target
+    const hasValidFreePlayState = gameStore.gameToken
       && gameStore.gameMode === "free-play"
       && gameStore.status !== "idle";
 
@@ -297,11 +219,11 @@ onMounted(() => {
     }
 
     const needsInitialization = gameStore.gameMode !== "free-play"
-      || !gameStore.target
+      || !gameStore.gameToken
       || gameStore.status === "idle";
 
     if (needsInitialization) {
-      startNewGame();
+      void startNewGame();
     }
   });
 });

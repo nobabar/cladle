@@ -21,11 +21,15 @@ export type PersistedGameStatus = "idle" | "playing" | "won" | "lost";
 export interface PersistedModeGameState {
   status: PersistedGameStatus;
   target: Animal | null;
+  /** Server game token; required while playing before reveal. */
+  gameToken: string | null;
   guesses: StoredGuessEntry[];
   hints: StoredHintEntry[];
   maxGuesses: number;
   treeData: StoredTreeData | null;
   puzzleDate: string;
+  /** Hint available (from last server response). */
+  serverHintAvailable?: boolean;
 }
 
 /**

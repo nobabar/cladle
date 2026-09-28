@@ -1,11 +1,13 @@
 import { expect, test } from "@playwright/test";
 import { gotoDailyAndWaitForShell } from "./helpers/daily-shell";
+import { mockGameApi } from "./helpers/gameApi";
 import { mockINaturalist } from "./helpers/inaturalist";
 
 const ONBOARDING_KEY = "cladle:onboarding:daily:v1";
 
 test.beforeEach(async ({ page }) => {
   await mockINaturalist(page);
+  await mockGameApi(page);
   await page.addInitScript((key) => {
     localStorage.removeItem(key);
   }, ONBOARDING_KEY);

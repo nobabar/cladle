@@ -80,7 +80,7 @@ function trimPreAnimalia(taxa: LineageSourceTaxon[]): LineageSourceTaxon[] {
 /**
  * Build `Animal.lineage` from iNaturalist ancestors and the terminal taxon.
  *
- * - Preserves iNaturalist order (broad → specific).
+ * - Preserves iNaturalist order (broad -> specific).
  * - Includes only taxa with `rank_level >=` {@link SPECIES_RANK_LEVEL} (or rank fallback).
  * - Deduplicates by taxon `id` (species often appears in both `ancestors` and leaf).
  * - Trims pre-Animalia nodes via {@link trimPreAnimalia}.
@@ -113,7 +113,7 @@ export function buildLineageFromAncestors(
 }
 
 /**
- * Display names along a lineage path (broad → specific).
+ * Display names along a lineage path (broad -> specific).
  *
  * @param lineage - Full or partial animal lineage.
  * @returns Taxon names in path order (same order as `lineage`).

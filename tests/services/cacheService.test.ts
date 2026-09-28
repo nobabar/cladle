@@ -103,6 +103,12 @@ describe("cacheService", () => {
       expect(result).toBeNull();
     });
 
+    it("should delete a single key", async () => {
+      await cacheService.set("animals", "animal:1", { id: "1" });
+      await cacheService.delete("animals", "animal:1");
+      expect(await cacheService.get("animals", "animal:1")).toBeNull();
+    });
+
     it("get() should retrieve stored data correctly", async () => {
       // Arrange
       const storedData = { id: "42", name: "Tiger", scientificName: "Panthera tigris" };

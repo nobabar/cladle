@@ -113,7 +113,7 @@ describe("calculatePhylogeneticMetrics", () => {
     const guesses = [guessEntry(wolf, tiger, 1), guessEntry(lion, tiger, 2)];
     const result = calculatePhylogeneticMetrics(null, guesses, tiger, "lost");
     expect(result).not.toBeNull();
-    // Wolf: LCA depth 3 → 6 - 3 = 3; Lion: depth 5 → 6 - 5 = 1
+    // Wolf: LCA depth 3 -> 6 - 3 = 3; Lion: depth 5 -> 6 - 5 = 1
     expect(result!.evolutionaryDistance).toBe(targetMax - pantheraDepth);
     expect(result!.furthestEvolutionaryDistance).toBe(targetMax - carnivoraDepth);
   });

@@ -1,11 +1,18 @@
 import { expect, test } from "@playwright/test";
+import { mockGameApi } from "./helpers/gameApi";
+import { isINaturalistSearchUrl } from "./helpers/inaturalist";
 
 test("beginner mode opens sticker menu without network search", async ({ page }) => {
-  let inatRequestCount = 0;
+  let searchRequestCount = 0;
   await page.route("**/api.inaturalist.org/**", async (route) => {
-    inatRequestCount += 1;
+    const url = new URL(route.request().url());
+    if (isINaturalistSearchUrl(url)) {
+      searchRequestCount += 1;
+    }
+    // Ignore failures for Animalia prefetch / other public clade fetches.
     await route.fulfill({ status: 500, body: "blocked" });
   });
+  await mockGameApi(page);
 
   await page.goto("/baby");
 
@@ -23,13 +30,10 @@ test("beginner mode opens sticker menu without network search", async ({ page })
   await expect(dogButton).toBeVisible();
   await dogButton.click();
 
-  // Popover closes on select, reopen unless the guess won the puzzle.
-  if (await openPicker.isEnabled()) {
-    await openPicker.click();
-    await expect(page.getByRole("button", { name: /Dog, already guessed/i })).toBeDisabled();
-  } else {
-    await expect(page.getByText("Congratulations! You found the Dog!")).toBeVisible();
-  }
+  // Dog is the mocked target, so this should win.
+  await expect(page.getByText("Congratulations! You found the Dog!", { exact: true })).toBeVisible({
+    timeout: 15_000,
+  });
 
-  expect(inatRequestCount).toBe(0);
+  expect(searchRequestCount).toBe(0);
 });

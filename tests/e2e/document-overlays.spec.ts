@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { gotoDailyAndWaitForShell } from "./helpers/daily-shell";
+import { mockGameApi } from "./helpers/gameApi";
 import { mockINaturalist } from "./helpers/inaturalist";
 
 async function dismissOnboardingPromptIfPresent(page: Page) {
@@ -12,6 +13,7 @@ async function dismissOnboardingPromptIfPresent(page: Page) {
 
 test.beforeEach(async ({ page }) => {
   await mockINaturalist(page);
+  await mockGameApi(page);
 });
 
 test("help opens as slide-over with daily game behind, closes to previous page", async ({ page }) => {

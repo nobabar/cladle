@@ -58,9 +58,9 @@ Vercel automatically detects Nuxt projects and configures deployment settings.
    - Your app will be live at `https://your-project.vercel.app`
 
 5. **Automatic Deployments:**
-   - Every push to `main` branch → Production deployment
-   - Every push to other branches → Preview deployment
-   - Every pull request → Unique preview URL
+   - Every push to `main` branch -> Production deployment
+   - Every push to other branches -> Preview deployment
+   - Every pull request -> Unique preview URL
 
 ### Option 2: Manual Deployment via Vercel CLI
 
@@ -92,6 +92,12 @@ See the CI/CD configuration for details.
 
 ## Environment Variables
 
+Server secrets map to Nuxt `runtimeConfig` (`puzzleSecret`, `githubToken`, `githubOwner`, `githubRepo`). Never use the `NUXT_PUBLIC_` prefix for secrets.
+
+### Required for game tokens
+
+`NUXT_PUZZLE_SECRET` — at least 16 characters. Encrypts game tokens. Required in production; `nuxt dev` uses a built-in default if unset.
+
 ### Required for bug reports
 
 Private (server-only) variables for creating GitHub issues from the in-app form:
@@ -102,13 +108,11 @@ Private (server-only) variables for creating GitHub issues from the in-app form:
 | `NUXT_GITHUB_OWNER` | GitHub owner (default `nobabar`) |
 | `NUXT_GITHUB_REPO` | Repository name (default `cladle`) |
 
-These map to Nuxt `runtimeConfig` (`githubToken`, `githubOwner`, `githubRepo`). Never use the `NUXT_PUBLIC_` prefix for the token.
-
 #### Configuring in Vercel
 
 1. Go to your project in the Vercel dashboard
-2. Navigate to **Settings** → **Environment Variables**
-3. Add `NUXT_GITHUB_TOKEN` (and owner/repo if you override defaults)
+2. Navigate to **Settings** -> **Environment Variables**
+3. Add `NUXT_PUZZLE_SECRET` and `NUXT_GITHUB_TOKEN` (and owner/repo if you override defaults)
 4. Select Production, Preview, and Development as needed
 5. Save and **re-deploy**
 
@@ -117,6 +121,7 @@ These map to Nuxt `runtimeConfig` (`githubToken`, `githubOwner`, `githubRepo`). 
 Copy [`.env.example`](.env.example) to `.env` and fill in values:
 
 ```bash
+NUXT_PUZZLE_SECRET=your-long-random-secret
 NUXT_GITHUB_TOKEN=github_pat_...
 NUXT_GITHUB_OWNER=nobabar
 NUXT_GITHUB_REPO=cladle
@@ -151,7 +156,7 @@ pnpm run build
 pnpm run preview
 ```
 
-Confirm `/api/bug-report` is available in preview when `NUXT_GITHUB_TOKEN` is set.
+Confirm `/api/bug-report` and `/api/game/start` (guess/hint) are available in preview when env vars are set.
 
 ## Deployment Workflow
 
@@ -187,9 +192,9 @@ Confirm `/api/bug-report` is available in preview when `NUXT_GITHUB_TOKEN` is se
 
 ### Branch Deployments
 
-- **`main` branch** → Production deployment (`https://cladle.vercel.app`)
-- **Other branches** → Preview deployments (`https://cladle-git-branch-name.vercel.app`)
-- **Pull Requests** → Unique preview URLs automatically commented on PR
+- **`main` branch** -> Production deployment (`https://cladle.vercel.app`)
+- **Other branches** -> Preview deployments (`https://cladle-git-branch-name.vercel.app`)
+- **Pull Requests** -> Unique preview URLs automatically commented on PR
 
 ## Troubleshooting
 
@@ -216,7 +221,7 @@ Confirm `/api/bug-report` is available in preview when `NUXT_GITHUB_TOKEN` is se
 
 ### Deployment Succeeds but App Doesn't Work
 
-**Check browser console** (DevTools → Console / Network).
+**Check browser console** (DevTools -> Console / Network).
 
 **Common issues:**
 - **API calls failing:** Check that `/api/bug-report` is deployed (output was not forced to static-only)
@@ -226,7 +231,7 @@ Confirm `/api/bug-report` is available in preview when `NUXT_GITHUB_TOKEN` is se
 ### Preview Deployment Not Created
 
 **Verify GitHub integration:**
-1. Go to Vercel dashboard → Settings → Git
+1. Go to Vercel dashboard -> Settings -> Git
 2. Ensure GitHub integration is active
 3. Check repository permissions
 

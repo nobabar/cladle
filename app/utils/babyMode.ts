@@ -1,11 +1,10 @@
 /**
- * Baby Mode organism list and target selectors.
+ * Baby Mode organism catalog and UI helpers (picker, stickers, clade labels, LCA resolve).
  */
 
 import type { Animal } from "~/types/animal";
 import type { TreeData, TreeNode } from "~/types/tree";
 import type { LCAResult } from "~/utils/lcaCalculator";
-import { assertPuzzleDate, hashPuzzleDate } from "~/utils/dateUtils";
 import en from "~/locales/en.json";
 
 export type BabyModeTaxonomicGroup
@@ -122,27 +121,6 @@ export function babyModeStickerMap(): Record<string, string> {
   return Object.fromEntries(
     BABY_MODE_ORGANISMS.map(organism => [organism.id, organism.emoji]),
   );
-}
-
-export function selectBabyModeTarget(date: string): string {
-  assertPuzzleDate(date);
-
-  if (BABY_MODE_ORGANISMS.length === 0) {
-    throw new Error("Baby Mode organism list is empty. Cannot select target.");
-  }
-
-  const seed = hashPuzzleDate(`baby:${date}`);
-  const index = seed % BABY_MODE_ORGANISMS.length;
-  return BABY_MODE_ORGANISMS[index]!.id;
-}
-
-export function selectRandomBabyModeTarget(): string {
-  if (BABY_MODE_ORGANISMS.length === 0) {
-    throw new Error("Baby Mode organism list is empty. Cannot select target.");
-  }
-
-  const randomIndex = Math.floor(Math.random() * BABY_MODE_ORGANISMS.length);
-  return BABY_MODE_ORGANISMS[randomIndex]!.id;
 }
 
 const BABY_MODE_LABELED_CLADES = new Set(Object.keys(en.babyMode.clades));

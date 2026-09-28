@@ -2,7 +2,7 @@
  * Picks daily (date-seeded) and free-play targets from `CURATED_ANIMALS`, with optional difficulty weighting.
  */
 
-import { assertPuzzleDate, hashPuzzleDate } from "~/utils/dateUtils";
+import { assertPuzzleDate, hashPuzzleDate } from "../../shared/puzzleDateCore";
 
 /**
  * Difficulty level for puzzle animals
@@ -88,19 +88,20 @@ export const CURATED_ANIMALS: CuratedAnimal[] = [
 /**
  * Select a target animal from the curated list based on date
  *
- * This function provides deterministic selection: the same date will always
+ * This function provides deterministic selection: the same date + secret will always
  * return the same animal ID. This ensures consistency across sessions.
  *
  * Algorithm:
- * 1. Hash the date string to get a numeric seed
+ * 1. Hash a secret-salted date key to get a numeric seed
  * 2. Use modulo operation to select from curated list
  * 3. Ensures even distribution across the list over time
  *
  * @param date - Date string in YYYY-MM-DD format
+ * @param secret - Server-only puzzle secret
  * @returns Animal ID (iNaturalist taxon ID) as string
  * @throws Error if date is invalid or curated list is empty
  */
-export function selectTargetAnimal(date: string): string {
+export function selectTargetAnimal(date: string, secret: string): string {
   assertPuzzleDate(date);
 
   // Check curated list is not empty
@@ -108,8 +109,8 @@ export function selectTargetAnimal(date: string): string {
     throw new Error("Curated animals list is empty. Cannot select target animal.");
   }
 
-  // Hash date to get deterministic seed
-  const seed = hashPuzzleDate(date);
+  // Hash salted date so the open curated list cannot reconstruct today's target alone
+  const seed = hashPuzzleDate(`daily:${date}:${secret}`);
 
   // Use modulo to select from curated list
   // This ensures even distribution across all animals
@@ -132,10 +133,11 @@ export function selectTargetAnimal(date: string): string {
  * - 20% hard puzzles (less common, specialized animals)
  *
  * @param date - Date string in YYYY-MM-DD format
+ * @param secret - Server-only puzzle secret
  * @returns Animal ID (iNaturalist taxon ID) as string
  * @throws Error if date is invalid or curated list is empty
  */
-export function selectTargetAnimalWithDifficulty(date: string): string {
+export function selectTargetAnimalWithDifficulty(date: string, secret: string): string {
   assertPuzzleDate(date);
 
   // Check curated list is not empty
@@ -143,8 +145,8 @@ export function selectTargetAnimalWithDifficulty(date: string): string {
     throw new Error("Curated animals list is empty. Cannot select target animal.");
   }
 
-  // Hash date to get deterministic seed
-  const seed = hashPuzzleDate(date);
+  // Hash salted date so the open curated list cannot reconstruct today's target alone
+  const seed = hashPuzzleDate(`daily:${date}:${secret}`);
 
   // Filter animals by difficulty
   const easyAnimals = CURATED_ANIMALS.filter(a => a.difficulty === "easy");

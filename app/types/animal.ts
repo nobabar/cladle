@@ -16,7 +16,7 @@ export interface Animal {
   scientificName: string;
 
   /**
-   * Kingdom → species path from iNaturalist (variable length).
+   * Kingdom -> species path from iNaturalist (variable length).
    */
   lineage: TaxonInLineage[];
 

@@ -2,7 +2,7 @@
  * Tests for useHintRequest composable
  */
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defineComponent } from "vue";
 import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
@@ -39,13 +39,15 @@ describe("useHintRequest", () => {
     expect(hintAnnouncement.value).toBe("");
   });
 
-  it("announces clade on successful hint", () => {
+  it("announces clade on successful hint", async () => {
     const store = useGameStore();
     store.initializeGame(tiger(), 20, "", "free-play", true);
 
     const { handleHintConfirm, hintAnnouncement } = mountHintRequestHarness();
     handleHintConfirm();
-    expect(hintAnnouncement.value).toMatch(/revealed on the tree/i);
+    await vi.waitFor(() => {
+      expect(hintAnnouncement.value).toMatch(/revealed on the tree/i);
+    });
   });
 
   it("disables when insufficient guesses remain", () => {
