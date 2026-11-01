@@ -291,31 +291,43 @@ onMounted(() => {
 
         <!-- Animal Search Component -->
         <div class="w-full max-w-2xl mx-auto mb-5 sm:mb-6 md:mb-8">
-          <div class="flex items-center gap-2">
-            <div class="min-w-0 flex-1">
+          <div
+            class="grid items-start gap-2"
+            :class="gameStore.isPlaying
+              ? 'grid-cols-[2.75rem_minmax(0,1fr)_2.75rem]'
+              : 'grid-cols-1'"
+          >
+            <!-- Mirror spacer so the search bar stays optically centered -->
+            <div
+              v-if="gameStore.isPlaying"
+              class="w-11"
+              aria-hidden="true"
+            />
+            <div class="min-w-0">
               <GameAnimalSearch
                 :disabled="!gameStore.isPlaying"
                 :placeholder="t('game.searchPlaceholder')"
                 :guess-history="guessHistory"
                 @select="handleAnimalSelect"
               />
+              <!-- First-time user hint (progressive disclosure), centered on search -->
+              <p
+                v-if="gameStore.isPlaying && gameStore.guesses.length === 0"
+                class="mt-2 text-xs sm:text-sm text-center text-[var(--color-ink-subtle)]
+                dark:text-[var(--color-ink-subtle)]"
+              >
+                {{ t("game.firstGuessHint") }}
+              </p>
             </div>
             <GameHintControl
               v-if="gameStore.isPlaying"
+              class="justify-self-center"
               :disabled="isHintControlDisabled"
               :disabled-reason="hintDisabledReasonKey"
               :announcement="hintAnnouncement"
               @confirm="handleHintConfirm"
             />
           </div>
-          <!-- First-time user hint (progressive disclosure) -->
-          <p
-            v-if="gameStore.isPlaying && gameStore.guesses.length === 0"
-            class="mt-2 text-xs sm:text-sm text-center text-[var(--color-ink-subtle)]
-            dark:text-[var(--color-ink-subtle)]"
-          >
-            {{ t("game.firstGuessHint") }}
-          </p>
         </div>
 
         <!-- Phylogenetic Tree Visualization -->

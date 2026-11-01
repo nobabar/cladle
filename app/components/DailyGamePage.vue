@@ -498,8 +498,19 @@ onBeforeUnmount(() => {
           data-onboarding="daily-search"
           class="w-full max-w-2xl mx-auto mb-5 sm:mb-6 md:mb-8"
         >
-          <div class="flex items-center gap-2">
-            <div class="min-w-0 flex-1">
+          <div
+            class="grid items-start gap-2"
+            :class="gameStore.isPlaying
+              ? 'grid-cols-[2.75rem_minmax(0,1fr)_2.75rem]'
+              : 'grid-cols-1'"
+          >
+            <!-- Mirror spacer so the search bar stays optically centered -->
+            <div
+              v-if="gameStore.isPlaying"
+              class="w-11"
+              aria-hidden="true"
+            />
+            <div class="min-w-0">
               <GameAnimalSearch
                 :disabled="!gameStore.isPlaying || gameStore.isReplayMode"
                 :placeholder="t('game.searchPlaceholder')"
@@ -507,11 +518,19 @@ onBeforeUnmount(() => {
                 @input="handleSearchInput"
                 @select="handleAnimalSelect"
               />
+              <!-- First-time user hint (progressive disclosure), centered on search -->
+              <p
+                v-if="gameStore.isPlaying && gameStore.guesses.length === 0"
+                class="mt-2 text-xs sm:text-sm text-center text-[var(--color-ink-subtle)]
+                dark:text-[var(--color-ink-subtle)]"
+              >
+                {{ t("game.firstGuessHint") }}
+              </p>
             </div>
             <div
               v-if="gameStore.isPlaying"
               data-onboarding="daily-hint"
-              class="shrink-0"
+              class="justify-self-center"
             >
               <GameHintControl
                 :disabled="isHintControlDisabled"
@@ -521,14 +540,6 @@ onBeforeUnmount(() => {
               />
             </div>
           </div>
-          <!-- First-time user hint (progressive disclosure) -->
-          <p
-            v-if="gameStore.isPlaying && gameStore.guesses.length === 0"
-            class="mt-2 text-xs sm:text-sm text-center text-[var(--color-ink-subtle)]
-            dark:text-[var(--color-ink-subtle)]"
-          >
-            {{ t("game.firstGuessHint") }}
-          </p>
         </div>
 
         <!-- Phylogenetic Tree Visualization -->
