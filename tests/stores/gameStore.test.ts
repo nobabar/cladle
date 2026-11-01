@@ -321,16 +321,19 @@ describe("gameStore", () => {
       expect(lcaNode?.type).toBe("clade");
     });
 
-    it("should link guess node to LCA node", () => {
+    it("should link guess node under path-fill clade beneath the LCA", () => {
       const store = getGameStore();
       store.startGame(tiger, 6);
       store.processGuess(wolf);
 
       const lcaNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Carnivora");
+      const pathFillNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Canidae");
       const guessNode = store.treeData?.nodes.find((n: TreeNode) => n.id === `animal-${wolf.id}`);
 
-      expect(lcaNode?.children).toContain(guessNode);
-      expect(guessNode?.parent).toBe(lcaNode);
+      expect(pathFillNode).toBeDefined();
+      expect(pathFillNode?.parent).toBe(lcaNode);
+      expect(guessNode?.parent).toBe(pathFillNode);
+      expect(lcaNode?.children).toContain(pathFillNode);
     });
 
     it("should move target animal under LCA node when guess is made", () => {
@@ -363,16 +366,15 @@ describe("gameStore", () => {
       const lcaNodes = store.treeData?.nodes.filter((n: TreeNode) => n.name === "Carnivora" && n.isLCA);
       expect(lcaNodes).toHaveLength(1);
 
-      // Both guesses should be children of the same LCA
-      // (Note: target is also a child, so total children >= 2)
       const lcaNode = lcaNodes?.[0];
-      expect(lcaNode?.children.length).toBeGreaterThanOrEqual(2);
-      expect(lcaNode?.children.some((c: TreeNode) => c.id === `animal-${wolf.id}`)).toBe(true);
-      expect(lcaNode?.children.some((c: TreeNode) => c.id === `animal-${bear.id}`)).toBe(true);
+      const wolfNode = store.treeData?.nodes.find((n: TreeNode) => n.id === `animal-${wolf.id}`);
+      const bearNode = store.treeData?.nodes.find((n: TreeNode) => n.id === `animal-${bear.id}`);
 
-      // Verify both guesses are present
-      const guessChildren = lcaNode?.children.filter((c: TreeNode) => c.isGuess);
-      expect(guessChildren?.length).toBe(2);
+      // Path-fill places each guess under its next clade (Canidae / Ursidae) beneath Carnivora
+      expect(wolfNode?.parent?.name).toBe("Canidae");
+      expect(bearNode?.parent?.name).toBe("Ursidae");
+      expect(wolfNode?.parent?.parent).toBe(lcaNode);
+      expect(bearNode?.parent?.parent).toBe(lcaNode);
     });
 
     it("should handle guesses with different LCAs", () => {
@@ -512,17 +514,21 @@ describe("gameStore", () => {
       store.processGuess(maroonLeggedLionFly);
 
       const chordataNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Chordata" && n.isLCA);
+      const mammaliaNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Mammalia" && n.isLCA);
       const carnivoraNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Carnivora" && n.isLCA);
       const felidaeNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Felidae" && n.isLCA);
       const targetNode = store.treeData?.target;
 
       expect(chordataNode).toBeDefined();
+      expect(mammaliaNode).toBeDefined();
       expect(carnivoraNode).toBeDefined();
       expect(felidaeNode).toBeDefined();
 
       expect(targetNode?.parent?.id).toBe(chordataNode?.id);
       expect(felidaeNode?.parent?.id).toBe(carnivoraNode?.id);
-      expect(carnivoraNode?.parent?.id).toBe(chordataNode?.id);
+      // Path-fill inserts Mammalia under Chordata; pairwise Carnivora nests under it
+      expect(mammaliaNode?.parent?.id).toBe(chordataNode?.id);
+      expect(carnivoraNode?.parent?.id).toBe(mammaliaNode?.id);
     });
 
     it("keeps deeper guess clades connected when a broader clade is added later", () => {
@@ -552,6 +558,175 @@ describe("gameStore", () => {
 
       // The newly added non-Ardea species should be under Ardeidae
       expect(greenNode?.parent?.id).toBe(ardeidaeNode?.id);
+    });
+
+    describe("path filling (guess-side intermediate clade)", () => {
+      const birdMystery: Animal = {
+        id: "bird-mystery",
+        name: "Bald Eagle",
+        scientificName: "Haliaeetus leucocephalus",
+        lineage: lineageFromNames(
+          [
+            "Animalia",
+            "Chordata",
+            "Vertebrata",
+            "Aves",
+            "Accipitriformes",
+            "Accipitridae",
+            "Haliaeetus",
+            "Haliaeetus leucocephalus",
+          ],
+          {
+            ids: [
+              "1",
+              "2",
+              "355675",
+              "aves",
+              "accip",
+              "accip-fam",
+              "haliaeetus",
+              "haliaeetus-leuco",
+            ],
+            ranks: [
+              "kingdom",
+              "phylum",
+              "subphylum",
+              "class",
+              "order",
+              "family",
+              "genus",
+              "species",
+            ],
+            rankLevels: [70, 60, 57, 50, 40, 30, 20, 10],
+          },
+        ),
+      };
+
+      it("adds Mammalia under Vertebrata and keeps ??? off Mammalia for a mammal guess vs bird", () => {
+        const store = getGameStore();
+        store.startGame(birdMystery, 10);
+        store.processGuess(lion);
+
+        const vertebrata = store.treeData?.nodes.find(
+          (n: TreeNode) => n.name === "Vertebrata" && n.isLCA,
+        );
+        const mammalia = store.treeData?.nodes.find(
+          (n: TreeNode) => n.name === "Mammalia" && n.isLCA,
+        );
+        const lionNode = store.treeData?.nodes.find(
+          (n: TreeNode) => n.id === `animal-${lion.id}`,
+        );
+        const targetNode = store.treeData?.target;
+
+        expect(vertebrata).toBeDefined();
+        expect(mammalia).toBeDefined();
+        expect(mammalia?.parent).toBe(vertebrata);
+        expect(lionNode?.parent).toBe(mammalia);
+        expect(targetNode?.parent).toBe(vertebrata);
+        expect(mammalia?.children).not.toContain(targetNode);
+      });
+
+      it("attaches the animal directly under the LCA when no intermediate exists", () => {
+        const store = getGameStore();
+        store.startGame(tiger, 10);
+        store.processGuess(lion);
+
+        // Lion∩Tiger LCA is Panthera; next step is species → no path-fill
+        const panthera = store.treeData?.nodes.find(
+          (n: TreeNode) => n.name === "Panthera" && n.isLCA,
+        );
+        const lionNode = store.treeData?.nodes.find(
+          (n: TreeNode) => n.id === `animal-${lion.id}`,
+        );
+
+        expect(panthera).toBeDefined();
+        expect(lionNode?.parent).toBe(panthera);
+        expect(
+          store.treeData?.nodes.some(
+            (n: TreeNode) => n.name === "Panthera leo" && n.type === "clade",
+          ),
+        ).toBe(false);
+      });
+
+      it("reuses a single path-fill clade for a second mammal under the same LCA", () => {
+        const store = getGameStore();
+        store.startGame(birdMystery, 10);
+        store.processGuess(lion);
+        store.processGuess(tiger);
+
+        const mammaliaNodes = store.treeData?.nodes.filter(
+          (n: TreeNode) => n.name === "Mammalia" && n.isLCA,
+        );
+        const lionNode = store.treeData?.nodes.find(
+          (n: TreeNode) => n.id === `animal-${lion.id}`,
+        );
+        const tigerNode = store.treeData?.nodes.find(
+          (n: TreeNode) => n.id === `animal-${tiger.id}`,
+        );
+
+        expect(mammaliaNodes).toHaveLength(1);
+        // Pairwise may nest lions under Panthera beneath Mammalia; both remain under the reused Mammalia
+        expect(lionNode?.parent?.name === "Mammalia"
+          || lionNode?.parent?.parent?.name === "Mammalia").toBe(true);
+        expect(tigerNode?.parent?.name === "Mammalia"
+          || tigerNode?.parent?.parent?.name === "Mammalia").toBe(true);
+      });
+
+      it("skips path filling in baby mode", () => {
+        const store = getGameStore();
+        store.initializeGame(birdMystery, 10, "2026-11-01", "baby", true);
+        store.processGuess(lion);
+
+        const mammalia = store.treeData?.nodes.find(
+          (n: TreeNode) => n.name === "Mammalia" && n.isLCA,
+        );
+        const lionNode = store.treeData?.nodes.find(
+          (n: TreeNode) => n.id === `animal-${lion.id}`,
+        );
+
+        // Baby mode skips guess-side path-fill (Mammalia would appear otherwise)
+        expect(mammalia).toBeUndefined();
+        expect(lionNode?.parent?.isLCA).toBe(true);
+        expect(lionNode?.parent?.name).not.toBe("Mammalia");
+      });
+
+      it("reproduces path-fill when replaying guesses through updateTreeWithGuess", () => {
+        setActivePinia(createPinia());
+        const live = getGameStore();
+        live.startGame(birdMystery, 10);
+        live.processGuess(lion);
+        live.processGuess(wolf);
+
+        const liveMammaliaParent = live.treeData?.nodes.find(
+          (n: TreeNode) => n.name === "Mammalia" && n.isLCA,
+        )?.parent?.name;
+        const liveLionParent = live.treeData?.nodes.find(
+          (n: TreeNode) => n.id === `animal-${lion.id}`,
+        )?.parent?.name;
+        const liveWolfParent = live.treeData?.nodes.find(
+          (n: TreeNode) => n.id === `animal-${wolf.id}`,
+        )?.parent?.name;
+        const animals = live.guesses.map((g: { animal: Animal }) => g.animal);
+
+        setActivePinia(createPinia());
+        const replay = getGameStore();
+        replay.startGame(birdMystery, 10);
+        for (const animal of animals) {
+          replay.processGuess(animal);
+        }
+
+        const replayMammalia = replay.treeData?.nodes.find(
+          (n: TreeNode) => n.name === "Mammalia" && n.isLCA,
+        );
+        expect(replayMammalia).toBeDefined();
+        expect(replayMammalia?.parent?.name).toBe(liveMammaliaParent);
+        expect(
+          replay.treeData?.nodes.find((n: TreeNode) => n.id === `animal-${lion.id}`)?.parent?.name,
+        ).toBe(liveLionParent);
+        expect(
+          replay.treeData?.nodes.find((n: TreeNode) => n.id === `animal-${wolf.id}`)?.parent?.name,
+        ).toBe(liveWolfParent);
+      });
     });
   });
 
