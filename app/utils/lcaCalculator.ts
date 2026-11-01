@@ -19,13 +19,13 @@ const LIFE_ROOT: LCAResult = {
 };
 
 /**
- * Build an LCA-shaped result for a clade on the target's lineage path.
- * @param target - The target animal.
- * @param depth - Index into target.lineage.
+ * Build an LCA-shaped result for a clade on an animal's lineage path.
+ * @param animal - Animal whose lineage supplies the clade.
+ * @param depth - Index into animal.lineage.
  * @returns The LCA result.
  */
-export function lcaResultFromTargetPath(target: Animal, depth: number): LCAResult {
-  const lineage = target.lineage ?? [];
+export function lcaResultFromAnimalPath(animal: Animal, depth: number): LCAResult {
+  const lineage = animal.lineage ?? [];
   const entry = lineage[depth];
   if (!entry) {
     return {
@@ -41,6 +41,16 @@ export function lcaResultFromTargetPath(target: Animal, depth: number): LCAResul
     depth,
     path: lineagePath(lineage, depth),
   };
+}
+
+/**
+ * Build an LCA-shaped result for a clade on the target's lineage path.
+ * @param target - The target animal.
+ * @param depth - Index into target.lineage.
+ * @returns The LCA result.
+ */
+export function lcaResultFromTargetPath(target: Animal, depth: number): LCAResult {
+  return lcaResultFromAnimalPath(target, depth);
 }
 
 /**
@@ -116,42 +126,80 @@ export function lcaDepthOnTarget(
   return lineageIndexForTaxonId(target, taxonId);
 }
 
+function normalizeCladeName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
 /**
- * Whether `candidate` is phylogenetically more specific than `anchor` on `target`.
- * Compares taxon identity on the target lineage when present; otherwise falls back to
- * iNaturalist `rankLevel` on the matched taxon entries.
+ * Rank level of a clade name on an animal lineage, if present.
+ * @param animal - Animal whose lineage to search.
+ * @param cladeName - Clade display name.
+ * @returns iNaturalist rankLevel, or undefined when absent.
+ */
+function rankLevelForCladeOnAnimal(
+  animal: Animal,
+  cladeName: string,
+): number | undefined {
+  const normalized = normalizeCladeName(cladeName);
+  if (!normalized) {
+    return undefined;
+  }
+  return animal.lineage?.find(
+    taxon => normalizeCladeName(taxon.name) === normalized,
+  )?.rankLevel;
+}
+
+/**
+ * Whether `candidate` is phylogenetically more specific than `anchor`.
+ * Prefers taxon identity on the target lineage when available; otherwise falls back to
+ * iNaturalist `rankLevel` (including sealed games where `target` is null — anchor is
+ * resolved on `guess` / `candidateReference`, which still carry the shared LCA taxon).
  * @param candidate - LCA between the new guess and a previous guess.
  * @param candidateReference - Previous guess (second arg to `calculateLCA`).
  * @param anchor - LCA between the new guess and the target.
- * @param target - Game target animal.
+ * @param target - Game target animal, or null in sealed in-progress rounds.
+ * @param guess - Current guess; used as anchor carrier when target lineage is unavailable.
  * @returns `true` when candidate is strictly more specific than anchor.
  */
 export function isLCAMoreSpecificOnTarget(
   candidate: LCAResult,
   candidateReference: Animal,
   anchor: LCAResult,
-  target: Animal,
+  target: Animal | null | undefined,
+  guess?: Animal | null,
 ): boolean {
   if (candidate.rank === "species" || candidate.depth < 0) {
     return false;
   }
 
-  const depthOnTarget = lcaDepthOnTarget(candidate, candidateReference, target);
-  if (depthOnTarget > anchor.depth) {
-    return true;
+  if (target && (target.lineage?.length ?? 0) > 0) {
+    const depthOnTarget = lcaDepthOnTarget(candidate, candidateReference, target);
+    if (depthOnTarget > anchor.depth) {
+      return true;
+    }
+
+    if (depthOnTarget >= 0 || anchor.depth < 0) {
+      return false;
+    }
+
+    const candidateEntry = candidateReference.lineage?.[candidate.depth];
+    const anchorEntry = target.lineage?.[anchor.depth];
+    if (
+      candidateEntry?.rankLevel !== undefined
+      && anchorEntry?.rankLevel !== undefined
+    ) {
+      return candidateEntry.rankLevel < anchorEntry.rankLevel;
+    }
   }
 
-  if (depthOnTarget >= 0 || anchor.depth < 0) {
-    return false;
-  }
+  // Sealed / missing target lineage: compare rankLevels via the guess-side lineages.
+  const candidateLevel = candidateReference.lineage?.[candidate.depth]?.rankLevel;
+  const anchorCarrier = guess ?? candidateReference;
+  const anchorLevel = rankLevelForCladeOnAnimal(anchorCarrier, anchor.clade)
+    ?? rankLevelForCladeOnAnimal(candidateReference, anchor.clade);
 
-  const candidateEntry = candidateReference.lineage?.[candidate.depth];
-  const anchorEntry = target.lineage?.[anchor.depth];
-  if (
-    candidateEntry?.rankLevel !== undefined
-    && anchorEntry?.rankLevel !== undefined
-  ) {
-    return candidateEntry.rankLevel < anchorEntry.rankLevel;
+  if (candidateLevel !== undefined && anchorLevel !== undefined) {
+    return candidateLevel < anchorLevel;
   }
 
   return false;
@@ -162,17 +210,19 @@ export function isLCAMoreSpecificOnTarget(
  * Prefers target-lineage index; falls back to inverted `rankLevel`.
  * @param lca - LCA result.
  * @param referenceAnimal - The animal to compare to.
- * @param target - The game target animal.
+ * @param target - The game target animal, or null when sealed.
  * @returns A score indicating how specific the LCA is.
  */
 export function lcaSpecificityScore(
   lca: LCAResult,
   referenceAnimal: Animal,
-  target: Animal,
+  target: Animal | null | undefined,
 ): number {
-  const onTarget = lcaDepthOnTarget(lca, referenceAnimal, target);
-  if (onTarget >= 0) {
-    return onTarget * 1000;
+  if (target && (target.lineage?.length ?? 0) > 0) {
+    const onTarget = lcaDepthOnTarget(lca, referenceAnimal, target);
+    if (onTarget >= 0) {
+      return onTarget * 1000;
+    }
   }
   const rankLevel = referenceAnimal.lineage?.[lca.depth]?.rankLevel;
   if (rankLevel !== undefined) {

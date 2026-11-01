@@ -17,6 +17,7 @@ import type { HintEntry } from "~/types/hint";
 import { HINT_GUESS_COST } from "~/types/hint";
 import { resolveBabyModeLCA } from "~/utils/babyMode";
 import { buildHintCladeSelectorInput, selectHintClade } from "~/utils/hintCladeSelector";
+import { selectPathFillClade } from "~/utils/pathFillClade";
 import { submitGameGuess, submitGameHint } from "~/services/gameApiClient";
 
 export const DEFAULT_MAX_GUESSES = 20;
@@ -1292,10 +1293,75 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
+     * Ensure a guess-side path-fill clade exists under the guess∩mystery LCA node.
+     * Does not call revealCladeOnTree — off-target clades must not move the mystery animal.
+     * @param pathFill - Path-fill clade selected from the guess lineage
+     * @param parentLcaNode - Guess∩mystery LCA node that should parent the path-fill clade
+     * @returns The path-fill clade node
+     */
+    ensurePathFillCladeNode(pathFill: LCAResult, parentLcaNode: TreeNode): TreeNode {
+      if (!this.treeData) {
+        throw new Error("Tree not initialized");
+      }
+
+      const normalizedName = this.normalizeCladeName(pathFill.clade);
+      let pathFillNode = this.cladeMap.get(normalizedName);
+
+      if (!pathFillNode) {
+        const pathFillId = `clade-${pathFill.clade.toLowerCase().replace(/\s+/g, "-")}`;
+        pathFillNode = {
+          id: pathFillId,
+          type: "clade",
+          name: pathFill.clade,
+          cladeData: {
+            name: pathFill.clade,
+            rank: pathFill.rank,
+          },
+          children: [],
+          isLCA: true,
+          depth: (parentLcaNode.depth ?? 0) + 1,
+        };
+        this.assignLCANodeTaxonomy(pathFillNode, pathFill);
+        parentLcaNode.children.push(pathFillNode);
+        pathFillNode.parent = parentLcaNode;
+        this.cladeMap.set(normalizedName, pathFillNode);
+        return pathFillNode;
+      }
+
+      pathFillNode.isLCA = true;
+      if (pathFillNode.taxonomicDepth === undefined) {
+        this.assignLCANodeTaxonomy(pathFillNode, pathFill);
+      }
+
+      // Reparent only when orphaned / under root / under an ancestor of the LCA.
+      // Leave alone when already under parentLcaNode or a deeper pairwise grouping.
+      const currentParent = pathFillNode.parent;
+      const shouldReparent = !currentParent
+        || currentParent.id === "root"
+        || (
+          currentParent.id !== parentLcaNode.id
+          && this.isDescendantOf(parentLcaNode, currentParent)
+        );
+
+      if (shouldReparent && currentParent !== parentLcaNode) {
+        if (currentParent) {
+          currentParent.children = currentParent.children.filter(
+            child => child.id !== pathFillNode!.id,
+          );
+        }
+        parentLcaNode.children.push(pathFillNode);
+        pathFillNode.parent = parentLcaNode;
+        this.updateDepthRecursive(pathFillNode, (parentLcaNode.depth ?? 0) + 1);
+      }
+
+      return pathFillNode;
+    },
+
+    /**
      * Update tree structure with a new guess
-     * Only adds the guessed animal and the LCA clade (not the full path)
-     * Moves target animal under LCA only if the new LCA is more specific than current
-     * Also computes LCA with previous guesses that share the same LCA with target
+     * Adds the guess∩mystery LCA clade, optionally one guess-side path-fill clade,
+     * then the animal leaf. Moves target under LCA only if the new LCA is more specific.
+     * Also computes LCA with previous guesses that share a tighter relatedness.
      * @param guess - The guessed animal
      * @param lcaResult - LCA result between guess and target
      */
@@ -1306,7 +1372,19 @@ export const useGameStore = defineStore("game", {
 
       const lcaNode = this.revealCladeOnTree(lcaResult);
 
-      // Create guess node with correct depth based on LCA node
+      // Baby mode intentionally keeps unlabeled trees sparse; densifying then collapsing
+      // fights simplifyBabyModeTree and produces flaky layouts.
+      let pathFillNode: TreeNode | null = null;
+      if (this.gameMode !== "baby") {
+        const pathFill = selectPathFillClade(guess, lcaResult, this.target);
+        if (pathFill) {
+          pathFillNode = this.ensurePathFillCladeNode(pathFill, lcaNode);
+        }
+      }
+
+      const attachParent = pathFillNode ?? lcaNode;
+
+      // Create guess node with correct depth based on attachment parent
       const guessNode: TreeNode = {
         id: `animal-${guess.id}`,
         type: "animal",
@@ -1314,18 +1392,16 @@ export const useGameStore = defineStore("game", {
         data: guess,
         children: [],
         isGuess: true,
-        depth: (lcaNode.depth ?? 0) + 1,
+        depth: (attachParent.depth ?? 0) + 1,
       };
 
       this.computeLCAWithRelatedGuesses(guess, lcaResult, guessNode);
 
-      // Add guess node to LCA node only if it wasn't already moved by computeLCAWithRelatedGuesses
-      // (i.e., if it doesn't have a parent yet)
-      if (!guessNode.parent && lcaNode) {
-        lcaNode.children.push(guessNode);
-        guessNode.parent = lcaNode;
-        // Update depth based on parent
-        guessNode.depth = (lcaNode.depth ?? 0) + 1;
+      // Attach under path-fill (or LCA) only if pairwise relatedness did not already parent the guess
+      if (!guessNode.parent && attachParent) {
+        attachParent.children.push(guessNode);
+        guessNode.parent = attachParent;
+        guessNode.depth = (attachParent.depth ?? 0) + 1;
       }
 
       // Rebuild node map and tree data once at the end
@@ -1585,14 +1661,12 @@ export const useGameStore = defineStore("game", {
         };
       });
 
+      // Sealed in-progress rounds keep `target` null on the client; pairwise must still
+      // group guess-side branches (e.g. Accipitriformes under Aves) via rankLevel fallback.
       const target = this.target;
-      if (!target) {
-        return;
-      }
 
-      // Filter to LCAs more specific than the guess-target LCA, normalized on the target lineage
       const moreSpecificLCAs = guessLCAs.filter(({ previousGuess, lca }) =>
-        isLCAMoreSpecificOnTarget(lca, previousGuess, guessTargetLCA, target),
+        isLCAMoreSpecificOnTarget(lca, previousGuess, guessTargetLCA, target, guess),
       );
 
       if (moreSpecificLCAs.length === 0) {
@@ -1609,11 +1683,9 @@ export const useGameStore = defineStore("game", {
       // Use the most specific LCA found
       const mostSpecific = moreSpecificLCAs[0]!;
       const { lca: relatedLCA } = mostSpecific;
-      const relatedDepthOnTarget = lcaDepthOnTarget(
-        relatedLCA,
-        mostSpecific.previousGuess,
-        target,
-      );
+      const relatedDepthOnTarget = target && (target.lineage?.length ?? 0) > 0
+        ? lcaDepthOnTarget(relatedLCA, mostSpecific.previousGuess, target)
+        : -1;
 
       const relatedLCANode = this.findOrCreateLCANode(relatedLCA);
       if (!relatedLCANode) {
@@ -1644,7 +1716,7 @@ export const useGameStore = defineStore("game", {
         if (relatedGuessNode && relatedGuessNode.parent?.id !== relatedLCANode.id) {
           // Preserve existing more specific parent clades for this guess
           const currentParentName = relatedGuessNode.parent?.name;
-          if (currentParentName && relatedDepthOnTarget >= 0) {
+          if (target && currentParentName && relatedDepthOnTarget >= 0) {
             const parentDepthOnTarget = this.getCladeDepthInTaxonomy(target, currentParentName);
             if (parentDepthOnTarget > relatedDepthOnTarget) {
               continue;
