@@ -32,6 +32,7 @@ import {
   resolveWikipediaDescriptionForLocale,
 } from "~/utils/wikipediaResolve";
 import { buildLineageFromAncestors } from "~/utils/taxonLineage";
+import { foldDiacritics, normalizeQueryForINat } from "~/utils/textFold";
 
 const INATURALIST_BASE_URL = "https://api.inaturalist.org/v1";
 // ~1 request / second to respect iNaturalist API recommended practices.
@@ -517,7 +518,7 @@ class INaturalistAPIClient implements BiologicalAPIClient {
    * @returns Promise resolving to ApiResponse with array of Animal data or error
    */
   async searchAnimals(query: string, limit: number = 20): Promise<ApiResponse<Animal[]>> {
-    const trimmedQuery = query.trim();
+    const trimmedQuery = normalizeQueryForINat(query);
     if (!trimmedQuery || trimmedQuery.length < 2) {
       return { data: [], error: null };
     }
@@ -610,10 +611,10 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       // Example: base 5000 for arthropods becomes 1250 when relaxation is applied.
       const SPECIFIC_QUERY_RELAXATION = 0.25;
 
-      const normalize = (value?: string): string => (value || "")
-        .toLowerCase()
-        .normalize("NFKD")
-        .replace(/[^\w\s]/g, " ")
+      // Fold diacritics first so combining marks never become spaces (`héron` -> `heron`, not `he ron`).
+      // Use Unicode letters/numbers (not ASCII `\w`) so ø/æ/ł/Cyrillic survive punctuation stripping.
+      const normalize = (value?: string): string => foldDiacritics(value || "")
+        .replace(/[^\p{L}\p{N}\s]/gu, " ")
         .replace(/\s+/g, " ")
         .trim();
       const normalizedQuery = normalize(trimmedQuery);
@@ -982,19 +983,20 @@ class INaturalistAPIClient implements BiologicalAPIClient {
    */
   async fetchCladeData(name: string): Promise<ApiResponse<Clade>> {
     const localeKey = this.normalizeLocaleCacheKey();
+    const normalizedName = normalizeQueryForINat(name);
     const searchUrl = this.withLocaleParams(
-      `${INATURALIST_BASE_URL}/taxa?q=${encodeURIComponent(name)}`,
+      `${INATURALIST_BASE_URL}/taxa?q=${encodeURIComponent(normalizedName)}`,
     );
 
     try {
-      let taxonId = await this.resolveCladeTaxonIdFromCache(name);
+      let taxonId = await this.resolveCladeTaxonIdFromCache(normalizedName);
 
       if (taxonId !== null) {
         const cached = await this.getCachedCladeByTaxonId(taxonId, localeKey);
         if (cached) {
           return { data: cached, error: null };
         }
-        return await this.fetchAndCacheCladeByTaxonId(taxonId, localeKey, name);
+        return await this.fetchAndCacheCladeByTaxonId(taxonId, localeKey, normalizedName);
       }
 
       const searchResponse = await this.makeRequest<INaturalistResponse>(searchUrl);
@@ -1007,15 +1009,15 @@ class INaturalistAPIClient implements BiologicalAPIClient {
       }
 
       taxonId = searchResponse.results[0]!.id;
-      await this.writeCladeNameMapping(name, taxonId);
+      await this.writeCladeNameMapping(normalizedName, taxonId);
 
       const cachedAfterSearch = await this.getCachedCladeByTaxonId(taxonId, localeKey);
       if (cachedAfterSearch) {
-        await this.writeCladeNameMappings(name, cachedAfterSearch.name, taxonId);
+        await this.writeCladeNameMappings(normalizedName, cachedAfterSearch.name, taxonId);
         return { data: cachedAfterSearch, error: null };
       }
 
-      return await this.fetchAndCacheCladeByTaxonId(taxonId, localeKey, name);
+      return await this.fetchAndCacheCladeByTaxonId(taxonId, localeKey, normalizedName);
     } catch (error) {
       return this.handleError(error, searchUrl);
     }

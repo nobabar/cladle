@@ -393,6 +393,28 @@ describe("api client", () => {
       );
     });
 
+    it("should NFC-normalize NFD names in the taxa search URL", async () => {
+      const nfdHeron = "he\u0301ron";
+      const nfcHeron = "héron";
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ results: [] }),
+      } as Response);
+
+      const promise = client.fetchCladeData(nfdHeron);
+      await vi.runAllTimersAsync();
+      await promise;
+
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining(`q=${encodeURIComponent(nfcHeron)}`),
+        expect.any(Object),
+      );
+      const calledUrl = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]![0] as string;
+      expect(calledUrl).not.toContain(encodeURIComponent(nfdHeron));
+    });
+
     it("should return error for clade not found", async () => {
       // Arrange
       const mockResponse = {
@@ -718,6 +740,102 @@ describe("api client", () => {
 
       expect(result.error).toBeNull();
       expect(result.data?.map(a => a.scientificName)).toEqual(["Balaeniceps rex"]);
+    });
+
+    it("should NFC-normalize NFD queries in the search URL", async () => {
+      const nfdHeron = "he\u0301ron";
+      const nfcHeron = "héron";
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ results: [] }),
+      } as Response);
+
+      const promise = client.searchAnimals(nfdHeron, 10);
+      await vi.runAllTimersAsync();
+      await promise;
+
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        expect.stringContaining(`q=${encodeURIComponent(nfcHeron)}`),
+        expect.any(Object),
+      );
+      const calledUrl = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0]![0] as string;
+      expect(calledUrl).not.toContain(encodeURIComponent(nfdHeron));
+    });
+
+    it("should keep non-ASCII letters like ø in ranking normalize (not ASCII \\w strip)", async () => {
+      /* eslint-disable camelcase */
+      const mockSearchResponse = {
+        results: [
+          {
+            type: "Taxon",
+            score: 80,
+            record: {
+              id: 41639,
+              name: "Ursus arctos",
+              preferred_common_name: "Bjørn",
+              rank: "species",
+              iconic_taxon_name: "Mammalia",
+              ancestry: "48460/1/2/355675/40151/4240/41639",
+              ancestor_ids: [48460, 1, 2, 355675, 40151, 4240, 41639],
+              // Below broad mammal threshold (700); needs strong-match relaxation.
+              observations_count: 400,
+            },
+          },
+        ],
+      };
+      /* eslint-enable camelcase */
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSearchResponse,
+      } as Response);
+
+      const promise = client.searchAnimals("Bjørn", 10);
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      expect(result.error).toBeNull();
+      expect(result.data?.map(a => a.name)).toEqual(["Bjørn"]);
+    });
+
+    it("should strong-match ASCII heron against accented Héron cendré", async () => {
+      /* eslint-disable camelcase */
+      const mockSearchResponse = {
+        results: [
+          {
+            type: "Taxon",
+            score: 80,
+            record: {
+              id: 4956,
+              name: "Ardea cinerea",
+              preferred_common_name: "Héron cendré",
+              rank: "species",
+              iconic_taxon_name: "Aves",
+              ancestry: "48460/1/3/71261/2043/4956",
+              ancestor_ids: [48460, 1, 3, 71261, 2043, 4956],
+              // Below broad Aves threshold (700) but above relaxed strong-match threshold (175).
+              observations_count: 400,
+            },
+          },
+        ],
+      };
+      /* eslint-enable camelcase */
+
+      (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockSearchResponse,
+      } as Response);
+
+      const promise = client.searchAnimals("heron", 10);
+      await vi.runAllTimersAsync();
+      const result = await promise;
+
+      expect(result.error).toBeNull();
+      expect(result.data?.map(a => a.name)).toEqual(["Héron cendré"]);
     });
 
     it("should keep relevance primary and use observation popularity as a tie-breaker", async () => {
