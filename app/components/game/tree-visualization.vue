@@ -278,7 +278,7 @@ function isEmojiAnimalLabel(node: TreeNode): boolean {
 }
 
 function isTargetConcealed(node: TreeNode): boolean {
-  return Boolean(node.isTarget && !props.showTarget && !isDevMode.value);
+  return Boolean(node.isTarget && !props.showTarget);
 }
 
 function getNodeClass(node: TreeNode): string {
@@ -618,7 +618,7 @@ watch(
  * Update tabindex for all tree nodes based on focused node
  * Only the focused node should have tabindex="0", others should have "-1"
  * This enables arrow key navigation while preventing tab from cycling through all nodes
- * In production, target nodes should never be focusable
+ * Concealed mystery targets stay non-focusable until revealed
  */
 function updateNodeTabIndices(): void {
   if (!nodesGroupRef.value) {
@@ -628,9 +628,9 @@ function updateNodeTabIndices(): void {
   const nodeGroups = nodesGroupRef.value.querySelectorAll("[data-node-id]");
   nodeGroups.forEach((group) => {
     const nodeId = group.getAttribute("data-node-id");
-    const isTargetNode = group.classList.contains("tree-node--target");
+    const node = nodeId ? computedNodes.value.get(nodeId) : undefined;
     // Concealed mystery targets stay non-focusable until revealed
-    if (isTargetNode && !props.showTarget && !isDevMode.value) {
+    if (node && isTargetConcealed(node)) {
       group.setAttribute("tabindex", "-1");
     } else if (nodeId === focusedNodeId.value) {
       group.setAttribute("tabindex", "0");
@@ -674,7 +674,7 @@ function getNodeAriaLabel(node: TreeNode): string {
 }
 
 function handleNodeClick(node: TreeNode): void {
-  // Keep the mystery answer concealed until the game ends (or in dev mode)
+  // Keep the mystery answer concealed until the game ends
   if (isTargetConcealed(node)) {
     return;
   }

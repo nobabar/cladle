@@ -20,8 +20,31 @@ import {
 
 const STANDARD_MAX_GUESSES = 20;
 
+/** Dev-only: avoid reprinting the same mystery on every page reload / restart. */
+const loggedMysteryKeys = new Set<string>();
+
 function isMode(value: unknown): value is GameApiMode {
   return value === "daily" || value === "free-play" || value === "baby";
+}
+
+function logMysteryTargetOnce(
+  mode: GameApiMode,
+  puzzleDate: string,
+  targetId: string,
+): void {
+  if (!import.meta.dev) {
+    return;
+  }
+  const key = `${mode}:${puzzleDate}:${targetId}`;
+  if (loggedMysteryKeys.has(key)) {
+    return;
+  }
+  loggedMysteryKeys.add(key);
+  console.warn(
+    `[cladle] mystery target mode=${mode}${
+      puzzleDate ? ` date=${puzzleDate}` : ""
+    } id=${targetId}`,
+  );
 }
 
 export default defineEventHandler(async (event): Promise<GameStartResponse> => {
@@ -61,6 +84,8 @@ export default defineEventHandler(async (event): Promise<GameStartResponse> => {
     }),
     secret,
   );
+
+  logMysteryTargetOnce(mode, puzzleDate, targetId);
 
   return {
     mode,
