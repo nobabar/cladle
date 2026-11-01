@@ -326,6 +326,120 @@ describe("animalSearch", () => {
       expect(options[0]!.text()).toContain("Tiger");
     });
 
+    it("should match accented display names with ASCII query (heron → Héron)", async () => {
+      const heronAnimals: Animal[] = [
+        {
+          id: "heron-1",
+          name: "Héron cendré",
+          scientificName: "Ardea cinerea",
+          lineage: [
+            { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+            { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+            { id: "taxon-2", name: "Aves", rank: "class", rankLevel: 50 },
+          ],
+        },
+        {
+          id: "heron-2",
+          name: "Lion",
+          scientificName: "Panthera leo",
+          lineage: [
+            { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+            { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+            { id: "taxon-2", name: "Mammalia", rank: "class", rankLevel: 50 },
+          ],
+        },
+      ];
+
+      const wrapper = mountWithStubs(AnimalSearch, {
+        props: {
+          animals: heronAnimals,
+        },
+      });
+
+      const input = wrapper.find("input");
+      await input.setValue("heron");
+      await nextTick();
+
+      const suggestions = wrapper.find("[role=\"listbox\"]");
+      expect(suggestions.exists()).toBe(true);
+      const options = suggestions.findAll("[role=\"option\"]");
+      expect(options.length).toBe(1);
+      expect(options[0]!.text()).toContain("Héron cendré");
+
+      const mark = options[0]!.find("mark");
+      expect(mark.exists()).toBe(true);
+      expect(mark.text()).toBe("Héron");
+    });
+
+    it("should match accented query héron against accented display names", async () => {
+      const heronAnimals: Animal[] = [
+        {
+          id: "heron-1",
+          name: "Héron cendré",
+          scientificName: "Ardea cinerea",
+          lineage: [
+            { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+            { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+            { id: "taxon-2", name: "Aves", rank: "class", rankLevel: 50 },
+          ],
+        },
+      ];
+
+      const wrapper = mountWithStubs(AnimalSearch, {
+        props: {
+          animals: heronAnimals,
+        },
+      });
+
+      const input = wrapper.find("input");
+      await input.setValue("héron");
+      await nextTick();
+
+      const options = wrapper.findAll("[role=\"option\"]");
+      expect(options.length).toBe(1);
+      expect(options[0]!.text()).toContain("Héron cendré");
+    });
+
+    it("should not match all animals when the query folds to empty", async () => {
+      const wrapper = mountWithStubs(AnimalSearch, {
+        props: {
+          animals: mockAnimals,
+        },
+      });
+
+      const input = wrapper.find("input");
+      await input.setValue("...");
+      await nextTick();
+
+      expect(wrapper.find("[role=\"listbox\"]").exists()).toBe(false);
+    });
+
+    it("should still exclude already-guessed accented animals", async () => {
+      const heron: Animal = {
+        id: "heron-1",
+        name: "Héron cendré",
+        scientificName: "Ardea cinerea",
+        lineage: [
+          { id: "taxon-0", name: "Animalia", rank: "kingdom", rankLevel: 70 },
+          { id: "taxon-1", name: "Chordata", rank: "phylum", rankLevel: 60 },
+          { id: "taxon-2", name: "Aves", rank: "class", rankLevel: 50 },
+        ],
+      };
+
+      const wrapper = mountWithStubs(AnimalSearch, {
+        props: {
+          animals: [heron],
+          guessHistory: [heron],
+        },
+      });
+
+      const input = wrapper.find("input");
+      await input.setValue("heron");
+      await nextTick();
+
+      expect(wrapper.find("[role=\"listbox\"]").exists()).toBe(false);
+    });
+
     it("should filter animals by scientific name", async () => {
       const wrapper = mountWithStubs(AnimalSearch, {
         props: {

@@ -5,6 +5,11 @@ import { useBiologicalAPI } from "~/composables/useBiologicalAPI";
 import { useUiIcons } from "~/composables/useUiIcons";
 import { validateAnimalGuess } from "~/utils/animalValidator";
 import type { ValidationError } from "~/utils/animalValidator";
+import {
+  findFoldedSubstringRanges,
+  foldDiacritics,
+  normalizeQueryForINat,
+} from "~/utils/textFold";
 
 interface Props {
   /** Optional list of animals to search through (if not provided, uses API) */
@@ -46,6 +51,7 @@ const { t } = useI18n();
 const uiIcon = useUiIcons();
 
 const searchQuery = ref("");
+const normalizedSearchQuery = computed(() => normalizeQueryForINat(searchQuery.value || ""));
 const isOpen = ref(false);
 const highlightedIndex = ref(-1);
 /** When true, pointer hover must not override keyboard-driven highlight (combobox APG). */
@@ -89,21 +95,25 @@ const guessedAnimalIds = computed(() => new Set((props.guessHistory || []).map(a
  * Filtered suggestions based on search query
  */
 const filteredSuggestions = computed(() => {
-  const trimmedQuery = searchQuery.value?.trim() || "";
-  if (!trimmedQuery || trimmedQuery.length < props.minChars) {
+  const normalizedQuery = normalizedSearchQuery.value;
+  if (!normalizedQuery || normalizedQuery.length < props.minChars) {
     return [];
   }
 
   const animalsToSearch = useApi.value ? apiAnimals.value : props.animals || [];
-  const query = trimmedQuery.toLowerCase();
+  const foldedQuery = foldDiacritics(normalizedQuery);
+  // Punctuation-only queries can pass minChars but fold to ""; includes("") matches everything.
+  if (!foldedQuery) {
+    return [];
+  }
   const matches = animalsToSearch
     .filter((animal) => {
       if (guessedAnimalIds.value.has(animal.id)) {
         return false;
       }
-      const name = animal.name.toLowerCase();
-      const scientificName = animal.scientificName.toLowerCase();
-      return name.includes(query) || scientificName.includes(query);
+      const name = foldDiacritics(animal.name);
+      const scientificName = foldDiacritics(animal.scientificName);
+      return name.includes(foldedQuery) || scientificName.includes(foldedQuery);
     })
     .slice(0, props.maxSuggestions);
 
@@ -337,35 +347,27 @@ function splitTextForHighlight(
     return [{ text, isMatch: false }];
   }
 
+  const ranges = findFoldedSubstringRanges(text, query);
+  if (ranges.length === 0) {
+    return [{ text, isMatch: false }];
+  }
+
   const parts: Array<{ text: string; isMatch: boolean }> = [];
-  const lowerText = text.toLowerCase();
-  const lowerQuery = query.toLowerCase();
   let lastIndex = 0;
-  let searchIndex = 0;
 
-  while (searchIndex < text.length) {
-    const matchIndex = lowerText.indexOf(lowerQuery, searchIndex);
-    if (matchIndex === -1) {
-      // No more matches, add remaining text
-      if (lastIndex < text.length) {
-        parts.push({ text: text.slice(lastIndex), isMatch: false });
-      }
-      break;
+  for (const [matchStart, matchEnd] of ranges) {
+    if (matchStart > lastIndex) {
+      parts.push({ text: text.slice(lastIndex, matchStart), isMatch: false });
     }
-
-    // Add text before match
-    if (matchIndex > lastIndex) {
-      parts.push({ text: text.slice(lastIndex, matchIndex), isMatch: false });
-    }
-
-    // Add matched text
     parts.push({
-      text: text.slice(matchIndex, matchIndex + query.length),
+      text: text.slice(matchStart, matchEnd),
       isMatch: true,
     });
+    lastIndex = matchEnd;
+  }
 
-    lastIndex = matchIndex + query.length;
-    searchIndex = lastIndex;
+  if (lastIndex < text.length) {
+    parts.push({ text: text.slice(lastIndex), isMatch: false });
   }
 
   return parts.length > 0 ? parts : [{ text, isMatch: false }];
@@ -392,8 +394,8 @@ async function searchAnimalsFromAPI(query: string) {
     return;
   }
 
-  const trimmedQuery = query.trim();
-  if (!trimmedQuery || trimmedQuery.length < props.minChars) {
+  const normalizedQuery = normalizeQueryForINat(query);
+  if (!normalizedQuery || normalizedQuery.length < props.minChars) {
     apiAnimals.value = [];
     isSearching.value = false;
     outageMessage.value = null;
@@ -403,8 +405,11 @@ async function searchAnimalsFromAPI(query: string) {
   const generation = ++searchAnimalsGeneration;
   isSearching.value = true;
   try {
-    const result = await api.searchAnimals(trimmedQuery, props.maxSuggestions);
-    if (generation !== searchAnimalsGeneration || searchQuery.value.trim() !== trimmedQuery) {
+    const result = await api.searchAnimals(normalizedQuery, props.maxSuggestions);
+    if (
+      generation !== searchAnimalsGeneration
+      || normalizeQueryForINat(searchQuery.value) !== normalizedQuery
+    ) {
       return;
     }
 
@@ -421,7 +426,10 @@ async function searchAnimalsFromAPI(query: string) {
       apiAnimals.value = [];
     }
   } catch {
-    if (generation !== searchAnimalsGeneration || searchQuery.value.trim() !== trimmedQuery) {
+    if (
+      generation !== searchAnimalsGeneration
+      || normalizeQueryForINat(searchQuery.value) !== normalizedQuery
+    ) {
       return;
     }
     apiAnimals.value = [];
@@ -451,8 +459,8 @@ function debouncedSearch(query: string) {
  * Watch for query changes to update suggestions visibility and trigger API search
  */
 watch(searchQuery, (newQuery) => {
-  const trimmedQuery = newQuery?.trim() || "";
-  if (trimmedQuery.length >= props.minChars) {
+  const normalizedQuery = normalizeQueryForINat(newQuery || "");
+  if (normalizedQuery.length >= props.minChars) {
     // Only open if not explicitly closed or if user is typing
     if (isOpen.value || !selectedAnimal.value) {
       isOpen.value = true;
@@ -647,7 +655,7 @@ onUnmounted(() => {
                 class="font-medium text-gray-900 dark:text-gray-100"
               >
                 <template
-                  v-for="(part, partIndex) in splitTextForHighlight(animal.name, searchQuery)"
+                  v-for="(part, partIndex) in splitTextForHighlight(animal.name, normalizedSearchQuery)"
                   :key="partIndex"
                 >
                   <mark
@@ -669,7 +677,7 @@ onUnmounted(() => {
                   v-for="
                     (part, partIndex) in splitTextForHighlight(
                       animal.scientificName,
-                      searchQuery,
+                      normalizedSearchQuery,
                     )
                   "
                   :key="partIndex"

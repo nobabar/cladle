@@ -315,12 +315,15 @@ export function createCacheService(): CacheService {
 export const cacheService = createCacheService();
 
 /**
- * Normalize clade names for cache keys (lowercase, trimmed).
+ * Normalize clade names for cache keys (trim, NFC, lowercase).
+ * NFC avoids duplicate keys for NFD vs NFC spellings; ASCII vs accented
+ * (`heron` vs `héron`) remain distinct keys by design.
+ * Legacy NFD-only keys may miss until TTL expiry (network fetch still works).
  * @param name - Clade scientific name
  * @returns Normalized name suitable for IndexedDB keys
  */
 export function normalizeCladeCacheName(name: string): string {
-  return name.trim().toLowerCase();
+  return name.trim().normalize("NFC").toLowerCase();
 }
 
 /**

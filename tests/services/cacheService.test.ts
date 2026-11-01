@@ -413,7 +413,9 @@ describe("cacheService", () => {
 
     it("should normalize clade names for cache keys", () => {
       expect(normalizeCladeCacheName("  Animalia ")).toBe("animalia");
+      expect(normalizeCladeCacheName("he\u0301ron")).toBe("héron");
       expect(CacheKeys.cladeByName("Animalia")).toBe("clade:name:animalia");
+      expect(CacheKeys.cladeByName("he\u0301ron")).toBe(CacheKeys.cladeByName("héron"));
       expect(isCladeNameMapping({ taxonId: 48460 })).toBe(true);
       expect(isCladeNameMapping({ name: "Animalia", rank: "kingdom" })).toBe(false);
       expect(isCladeNameMapping({ locales: { en: { name: "Animalia", rank: "kingdom" } } })).toBe(
