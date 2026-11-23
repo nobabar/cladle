@@ -13,6 +13,7 @@ import {
   simplifyBabyModeTree,
 } from "~/utils/babyMode";
 import { listBabyModeAnimals } from "~/utils/babyModeBundle";
+import { calculateLCA } from "~/utils/lcaCalculator";
 
 const gameStore = useGameStore();
 
@@ -79,17 +80,31 @@ function buildFullBabyTree(): TreeData {
     gameStore.saveModeState(previousMode);
   }
 
-  // Prevent processGuess from writing mode snapshots while we build.
+  // Keep gameMode null so updateTreeWithGuess skips mode snapshots / baby path-fill rules.
   gameStore.gameMode = null;
 
   try {
     const target = animals[0]!;
     const others = animals.slice(1);
 
-    gameStore.startGame(target, animals.length);
+    gameStore.target = target;
+    gameStore.gameToken = null;
+    gameStore.serverHintAvailable = true;
+    gameStore.guesses = [];
+    gameStore.hints = [];
+    gameStore.status = "playing";
+    gameStore.maxGuesses = animals.length;
+    gameStore.nodeMap = new Map();
+    gameStore.cladeMap = new Map();
+    gameStore.treeData = gameStore.initializeTree(target);
+    if (gameStore.treeData.root) {
+      gameStore.buildNodeMap(gameStore.treeData.root);
+    }
+
     for (const animal of others) {
-      // gameMode is null -> standard calculateLCA (no resolveBabyModeLCA).
-      gameStore.processGuess(animal);
+      const lca = calculateLCA(animal, target);
+      gameStore.guesses.push({ animal, lca, timestamp: Date.now() });
+      gameStore.updateTreeWithGuess(animal, lca);
     }
 
     if (!gameStore.treeData) {

@@ -10,6 +10,15 @@ import { useGameStore } from "~/stores/gameStore";
 import { useHintRequest } from "~/composables/useHintRequest";
 import { HINT_GUESS_COST } from "~/types/hint";
 import { tiger } from "#test/helpers/animalFixtures";
+import {
+  beginSealedTestGame,
+  resetMockGameApi,
+} from "#test/helpers/mockGameApiClient";
+
+vi.mock("~/services/gameApiClient", async () => {
+  const { createMockGameApiClientExports } = await import("#test/helpers/mockGameApiClient");
+  return createMockGameApiClientExports();
+});
 
 function mountHintRequestHarness() {
   let api: ReturnType<typeof useHintRequest>;
@@ -26,12 +35,13 @@ function mountHintRequestHarness() {
 describe("useHintRequest", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+    resetMockGameApi();
   });
 
-  it("skips request when confirm is stale and hint is no longer allowed", () => {
+  it("skips request when confirm is stale and hint is no longer allowed", async () => {
     const store = useGameStore();
-    store.initializeGame({ ...tiger(), id: "41967" }, HINT_GUESS_COST + 1, "", "free-play", true);
-    store.requestHint();
+    beginSealedTestGame(store, tiger(), HINT_GUESS_COST + 1, "free-play");
+    await store.requestHint();
 
     const { handleHintConfirm, hintAnnouncement } = mountHintRequestHarness();
     handleHintConfirm();
@@ -41,7 +51,7 @@ describe("useHintRequest", () => {
 
   it("announces clade on successful hint", async () => {
     const store = useGameStore();
-    store.initializeGame(tiger(), 20, "", "free-play", true);
+    beginSealedTestGame(store, tiger(), 20, "free-play");
 
     const { handleHintConfirm, hintAnnouncement } = mountHintRequestHarness();
     handleHintConfirm();
@@ -52,7 +62,7 @@ describe("useHintRequest", () => {
 
   it("disables when insufficient guesses remain", () => {
     const store = useGameStore();
-    store.initializeGame(tiger(), HINT_GUESS_COST, "", "free-play", true);
+    beginSealedTestGame(store, tiger(), HINT_GUESS_COST, "free-play");
 
     const { isHintControlDisabled, hintDisabledReasonKey } = mountHintRequestHarness();
     expect(isHintControlDisabled.value).toBe(true);

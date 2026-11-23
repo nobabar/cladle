@@ -1,10 +1,19 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { getGameStore } from "#test/helpers/gameStore";
+import {
+  beginSealedTestGame,
+  resetMockGameApi,
+} from "#test/helpers/mockGameApiClient";
 import type { Animal } from "~/types/animal";
 import type { TreeNode } from "~/types/tree";
 import type { TaxonInLineage } from "~/types/taxonInLineage";
 import { calculateLCA } from "~/utils/lcaCalculator";
+
+vi.mock("~/services/gameApiClient", async () => {
+  const { createMockGameApiClientExports } = await import("#test/helpers/mockGameApiClient");
+  return createMockGameApiClientExports();
+});
 
 function T(id: string, name: string, rank: string, rankLevel: number): TaxonInLineage {
   return { id, name, rank, rankLevel };
@@ -125,14 +134,19 @@ const barred: Animal = {
   ],
 };
 
-describe("path-fill + pairwise on secondary branches", () => {
-  beforeEach(() => setActivePinia(createPinia()));
+const guessAnimals = [humpback, greyWhale, hawk, eagle, gho, barred];
 
-  it("nests birds and whales under guess-side LCAs when target is known", () => {
+describe("path-fill + pairwise on secondary branches", () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    resetMockGameApi();
+  });
+
+  it("nests birds and whales under guess-side LCAs when target is known", async () => {
     const store = getGameStore();
-    store.startGame(mystery, 20);
-    for (const a of [humpback, greyWhale, hawk, eagle, gho, barred]) {
-      store.processGuess(a);
+    beginSealedTestGame(store, mystery, 20, "daily", guessAnimals);
+    for (const a of guessAnimals) {
+      await store.processGuess(a);
     }
 
     expect(store.treeData?.nodes.find((n: TreeNode) => n.name === "Buteoninae")).toBeDefined();
@@ -145,10 +159,9 @@ describe("path-fill + pairwise on secondary branches", () => {
 
   it("still nests guess-side LCAs in sealed mode (target null)", () => {
     const store = getGameStore();
-    store.startGame(mystery, 20);
-    // Simulate sealed daily: mystery animal cleared, LCA comes from server/local calc snapshot
-    store.target = null;
-    store.gameToken = "sealed-test-token";
+    beginSealedTestGame(store, mystery, 20);
+    // Target stays null in sealed play; LCA comes from precomputed snapshots
+    expect(store.target).toBeNull();
 
     const whaleLca = calculateLCA(humpback, mystery);
     const greyLca = calculateLCA(greyWhale, mystery);

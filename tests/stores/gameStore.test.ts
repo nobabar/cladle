@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { getGameStore } from "#test/helpers/gameStore";
+import {
+  beginSealedTestGame,
+  registerTestAnimals,
+  resetMockGameApi,
+} from "#test/helpers/mockGameApiClient";
 import { HINT_GUESS_COST } from "~/types/hint";
 import type { Animal } from "~/types/animal";
 import type { TreeNode } from "~/types/tree";
@@ -12,6 +17,11 @@ import {
   tiger as tigerFixture,
   wolf as wolfFixture,
 } from "#test/helpers/animalFixtures";
+
+vi.mock("~/services/gameApiClient", async () => {
+  const { createMockGameApiClientExports } = await import("#test/helpers/mockGameApiClient");
+  return createMockGameApiClientExports();
+});
 
 describe("gameStore", () => {
   const tiger = tigerFixture();
@@ -120,6 +130,8 @@ describe("gameStore", () => {
 
   beforeEach(() => {
     setActivePinia(createPinia());
+    resetMockGameApi();
+    registerTestAnimals(tiger, wolf, lion, eagle, bear, shoebill, greatBlueHeron, greyHeron, greenHeron);
   });
 
   describe("loading and error state management", () => {
@@ -178,7 +190,7 @@ describe("gameStore", () => {
   describe("game initialization", () => {
     it("should initialize game with target animal", () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
+      store.initializeGame(tiger, 6, undefined, undefined, true);
 
       expect(store.target).toEqual(tiger);
       expect(store.status).toBe("playing");
@@ -189,7 +201,7 @@ describe("gameStore", () => {
 
     it("should initialize tree with root and target", () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
+      store.initializeGame(tiger, 6, undefined, undefined, true);
 
       expect(store.treeData).not.toBeNull();
       expect(store.treeData?.root).toBeDefined();
@@ -200,7 +212,7 @@ describe("gameStore", () => {
 
     it("should build simple tree with only Animalia and target", () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
+      store.initializeGame(tiger, 6, undefined, undefined, true);
 
       const root = store.treeData?.root;
       expect(root).toBeDefined();
@@ -213,10 +225,10 @@ describe("gameStore", () => {
       expect(target?.data?.id).toBe(tiger.id);
     });
 
-    it("should reset game state", () => {
+    it("should reset game state", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
-      store.processGuess(wolf);
+      beginSealedTestGame(store, tiger, 6);
+      await store.processGuess(wolf);
       store.resetGame();
 
       expect(store.status).toBe("idle");
@@ -227,10 +239,10 @@ describe("gameStore", () => {
   });
 
   describe("guess processing", () => {
-    it("should process a valid guess", () => {
+    it("should process a valid guess", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
-      store.processGuess(wolf);
+      beginSealedTestGame(store, tiger, 6);
+      await store.processGuess(wolf);
 
       expect(store.guesses).toHaveLength(1);
       expect(store.guesses[0]?.animal.id).toBe(wolf.id);
@@ -238,10 +250,10 @@ describe("gameStore", () => {
       expect(store.guesses[0]?.lca.clade).toBe("Carnivora");
     });
 
-    it("should calculate LCA between guess and target", () => {
+    it("should calculate LCA between guess and target", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
-      store.processGuess(wolf);
+      beginSealedTestGame(store, tiger, 6);
+      await store.processGuess(wolf);
 
       const guess = store.guesses[0];
       expect(guess?.lca.clade).toBe("Carnivora");
@@ -249,60 +261,111 @@ describe("gameStore", () => {
       expect(guess?.lca.depth).toBe(TIGER_LINEAGE.findIndex(t => t.name === "Carnivora"));
     });
 
-    it("should throw error if game is not active", () => {
+    it("should throw error if game is not active", async () => {
       const store = getGameStore();
-      expect(() => store.processGuess(wolf)).toThrow("Game is not active");
+      await expect(store.processGuess(wolf)).rejects.toThrow("Game is not active");
     });
 
-    it("should throw error if no target is set", () => {
+    it("should throw error if no sealed game token", async () => {
       const store = getGameStore();
       store.status = "playing";
-      expect(() => store.processGuess(wolf)).toThrow("No target animal set");
+      await expect(store.processGuess(wolf)).rejects.toThrow("No sealed game token");
     });
 
-    it("should throw error if duplicate guess", () => {
+    it("should throw error if duplicate guess", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
-      store.processGuess(wolf);
-      expect(() => store.processGuess(wolf)).toThrow("Animal already guessed");
+      beginSealedTestGame(store, tiger, 6);
+      await store.processGuess(wolf);
+      await expect(store.processGuess(wolf)).rejects.toThrow("Animal already guessed");
     });
 
-    it("should throw error if no guesses remaining", () => {
+    it("should throw error if no guesses remaining", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 1);
-      store.processGuess(wolf);
+      beginSealedTestGame(store, tiger, 1);
+      await store.processGuess(wolf);
       // After processing last guess, game status changes to "lost"
       // So next guess attempt should fail with "Game is not active"
-      expect(() => store.processGuess(lion)).toThrow("Game is not active");
+      await expect(store.processGuess(lion)).rejects.toThrow("Game is not active");
     });
 
-    it("should win game on correct guess", () => {
+    it("should win game on correct guess", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
-      store.processGuess(tiger);
+      beginSealedTestGame(store, tiger, 6);
+      await store.processGuess(tiger);
 
       expect(store.status).toBe("won");
       expect(store.isWon).toBe(true);
       expect(store.hasEnded).toBe(true);
+      expect(store.target?.id).toBe(tiger.id);
     });
 
-    it("should lose game when guesses run out", () => {
+    it("should lose game when guesses run out", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 2);
-      store.processGuess(wolf);
-      store.processGuess(lion);
+      beginSealedTestGame(store, tiger, 2);
+      await store.processGuess(wolf);
+      await store.processGuess(lion);
 
       expect(store.status).toBe("lost");
       expect(store.isLost).toBe(true);
       expect(store.hasEnded).toBe(true);
+      expect(store.target?.id).toBe(tiger.id);
+    });
+
+    it("leaves state unchanged when the guess API rejects", async () => {
+      const store = getGameStore();
+      beginSealedTestGame(store, tiger, 6);
+      const tokenBefore = store.gameToken;
+      const nodeCountBefore = store.nodeMap.size;
+
+      const unknownAnimal: Animal = { ...eagle, id: "not-registered" };
+      await expect(store.processGuess(unknownAnimal)).rejects.toThrow("Unknown animal");
+
+      expect(store.guesses).toHaveLength(0);
+      expect(store.guessesRemaining).toBe(6);
+      expect(store.gameToken).toBe(tokenBefore);
+      expect(store.nodeMap.size).toBe(nodeCountBefore);
+      expect(store.status).toBe("playing");
+    });
+
+    it("stores the rotated token returned by each guess", async () => {
+      const store = getGameStore();
+      beginSealedTestGame(store, tiger, 6, "daily", [wolf, lion]);
+      const first = store.gameToken;
+      await store.processGuess(wolf);
+      const second = store.gameToken;
+      await store.processGuess(lion);
+
+      expect(second).not.toBe(first);
+      expect(store.gameToken).not.toBe(second);
+      expect(store.guesses).toHaveLength(2);
+    });
+
+    it("wins a sealed baby-mode game and reveals the target", async () => {
+      const store = getGameStore();
+      beginSealedTestGame(store, lion, 20, "baby", [bear]);
+      await store.processGuess(bear);
+      expect(store.status).toBe("playing");
+      expect(store.target).toBeNull();
+
+      await store.processGuess(lion);
+      expect(store.status).toBe("won");
+      expect(store.target?.id).toBe(lion.id);
+    });
+
+    it("rejects a non-baby organism in baby mode without recording it", async () => {
+      const store = getGameStore();
+      beginSealedTestGame(store, lion, 20, "baby", [wolf]);
+
+      await expect(store.processGuess(wolf)).rejects.toThrow("Animal not in Baby Mode set");
+      expect(store.guesses).toHaveLength(0);
     });
   });
 
   describe("tree building", () => {
-    it("should add guess node to tree", () => {
+    it("should add guess node to tree", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
-      store.processGuess(wolf);
+      beginSealedTestGame(store, tiger, 6);
+      await store.processGuess(wolf);
 
       const guessNode = store.treeData?.nodes.find((n: TreeNode) => n.id === `animal-${wolf.id}`);
       expect(guessNode).toBeDefined();
@@ -310,10 +373,10 @@ describe("gameStore", () => {
       expect(guessNode?.data?.id).toBe(wolf.id);
     });
 
-    it("should add LCA node to tree", () => {
+    it("should add LCA node to tree", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
-      store.processGuess(wolf);
+      beginSealedTestGame(store, tiger, 6);
+      await store.processGuess(wolf);
 
       const lcaNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Carnivora");
       expect(lcaNode).toBeDefined();
@@ -321,10 +384,10 @@ describe("gameStore", () => {
       expect(lcaNode?.type).toBe("clade");
     });
 
-    it("should link guess node under path-fill clade beneath the LCA", () => {
+    it("should link guess node under path-fill clade beneath the LCA", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
-      store.processGuess(wolf);
+      beginSealedTestGame(store, tiger, 6);
+      await store.processGuess(wolf);
 
       const lcaNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Carnivora");
       const pathFillNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Canidae");
@@ -336,16 +399,16 @@ describe("gameStore", () => {
       expect(lcaNode?.children).toContain(pathFillNode);
     });
 
-    it("should move target animal under LCA node when guess is made", () => {
+    it("should move target animal under LCA node when guess is made", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
+      beginSealedTestGame(store, tiger, 6);
 
       // Initially, target should be direct child of Animalia
       expect(store.treeData?.root.children).toContain(store.treeData?.target);
       expect(store.treeData?.target?.parent).toBe(store.treeData?.root);
 
       // Process guess (wolf - LCA with tiger is Carnivora)
-      store.processGuess(wolf);
+      await store.processGuess(wolf);
 
       const lcaNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Carnivora");
       const targetNode = store.treeData?.target;
@@ -356,11 +419,11 @@ describe("gameStore", () => {
       expect(store.treeData?.root.children).not.toContain(targetNode);
     });
 
-    it("should reuse existing LCA node for multiple guesses", () => {
+    it("should reuse existing LCA node for multiple guesses", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
-      store.processGuess(wolf);
-      store.processGuess(bear);
+      beginSealedTestGame(store, tiger, 6);
+      await store.processGuess(wolf);
+      await store.processGuess(bear);
 
       // Both wolf and bear share Carnivora as LCA with tiger
       const lcaNodes = store.treeData?.nodes.filter((n: TreeNode) => n.name === "Carnivora" && n.isLCA);
@@ -377,11 +440,11 @@ describe("gameStore", () => {
       expect(bearNode?.parent?.parent).toBe(lcaNode);
     });
 
-    it("should handle guesses with different LCAs", () => {
+    it("should handle guesses with different LCAs", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
-      store.processGuess(wolf); // LCA: Carnivora
-      store.processGuess(eagle); // LCA: Chordata
+      beginSealedTestGame(store, tiger, 6);
+      await store.processGuess(wolf); // LCA: Carnivora
+      await store.processGuess(eagle); // LCA: Chordata
 
       const carnivoraNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Carnivora" && n.isLCA);
       const chordataNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Chordata" && n.isLCA);
@@ -391,22 +454,22 @@ describe("gameStore", () => {
       expect(carnivoraNode).not.toBe(chordataNode);
     });
 
-    it("should update guesses list in tree data", () => {
+    it("should update guesses list in tree data", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
-      store.processGuess(wolf);
-      store.processGuess(lion);
+      beginSealedTestGame(store, tiger, 6);
+      await store.processGuess(wolf);
+      await store.processGuess(lion);
 
       expect(store.treeData?.guesses).toHaveLength(2);
       expect(store.treeData?.guesses.every((g: TreeNode) => g.isGuess)).toBe(true);
     });
 
-    it("should maintain tree structure integrity", () => {
+    it("should maintain tree structure integrity", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
-      store.processGuess(wolf);
-      store.processGuess(lion);
-      store.processGuess(eagle);
+      beginSealedTestGame(store, tiger, 6);
+      await store.processGuess(wolf);
+      await store.processGuess(lion);
+      await store.processGuess(eagle);
 
       // All nodes should have valid structure
       for (const node of store.treeData?.nodes || []) {
@@ -419,7 +482,7 @@ describe("gameStore", () => {
       }
     });
 
-    it("places guess-guess LCAs under the correct taxonomic parent (not a broader sibling)", () => {
+    it("places guess-guess LCAs under the correct taxonomic parent (not a broader sibling)", async () => {
       const easternBeardedDragon: Animal = {
         id: "31419",
         name: "Agame barbu de l'Est",
@@ -505,13 +568,19 @@ describe("gameStore", () => {
       };
 
       const store = getGameStore();
-      store.startGame(easternBeardedDragon, 20);
+      beginSealedTestGame(store, easternBeardedDragon, 20, "daily", [
+        californiaSeaLion,
+        africanLion,
+        mountainLion,
+        southernLion,
+        maroonLeggedLionFly,
+      ]);
 
-      store.processGuess(californiaSeaLion);
-      store.processGuess(africanLion);
-      store.processGuess(mountainLion);
-      store.processGuess(southernLion);
-      store.processGuess(maroonLeggedLionFly);
+      await store.processGuess(californiaSeaLion);
+      await store.processGuess(africanLion);
+      await store.processGuess(mountainLion);
+      await store.processGuess(southernLion);
+      await store.processGuess(maroonLeggedLionFly);
 
       const chordataNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Chordata" && n.isLCA);
       const mammaliaNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Mammalia" && n.isLCA);
@@ -531,16 +600,16 @@ describe("gameStore", () => {
       expect(carnivoraNode?.parent?.id).toBe(mammaliaNode?.id);
     });
 
-    it("keeps deeper guess clades connected when a broader clade is added later", () => {
+    it("keeps deeper guess clades connected when a broader clade is added later", async () => {
       const store = getGameStore();
-      store.startGame(shoebill, 10);
+      beginSealedTestGame(store, shoebill, 10);
 
       // First create Ardea from two Ardea species guesses
-      store.processGuess(greatBlueHeron);
-      store.processGuess(greyHeron);
+      await store.processGuess(greatBlueHeron);
+      await store.processGuess(greyHeron);
 
       // Then add a non-Ardea heron, which introduces Ardeidae
-      store.processGuess(greenHeron);
+      await store.processGuess(greenHeron);
 
       const ardeaNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Ardea" && n.isLCA);
       const ardeidaeNode = store.treeData?.nodes.find((n: TreeNode) => n.name === "Ardeidae" && n.isLCA);
@@ -602,10 +671,10 @@ describe("gameStore", () => {
         ),
       };
 
-      it("adds Mammalia under Vertebrata and keeps ??? off Mammalia for a mammal guess vs bird", () => {
+      it("adds Mammalia under Vertebrata and keeps ??? off Mammalia for a mammal guess vs bird", async () => {
         const store = getGameStore();
-        store.startGame(birdMystery, 10);
-        store.processGuess(lion);
+        beginSealedTestGame(store, birdMystery, 10, "daily", [lion]);
+        await store.processGuess(lion);
 
         const vertebrata = store.treeData?.nodes.find(
           (n: TreeNode) => n.name === "Vertebrata" && n.isLCA,
@@ -626,10 +695,10 @@ describe("gameStore", () => {
         expect(mammalia?.children).not.toContain(targetNode);
       });
 
-      it("attaches the animal directly under the LCA when no intermediate exists", () => {
+      it("attaches the animal directly under the LCA when no intermediate exists", async () => {
         const store = getGameStore();
-        store.startGame(tiger, 10);
-        store.processGuess(lion);
+        beginSealedTestGame(store, tiger, 10);
+        await store.processGuess(lion);
 
         // Lion∩Tiger LCA is Panthera; next step is species → no path-fill
         const panthera = store.treeData?.nodes.find(
@@ -648,11 +717,11 @@ describe("gameStore", () => {
         ).toBe(false);
       });
 
-      it("reuses a single path-fill clade for a second mammal under the same LCA", () => {
+      it("reuses a single path-fill clade for a second mammal under the same LCA", async () => {
         const store = getGameStore();
-        store.startGame(birdMystery, 10);
-        store.processGuess(lion);
-        store.processGuess(tiger);
+        beginSealedTestGame(store, birdMystery, 10, "daily", [lion, tiger]);
+        await store.processGuess(lion);
+        await store.processGuess(tiger);
 
         const mammaliaNodes = store.treeData?.nodes.filter(
           (n: TreeNode) => n.name === "Mammalia" && n.isLCA,
@@ -672,10 +741,10 @@ describe("gameStore", () => {
           || tigerNode?.parent?.parent?.name === "Mammalia").toBe(true);
       });
 
-      it("skips path filling in baby mode", () => {
+      it("skips path filling in baby mode", async () => {
         const store = getGameStore();
-        store.initializeGame(birdMystery, 10, "2026-11-01", "baby", true);
-        store.processGuess(lion);
+        beginSealedTestGame(store, birdMystery, 10, "baby", [lion]);
+        await store.processGuess(lion);
 
         const mammalia = store.treeData?.nodes.find(
           (n: TreeNode) => n.name === "Mammalia" && n.isLCA,
@@ -690,12 +759,12 @@ describe("gameStore", () => {
         expect(lionNode?.parent?.name).not.toBe("Mammalia");
       });
 
-      it("reproduces path-fill when replaying guesses through updateTreeWithGuess", () => {
+      it("reproduces path-fill when replaying guesses through updateTreeWithGuess", async () => {
         setActivePinia(createPinia());
         const live = getGameStore();
-        live.startGame(birdMystery, 10);
-        live.processGuess(lion);
-        live.processGuess(wolf);
+        beginSealedTestGame(live, birdMystery, 10, "daily", [lion, wolf]);
+        await live.processGuess(lion);
+        await live.processGuess(wolf);
 
         const liveMammaliaParent = live.treeData?.nodes.find(
           (n: TreeNode) => n.name === "Mammalia" && n.isLCA,
@@ -710,9 +779,9 @@ describe("gameStore", () => {
 
         setActivePinia(createPinia());
         const replay = getGameStore();
-        replay.startGame(birdMystery, 10);
+        beginSealedTestGame(replay, birdMystery, 10, "daily", animals);
         for (const animal of animals) {
-          replay.processGuess(animal);
+          await replay.processGuess(animal);
         }
 
         const replayMammalia = replay.treeData?.nodes.find(
@@ -731,28 +800,28 @@ describe("gameStore", () => {
   });
 
   describe("getters", () => {
-    it("should calculate guesses remaining correctly", () => {
+    it("should calculate guesses remaining correctly", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
+      beginSealedTestGame(store, tiger, 6);
       expect(store.guessesRemaining).toBe(6);
 
-      store.processGuess(wolf);
+      await store.processGuess(wolf);
       expect(store.guessesRemaining).toBe(5);
 
-      store.processGuess(lion);
+      await store.processGuess(lion);
       expect(store.guessesRemaining).toBe(4);
     });
 
-    it("should return correct game status flags", () => {
+    it("should return correct game status flags", async () => {
       const store = getGameStore();
       expect(store.isPlaying).toBe(false);
       expect(store.hasEnded).toBe(false);
 
-      store.startGame(tiger, 6);
+      beginSealedTestGame(store, tiger, 6);
       expect(store.isPlaying).toBe(true);
       expect(store.hasEnded).toBe(false);
 
-      store.processGuess(tiger);
+      await store.processGuess(tiger);
       expect(store.isPlaying).toBe(false);
       expect(store.isWon).toBe(true);
       expect(store.hasEnded).toBe(true);
@@ -760,26 +829,26 @@ describe("gameStore", () => {
   });
 
   describe("performance", () => {
-    it("should process guess within 1 second", () => {
+    it("should process guess within 1 second", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
+      beginSealedTestGame(store, tiger, 6);
 
       const startTime = Date.now();
-      store.processGuess(wolf);
+      await store.processGuess(wolf);
       const endTime = Date.now();
 
       const duration = endTime - startTime;
       expect(duration).toBeLessThan(1000);
     });
 
-    it("should handle multiple guesses efficiently", () => {
+    it("should handle multiple guesses efficiently", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
+      beginSealedTestGame(store, tiger, 6);
 
       const startTime = Date.now();
-      store.processGuess(wolf);
-      store.processGuess(lion);
-      store.processGuess(eagle);
+      await store.processGuess(wolf);
+      await store.processGuess(lion);
+      await store.processGuess(eagle);
       const endTime = Date.now();
 
       const duration = endTime - startTime;
@@ -797,13 +866,13 @@ describe("gameStore", () => {
       };
 
       const store = getGameStore();
-      store.startGame(animalNoTaxonomy, 6);
+      store.initializeGame(animalNoTaxonomy, 6, undefined, undefined, true);
 
       expect(store.treeData).not.toBeNull();
       expect(store.treeData?.target).toBeDefined();
     });
 
-    it("should handle guess with empty taxonomy", () => {
+    it("should handle guess with empty taxonomy", async () => {
       const animalNoTaxonomy: Animal = {
         id: "10",
         name: "Unknown Animal",
@@ -812,22 +881,22 @@ describe("gameStore", () => {
       };
 
       const store = getGameStore();
-      store.startGame(tiger, 6);
-      store.processGuess(animalNoTaxonomy);
+      beginSealedTestGame(store, tiger, 6, "daily", [animalNoTaxonomy]);
+      await store.processGuess(animalNoTaxonomy);
 
       expect(store.guesses).toHaveLength(1);
       expect(store.guesses[0]?.lca.clade).toBe("Life");
     });
 
-    it("should handle identical animals (same species)", () => {
+    it("should handle identical animals (same species)", async () => {
       const tiger2: Animal = {
         ...tiger,
         id: "1-dup",
       };
 
       const store = getGameStore();
-      store.startGame(tiger, 6);
-      store.processGuess(tiger2);
+      beginSealedTestGame(store, tiger, 6, "daily", [tiger2]);
+      await store.processGuess(tiger2);
 
       // LCA should be the species itself
       expect(store.guesses[0]?.lca.clade).toBe("Panthera tigris");
@@ -864,7 +933,7 @@ describe("gameStore", () => {
 
     it("should apply localized target and update tree leaf", () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
+      store.initializeGame(tiger, 6, undefined, undefined, true);
       const localized = {
         ...tiger,
         name: "Tigre",
@@ -882,8 +951,7 @@ describe("gameStore", () => {
 
     it("should enrich baby mode target media without replacing beginner name", () => {
       const store = getGameStore();
-      store.gameMode = "baby";
-      store.startGame(tiger, 8);
+      store.initializeGame(tiger, 8, undefined, "baby", true);
       const localized = {
         ...tiger,
         name: "Tigre",
@@ -904,14 +972,13 @@ describe("gameStore", () => {
 
     it("should keep baby bundle media when localized fields are empty strings", () => {
       const store = getGameStore();
-      store.gameMode = "baby";
       const bundled = {
         ...tiger,
         imageUrl: "https://example.com/bundle-tiger.jpg",
         description: "<p>Bundle copy.</p>",
         wikipediaUrl: "https://en.wikipedia.org/wiki/Panthera%20tigris",
       };
-      store.startGame(bundled, 8);
+      store.initializeGame(bundled, 8, undefined, "baby", true);
 
       store.applyLocalizedTarget({
         ...tiger,
@@ -928,11 +995,10 @@ describe("gameStore", () => {
 
     it("should clear baby description ahead of a non-English locale sync", () => {
       const store = getGameStore();
-      store.gameMode = "baby";
-      store.startGame({
+      store.initializeGame({
         ...tiger,
         description: "<p>English flash.</p>",
-      }, 8);
+      }, 8, undefined, "baby", true);
 
       store.clearTargetDescriptionForLocaleSync();
 
@@ -942,16 +1008,16 @@ describe("gameStore", () => {
 
     it("should ignore applyLocalizedTarget when id does not match", () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
+      store.initializeGame(tiger, 6, undefined, undefined, true);
       store.applyLocalizedTarget({ ...wolf, id: wolf.id });
 
       expect(store.target?.name).toBe(tiger.name);
     });
 
-    it("should add guess with addGuess method", () => {
+    it("should add guess with addGuess method", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
-      store.addGuess(wolf);
+      beginSealedTestGame(store, tiger, 6);
+      await store.addGuess(wolf);
 
       expect(store.guesses).toHaveLength(1);
       expect(store.guesses[0]?.animal.id).toBe(wolf.id);
@@ -959,7 +1025,7 @@ describe("gameStore", () => {
 
     it("should set completion status with setCompletionStatus", () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
+      store.initializeGame(tiger, 6, undefined, undefined, true);
       store.setCompletionStatus("won");
 
       expect(store.status).toBe("won");
@@ -968,7 +1034,7 @@ describe("gameStore", () => {
 
     it("should update tree state with updateTreeState", () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
+      store.initializeGame(tiger, 6, undefined, undefined, true);
       const originalTree = store.treeData;
 
       // Create a new tree structure
@@ -985,46 +1051,46 @@ describe("gameStore", () => {
   });
 
   describe("additional getters", () => {
-    it("should check if animal has been guessed with hasGuessed", () => {
+    it("should check if animal has been guessed with hasGuessed", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
+      beginSealedTestGame(store, tiger, 6);
 
       expect(store.hasGuessed(wolf)).toBe(false);
-      store.processGuess(wolf);
+      await store.processGuess(wolf);
       expect(store.hasGuessed(wolf)).toBe(true);
       expect(store.hasGuessed(lion)).toBe(false);
     });
 
-    it("should check if game is complete with isComplete", () => {
+    it("should check if game is complete with isComplete", async () => {
       const store = getGameStore();
       expect(store.isComplete).toBe(false);
 
-      store.startGame(tiger, 6);
+      beginSealedTestGame(store, tiger, 6);
       expect(store.isComplete).toBe(false);
 
-      store.processGuess(tiger);
+      await store.processGuess(tiger);
       expect(store.isComplete).toBe(true);
     });
 
-    it("should check if can guess with canGuess", () => {
+    it("should check if can guess with canGuess", async () => {
       const store = getGameStore();
       expect(store.canGuess).toBe(false);
 
-      store.startGame(tiger, 6);
+      beginSealedTestGame(store, tiger, 6);
       expect(store.canGuess).toBe(true);
 
-      store.processGuess(tiger);
+      await store.processGuess(tiger);
       expect(store.canGuess).toBe(false);
     });
 
-    it("should get guess count with guessCount", () => {
+    it("should get guess count with guessCount", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 6);
+      beginSealedTestGame(store, tiger, 6);
 
       expect(store.guessCount).toBe(0);
-      store.processGuess(wolf);
+      await store.processGuess(wolf);
       expect(store.guessCount).toBe(1);
-      store.processGuess(lion);
+      await store.processGuess(lion);
       expect(store.guessCount).toBe(2);
     });
 
@@ -1032,7 +1098,7 @@ describe("gameStore", () => {
       const store = getGameStore();
       expect(store.completionStatus).toBe("playing");
 
-      store.startGame(tiger, 6);
+      beginSealedTestGame(store, tiger, 6);
       expect(store.completionStatus).toBe("playing");
 
       store.setCompletionStatus("won");
@@ -1149,17 +1215,19 @@ describe("gameStore", () => {
       expect(store.puzzleDate).toBe("");
     });
 
-    it("restores live state from dailyState and rebuilds nodeMap after simulated cold load", () => {
+    it("restores live state from dailyState and rebuilds nodeMap after simulated cold load", async () => {
       const store = getGameStore();
-      store.initializeGame(tiger, 20, "2026-03-20", "daily");
-      store.processGuess(lion);
+      beginSealedTestGame(store, tiger, 20, "daily", [lion, wolf], "2026-03-20");
+      await store.processGuess(lion);
       expect(store.guesses.length).toBeGreaterThan(0);
       store.saveModeState("daily");
       expect(store.dailyState).not.toBeNull();
+      const savedToken = store.gameToken;
 
       store.$patch({
         status: "idle",
         target: null,
+        gameToken: null,
         guesses: [],
         treeData: null,
         nodeMap: new Map(),
@@ -1169,28 +1237,36 @@ describe("gameStore", () => {
       store.restoreModeState("daily");
 
       expect(store.status).toBe("playing");
-      expect(store.target?.id).toBe(tiger.id);
+      expect(store.target).toBeNull();
+      expect(store.gameToken).toBe(savedToken);
       expect(store.puzzleDate).toBe("2026-03-20");
       expect(store.guesses.length).toBeGreaterThan(0);
       expect(store.treeData).not.toBeNull();
       expect(store.nodeMap.size).toBeGreaterThan(0);
+
+      // The restored token must still be accepted by the API.
+      await store.processGuess(wolf);
+      expect(store.guesses).toHaveLength(2);
     });
 
-    it("restores from freePlayState when mode is free-play", () => {
+    it("restores from freePlayState when mode is free-play", async () => {
       const store = getGameStore();
-      store.initializeGame(wolf, 12, "", "free-play");
-      store.processGuess(tiger);
+      beginSealedTestGame(store, wolf, 12, "free-play", [tiger], "");
+      await store.processGuess(tiger);
       store.saveModeState("free-play");
+      const savedToken = store.gameToken;
       store.$patch({
         status: "idle",
         target: null,
+        gameToken: null,
         guesses: [],
         treeData: null,
         nodeMap: new Map(),
         cladeMap: new Map(),
       });
       store.restoreModeState("free-play");
-      expect(store.target?.id).toBe(wolf.id);
+      expect(store.target).toBeNull();
+      expect(store.gameToken).toBe(savedToken);
       expect(store.status).toBe("playing");
       expect(store.guesses.length).toBeGreaterThan(0);
     });
@@ -1199,70 +1275,71 @@ describe("gameStore", () => {
   describe("hint mechanics", () => {
     it("starts with empty hints and canRequestHint when playing", () => {
       const store = getGameStore();
-      store.startGame(tiger, 20);
+      beginSealedTestGame(store, tiger, 20);
       expect(store.hints).toHaveLength(0);
       expect(store.hintCount).toBe(0);
       expect(store.canRequestHint).toBe(true);
     });
 
-    it("requestHint reduces guesses remaining by HINT_GUESS_COST", () => {
+    it("requestHint reduces guesses remaining by HINT_GUESS_COST", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 20);
-      store.requestHint();
+      beginSealedTestGame(store, tiger, 20);
+      await store.requestHint();
       expect(store.hints).toHaveLength(1);
       expect(store.hints[0]!.cost).toBe(HINT_GUESS_COST);
+      // Animalia is the visible tree root, so the first paid hint goes one rank deeper.
       expect(store.hints[0]!.revealedClade).toBe("Chordata");
       expect(store.hints[0]!.rank).toBe("phylum");
       expect(store.hints[0]!.depth).toBe(1);
       expect(store.guessesRemaining).toBe(20 - HINT_GUESS_COST);
     });
 
-    it("requestHint reveals Felidae on tree after Wolf guess", () => {
+    it("requestHint reveals Felidae on tree after Wolf guess", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 20);
-      store.processGuess(wolf);
-      store.requestHint();
+      beginSealedTestGame(store, tiger, 20);
+      await store.processGuess(wolf);
+      await store.requestHint();
       expect(store.hints[0]!.revealedClade).toBe("Felidae");
       expect(store.cladeMap.has("felidae")).toBe(true);
     });
 
-    it("requestHint throws when no hint available and does not charge", () => {
+    it("requestHint throws when no hint available and does not charge", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 20);
-      store.processGuess(lion);
+      beginSealedTestGame(store, tiger, 20);
+      await store.processGuess(lion);
       expect(store.hasHintAvailable).toBe(false);
-      expect(() => store.requestHint()).toThrow(/no hint available/i);
+      await expect(store.requestHint()).rejects.toThrow(/no hint available/i);
       expect(store.hints).toHaveLength(0);
       expect(store.guessesRemaining).toBe(19);
     });
 
-    it("requestHint throws when not enough guesses remain and leaves state unchanged", () => {
+    it("requestHint throws when not enough guesses remain and leaves state unchanged", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 2);
-      expect(() => store.requestHint()).toThrow(/not enough guesses/i);
+      beginSealedTestGame(store, tiger, 2);
+      await expect(store.requestHint()).rejects.toThrow(/not enough guesses/i);
       expect(store.hints).toHaveLength(0);
       expect(store.guessesRemaining).toBe(2);
     });
 
-    it("does not allow hint when only HINT_GUESS_COST guesses remain", () => {
+    it("does not allow hint when only HINT_GUESS_COST guesses remain", async () => {
       const store = getGameStore();
-      store.startGame(tiger, HINT_GUESS_COST);
+      beginSealedTestGame(store, tiger, HINT_GUESS_COST);
       expect(store.canRequestHint).toBe(false);
-      expect(() => store.requestHint()).toThrow(/not enough guesses/i);
+      await expect(store.requestHint()).rejects.toThrow(/not enough guesses/i);
       expect(store.hints).toHaveLength(0);
       expect(store.status).toBe("playing");
     });
 
-    it("requestHint throws when game is not playing", () => {
+    it("requestHint throws when game is not playing", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 20);
-      store.processGuess(tiger);
+      beginSealedTestGame(store, tiger, 20);
+      await store.processGuess(tiger);
       expect(store.status).toBe("won");
-      expect(() => store.requestHint()).toThrow(/not active/i);
+      await expect(store.requestHint()).rejects.toThrow(/not active/i);
       expect(store.hints).toHaveLength(0);
     });
 
-    it("requestHint throws in replay mode", () => {
+    it("requestHint throws in replay mode", async () => {
       const store = getGameStore();
       store.loadReplayFromHistory({
         puzzleDate: "2026-02-14",
@@ -1272,88 +1349,102 @@ describe("gameStore", () => {
         treeData: null,
         completedAt: Date.now(),
       });
-      expect(() => store.requestHint()).toThrow(/replay/i);
+      await expect(store.requestHint()).rejects.toThrow(/replay/i);
     });
 
-    it("allows hint when more than HINT_GUESS_COST guesses remain and leaves a buffer", () => {
+    it("allows hint when more than HINT_GUESS_COST guesses remain and leaves a buffer", async () => {
       const store = getGameStore();
-      store.startGame(tiger, HINT_GUESS_COST + 1);
+      beginSealedTestGame(store, tiger, HINT_GUESS_COST + 1);
       expect(store.canRequestHint).toBe(true);
-      store.requestHint();
+      await store.requestHint();
       expect(store.guessesRemaining).toBe(1);
       expect(store.status).toBe("playing");
     });
 
-    it("combines animal guesses and hint costs for guessesRemaining", () => {
+    it("combines animal guesses and hint costs for guessesRemaining", async () => {
       const store = getGameStore();
-      store.startGame(tiger, 10);
-      store.processGuess(wolf);
-      store.requestHint();
+      beginSealedTestGame(store, tiger, 10);
+      await store.processGuess(wolf);
+      await store.requestHint();
       expect(store.guessesRemaining).toBe(10 - 1 - HINT_GUESS_COST);
     });
 
-    it("saveModeState and restoreModeState preserve hints", () => {
+    it("saveModeState and restoreModeState preserve hints", async () => {
       const store = getGameStore();
-      store.initializeGame(tiger, 20, "2026-03-20", "daily");
-      store.requestHint();
+      beginSealedTestGame(store, tiger, 20, "daily", [wolf], "2026-03-20");
+      await store.requestHint();
       store.saveModeState("daily");
+      const savedToken = store.gameToken;
       store.$patch({
         hints: [],
         status: "idle",
         target: null,
+        gameToken: null,
       });
       store.restoreModeState("daily");
       expect(store.hints).toHaveLength(1);
       expect(store.guessesRemaining).toBe(20 - HINT_GUESS_COST);
+      expect(store.gameToken).toBe(savedToken);
+      expect(store.target).toBeNull();
+
+      // The restored token still carries the hint: the next guess is charged on top of it.
+      await store.processGuess(wolf);
+      expect(store.guessesRemaining).toBe(20 - HINT_GUESS_COST - 1);
     });
   });
 
   describe("mode isolation (daily <-> baby <-> free-play)", () => {
-    it("preserves daily guesses when switching daily -> baby -> daily", () => {
+    it("preserves daily guesses when switching daily -> baby -> daily", async () => {
       const store = getGameStore();
-      store.initializeGame(tiger, 20, "2026-08-29", "daily");
-      store.processGuess(lion);
+      beginSealedTestGame(store, tiger, 20, "daily", [lion], "2026-08-29");
+      await store.processGuess(lion);
       expect(store.guesses).toHaveLength(1);
+      const dailyToken = store.gameToken;
 
       store.switchGameMode("baby");
       expect(store.guesses).toHaveLength(0);
 
       store.switchGameMode("daily");
       expect(store.guesses).toHaveLength(1);
-      expect(store.target?.id).toBe(tiger.id);
+      expect(store.target).toBeNull();
+      expect(store.gameToken).toBe(dailyToken);
       expect(store.dailyState?.guesses).toHaveLength(1);
     });
 
-    it("keeps baby and free-play snapshots isolated", () => {
+    it("keeps baby and free-play snapshots isolated", async () => {
       const store = getGameStore();
-      store.initializeGame(tiger, 20, "2026-08-29", "daily");
-      store.processGuess(lion);
+      beginSealedTestGame(store, tiger, 20, "daily", [lion], "2026-08-29");
+      await store.processGuess(lion);
       store.switchGameMode("baby");
-      store.initializeGame(wolf, 20, "2026-08-29", "baby", true);
-      store.processGuess(bear);
+      beginSealedTestGame(store, wolf, 20, "baby", [bear], "2026-08-29");
+      await store.processGuess(bear);
       store.switchGameMode("free-play");
-      store.initializeGame(eagle, 20, "", "free-play", true);
-      store.processGuess(shoebill);
+      beginSealedTestGame(store, eagle, 20, "free-play", [shoebill], "");
+      await store.processGuess(shoebill);
 
       store.switchGameMode("baby");
-      expect(store.target?.id).toBe(wolf.id);
+      expect(store.target).toBeNull();
+      expect(store.gameToken).toBeTruthy();
       expect(store.guesses).toHaveLength(1);
+      expect(store.guesses[0]?.animal.id).toBe(bear.id);
 
       store.switchGameMode("daily");
-      expect(store.target?.id).toBe(tiger.id);
+      expect(store.target).toBeNull();
       expect(store.guesses).toHaveLength(1);
+      expect(store.guesses[0]?.animal.id).toBe(lion.id);
 
       store.switchGameMode("free-play");
-      expect(store.target?.id).toBe(eagle.id);
+      expect(store.target).toBeNull();
       expect(store.guesses).toHaveLength(1);
+      expect(store.guesses[0]?.animal.id).toBe(shoebill.id);
     });
 
-    it("resetBabyForNewDay clears only baby snapshot", () => {
+    it("resetBabyForNewDay clears only baby snapshot", async () => {
       const store = getGameStore();
-      store.initializeGame(tiger, 20, "2026-02-10", "daily");
+      beginSealedTestGame(store, tiger, 20, "daily", [], "2026-02-10");
       store.saveModeState("daily");
-      store.initializeGame(wolf, 20, "2026-02-10", "baby", true);
-      store.processGuess(lion);
+      beginSealedTestGame(store, wolf, 20, "baby", [lion], "2026-02-10");
+      await store.processGuess(lion);
 
       store.resetBabyForNewDay();
 
@@ -1381,11 +1472,12 @@ describe("gameStore", () => {
       expect(store.guesses).toHaveLength(0);
     });
 
-    it("exitReplay restores daily state and clears isReplayMode", () => {
+    it("exitReplay restores daily state and clears isReplayMode", async () => {
       const store = getGameStore();
-      store.initializeGame(tiger, 6, "2026-02-15", "daily");
-      store.processGuess(lion);
+      beginSealedTestGame(store, tiger, 6, "daily", [lion], "2026-02-15");
+      await store.processGuess(lion);
       store.saveModeState("daily");
+      const savedToken = store.gameToken;
       const entry = {
         puzzleDate: "2026-02-14",
         targetAnimal: wolf,
@@ -1399,7 +1491,9 @@ describe("gameStore", () => {
       expect(store.target?.id).toBe(wolf.id);
       store.exitReplay();
       expect(store.isReplayMode).toBe(false);
-      expect(store.target?.id).toBe(tiger.id);
+      expect(store.target).toBeNull();
+      expect(store.gameToken).toBe(savedToken);
+      expect(store.guesses).toHaveLength(1);
       expect(store.puzzleDate).toBe("2026-02-15");
     });
   });

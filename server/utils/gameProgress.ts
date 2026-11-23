@@ -12,6 +12,8 @@ import { loadAnimalById, loadMysteryTarget } from "./loadAnimal";
 
 /**
  * Collect clade names already known from sealed guesses and hints.
+ * The root clade (target.lineage[0]) always counts as revealed: the client
+ * tree draws it from the start, so a hint must never spend guesses on it.
  * @param target - Mystery target
  * @param guessLcas - LCAs recomputed from sealed guess animal ids
  * @param hintClades - Sealed hint clade names
@@ -23,6 +25,11 @@ export function revealedCladeNamesFromHistory(
   hintClades: string[],
 ): string[] {
   const names = new Set<string>();
+
+  const rootClade = target.lineage[0]?.name;
+  if (rootClade?.trim()) {
+    names.add(rootClade);
+  }
 
   for (const lca of guessLcas) {
     for (const clade of lca.path) {
