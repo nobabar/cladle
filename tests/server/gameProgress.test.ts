@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { Animal } from "~/types/animal";
+import {
+  buildHintCladeSelectorInput,
+  selectHintClade,
+} from "~/utils/hintCladeSelector";
 import { revealedCladeNamesFromHistory } from "../../server/utils/gameProgress";
 
 function animalWithLineage(names: string[]): Animal {
@@ -39,5 +43,28 @@ describe("gameProgress", () => {
       "Chordata",
       "Mammalia",
     ]));
+  });
+
+  it("counts the root clade as revealed with an empty history", () => {
+    const target = animalWithLineage(["Animalia", "Chordata", "Mammalia"]);
+    expect(revealedCladeNamesFromHistory(target, [], [])).toEqual(["Animalia"]);
+  });
+
+  it("makes the first hint skip the visible root clade", () => {
+    const target = animalWithLineage([
+      "Animalia",
+      "Chordata",
+      "Mammalia",
+      "Carnivora",
+      "Felidae",
+    ]);
+    const selected = selectHintClade(buildHintCladeSelectorInput({
+      target,
+      guesses: [],
+      hints: [],
+      revealedCladeNames: revealedCladeNamesFromHistory(target, [], []),
+    }));
+    expect(selected?.clade).toBe("Chordata");
+    expect(selected?.depth).toBe(1);
   });
 });

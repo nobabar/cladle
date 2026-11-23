@@ -15,8 +15,6 @@ import { gameStorePersistSerializer } from "~/utils/piniaGameStorePersistence";
 import { createSafeLocalStorageForPinia } from "~/utils/storageSafe";
 import type { HintEntry } from "~/types/hint";
 import { HINT_GUESS_COST } from "~/types/hint";
-import { resolveBabyModeLCA } from "~/utils/babyMode";
-import { buildHintCladeSelectorInput, selectHintClade } from "~/utils/hintCladeSelector";
 import { selectPathFillClade } from "~/utils/pathFillClade";
 import { submitGameGuess, submitGameHint } from "~/services/gameApiClient";
 
@@ -207,25 +205,14 @@ export const useGameStore = defineStore("game", {
       if (this.status !== "playing" || this.isReplayMode) {
         return false;
       }
-      if (this.gameToken) {
-        return this.serverHintAvailable;
-      }
-      if (!this.target) {
-        return false;
-      }
-      return selectHintClade(buildHintCladeSelectorInput({
-        target: this.target,
-        guesses: this.guesses,
-        hints: this.hints,
-        revealedCladeNames: Array.from(this.cladeMap.keys()),
-      })) !== null;
+      return this.gameToken !== null && this.serverHintAvailable;
     },
 
     canRequestHint(): boolean {
       return (
         this.status === "playing"
         && !this.isReplayMode
-        && (this.gameToken !== null || this.target !== null)
+        && this.gameToken !== null
         && this.guessesRemaining > HINT_GUESS_COST
         && this.hasHintAvailable
       );
@@ -663,23 +650,10 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
-     * Unit-test helper: start with a known target (no game token).
-     * @param target - The target animal
-     * @param maxGuesses - Maximum number of guesses
-     */
-    startGame(target: Animal, maxGuesses: number = DEFAULT_MAX_GUESSES): void {
-      this.gameToken = null;
-      this.initializeGame(
-        target,
-        maxGuesses,
-        undefined,
-        this.gameMode ?? undefined,
-        true,
-      );
-    },
-
-    /**
-     * Initialize a new game with a target animal
+     * Initialize a plaintext game with a known target animal.
+     * Test and UI-fixture use only: without a sealed gameToken, processGuess and
+     * requestHint reject, so a game started here cannot be played. Real games use
+     * initializeSealedGame.
      * @param target - The target animal to guess
      * @param maxGuesses - Maximum number of guesses (default: DEFAULT_MAX_GUESSES)
      * @param puzzleDate - Current puzzle date (YYYY-MM-DD format, optional)
@@ -840,8 +814,8 @@ export const useGameStore = defineStore("game", {
       }
     },
 
-    addGuess(guess: Animal): void {
-      this.processGuess(guess);
+    addGuess(guess: Animal): Promise<void> {
+      return this.processGuess(guess);
     },
 
     setCompletionStatus(status: CompletionStatus): void {
@@ -1016,11 +990,12 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
-     * Process a guess via the server when gameToken is set, otherwise locally.
+     * Process a guess via the sealed game API.
+     * Every failure, including guard checks, rejects the returned promise.
      * @param guess - The guessed animal
      * @returns A promise that resolves when the guess is processed
      */
-    processGuess(guess: Animal): Promise<void> {
+    async processGuess(guess: Animal): Promise<void> {
       if (this.status !== "playing") {
         throw new Error("Game is not active");
       }
@@ -1033,57 +1008,13 @@ export const useGameStore = defineStore("game", {
         throw new Error("Animal already guessed");
       }
 
-      if (this.gameToken) {
-        return this.processGuessViaServer(guess);
-      }
-
-      if (!this.target) {
-        throw new Error("No target animal set");
-      }
-
-      let lcaResult = calculateLCA(guess, this.target);
-      if (this.gameMode === "baby") {
-        lcaResult = resolveBabyModeLCA(lcaResult, this.target);
-      }
-
-      const guessEntry: GuessEntry = {
-        animal: guess,
-        lca: lcaResult,
-        timestamp: Date.now(),
-      };
-
-      this.guesses.push(guessEntry);
-
-      this.updateTreeWithGuess(guess, lcaResult);
-
-      if (guess.id === this.target.id) {
-        this.status = "won";
-      } else if (this.guessesRemaining <= 0) {
-        this.status = "lost";
-      }
-
-      if (this.gameMode) {
-        // Let Pinia flush this guess before serializing mode state (status/guesses/tree must match).
-        setTimeout(() => {
-          this.saveModeState(this.gameMode!);
-        }, 0);
-      }
-
-      return Promise.resolve();
-    },
-
-    /**
-     * Process a guess via the server when gameToken is set.
-     * @param guess - The guessed animal
-     * @returns A promise that resolves when the guess is processed
-     */
-    async processGuessViaServer(guess: Animal): Promise<void> {
-      if (!this.gameToken) {
+      const gameToken = this.gameToken;
+      if (!gameToken) {
         throw new Error("No sealed game token");
       }
 
       const response = await submitGameGuess({
-        gameToken: this.gameToken,
+        gameToken,
         animalId: guess.id,
       });
 
@@ -1112,10 +1043,11 @@ export const useGameStore = defineStore("game", {
     },
 
     /**
-     * Spend guess budget for a paid hint and reveal the next clade on the target path.
+     * Spend guess budget for a paid hint via the sealed game API.
+     * Every failure, including guard checks, rejects the returned promise.
      * @returns A promise that resolves when the hint is processed
      */
-    requestHint(): Promise<void> {
+    async requestHint(): Promise<void> {
       if (this.isReplayMode) {
         throw new Error("Hints are not available in replay mode");
       }
@@ -1128,66 +1060,12 @@ export const useGameStore = defineStore("game", {
         throw new Error("Not enough guesses remaining for a hint");
       }
 
-      if (this.gameToken) {
-        return this.requestHintViaServer();
-      }
-
-      if (!this.target) {
-        throw new Error("No target animal set");
-      }
-
-      const selected = selectHintClade(buildHintCladeSelectorInput({
-        target: this.target,
-        guesses: this.guesses,
-        hints: this.hints,
-        revealedCladeNames: Array.from(this.cladeMap.keys()),
-      }));
-      if (!selected) {
-        throw new Error("No hint available");
-      }
-
-      const hintEntry: HintEntry = {
-        timestamp: Date.now(),
-        cost: HINT_GUESS_COST,
-        revealedClade: selected.clade,
-        rank: selected.rank,
-        depth: selected.depth,
-        path: [...selected.path],
-      };
-
-      this.hints.push(hintEntry);
-      this.revealCladeOnTree({
-        clade: selected.clade,
-        rank: selected.rank,
-        depth: selected.depth,
-        path: selected.path,
-      });
-
-      if (this.guessesRemaining <= 0) {
-        this.status = "lost";
-      }
-
-      if (this.gameMode) {
-        setTimeout(() => {
-          this.saveModeState(this.gameMode!);
-        }, 0);
-      }
-
-      return Promise.resolve();
-    },
-
-    /**
-     * Spend guess budget for a paid hint and reveal the next clade on the target path via the server.
-     * @returns A promise that resolves when the hint is processed
-     */
-    async requestHintViaServer(): Promise<void> {
-      if (!this.gameToken) {
+      const gameToken = this.gameToken;
+      if (!gameToken) {
         throw new Error("No sealed game token");
       }
 
-      const response = await submitGameHint({
-        gameToken: this.gameToken,
-      });
+      const response = await submitGameHint({ gameToken });
 
       this.gameToken = response.gameToken;
 
