@@ -493,9 +493,12 @@ export function useOnboardingTour() {
         {
           element: "[data-onboarding='footer-help-link']",
           onHighlightStarted: () => {
-            onboardingDriver?.setConfig({
-              stagePadding: 8,
-            });
+            if (onboardingDriver) {
+              onboardingDriver.setConfig({
+                ...onboardingDriver.getConfig(),
+                stagePadding: 8,
+              });
+            }
             queueDriverRefresh();
           },
           popover: {

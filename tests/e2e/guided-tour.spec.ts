@@ -20,6 +20,24 @@ async function finishGuidedTour(page: Page) {
   await expect(page.locator(".driver-popover")).toHaveCount(0, { timeout: 10_000 });
 }
 
+/**
+ * Wait until window.scrollY stops changing between polls.
+ * @param page - Playwright page
+ * @returns The settled scroll position
+ */
+async function waitForScrollToSettle(page: Page): Promise<number> {
+  let previous = Number.NaN;
+  await expect
+    .poll(async () => {
+      const current = await page.evaluate(() => window.scrollY);
+      const settled = current === previous;
+      previous = current;
+      return settled;
+    }, { timeout: 10_000, intervals: [150] })
+    .toBe(true);
+  return previous;
+}
+
 async function closePostitFromStickyTab(page: Page) {
   const stickyTab = page.locator(
     "[data-onboarding='daily-information-postit'] .information-panel-postit__sticky-tab",
@@ -102,10 +120,17 @@ test("guided tour can progress through interactive actions", async ({ page }) =>
     timeout: 10_000,
   });
 
-  const scrollYBeforeFinish = await page.evaluate(() => window.scrollY);
+  // Driver.js scrolls the last step into view; wait until it stops so the Finish
+  // click lands on the button instead of the backdrop.
+  const scrollYBeforeFinish = await waitForScrollToSettle(page);
   expect(scrollYBeforeFinish).toBeGreaterThan(200);
 
   await finishGuidedTour(page);
+
+  // Finishing must run onDestroyed, which records completion.
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("cladle:onboarding:daily:v1")))
+    .toBe("done");
 
   // Snap runs ~1.3s after destroy; keep poll well under the default 30s test timeout.
   await expect
